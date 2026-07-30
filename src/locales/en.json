@@ -6,6 +6,7 @@
   "nav": {
     "home": "Home",
     "programs": "Programs",
+    "schedule": "Schedule",
     "videos": "Videos",
     "gallery": "Gallery",
     "facilities": "Facilities",
@@ -54,6 +55,62 @@
       "yoga": "Yoga & Mobility",
       "traditional": "Traditional Fitness",
       "competition": "Competition Peaking"
+    }
+  },
+  "schedule": {
+    "eyebrow": "Training Schedule",
+    "title": "Weekly Training",
+    "highlight": "Schedule",
+    "subtitle": "Train with discipline, strength, and dedication. Our structured weekly program is designed to build endurance, technique, power, and championship-level wrestling skills.",
+    "sessions": {
+      "morning": {
+        "title": "Morning Session",
+        "time": "4:30 AM – 8:30 AM",
+        "note": "Endurance, running, and core wrestling practice."
+      },
+      "evening": {
+        "title": "Evening Session",
+        "time": "4:30 PM – 7:00 PM",
+        "note": "Technique, strength, sparring, and conditioning."
+      },
+      "sunday": {
+        "title": "Sunday",
+        "time": "Holiday / Recovery Day",
+        "note": "Rest, recovery, and mental reset."
+      }
+    },
+    "table": {
+      "day": "Day",
+      "morning": "Morning Session",
+      "evening": "Evening Session"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "activities": {
+      "running": "Running",
+      "crossCountry": "Cross Country",
+      "wrestlingPractice": "Wrestling Practice",
+      "wrestlingTechniques": "Wrestling Techniques",
+      "strength": "Strength Training",
+      "gym": "Gym Training",
+      "sports": "Sports & Games",
+      "sparring": "Sparring Practice",
+      "endurance": "Endurance Training",
+      "holiday": "Holiday / Recovery"
+    },
+    "legendTitle": "Activity Legend",
+    "cta": {
+      "title": "Ready to Begin Your Wrestling Journey?",
+      "text": "Join Raghunandan Akhada and train under experienced coaches in a disciplined environment where tradition meets modern athletic excellence.",
+      "join": "Join Akhada",
+      "contact": "Contact Us"
     }
   },
   "videos": {
@@ -155,6 +212,8 @@
     "title": "Tradition meets",
     "highlight": "modern excellence.",
     "subtitle": "Raghunandan Akhada unites centuries of pehlwani discipline with a clean digital operating system for every academy.",
+    "mantra": "ॐ भूर्भुवः स्वः, तत्सवितुर्वरेण्यं, भर्गो देवस्य धीमहि, धियो यो नः प्रचोदयात्",
+    "mantraLabel": "Gayatri Mantra",
     "imageAlt": "Heritage Akhada grounds",
     "pillars": {
       "heritage": {
@@ -163,13 +222,25 @@
       },
       "discipline": {
         "title": "Discipline",
-        "text": "Dawn routines, rigorous practice, and character-first coaching that builds leaders."
+        "text": "Dawn routines, rigorous practice, and character-first coaching that builds champions."
       },
       "technology": {
         "title": "Technology",
         "text": "Digital records, attendance, payments, and analytics that keep the Akhada running smoothly."
       }
-    }
+    },
+    "disciplineQuotesTitle": "Akhada Discipline",
+    "disciplineQuotes": [
+      "Practice brahmacharya — make not only the body, but also the mind, invincible.",
+      "Those who bathe in water only change their clothes; those who bathe in sweat change history.",
+      "Parents are the first gurus; honouring them is true education.",
+      "Discipline is the power that turns an ordinary youth into a great pehlwan.",
+      "Where there is restraint in life, success follows in every step.",
+      "The Akhada teaches not only wrestling, but also how to live life.",
+      "Before becoming a champion, first become the master of yourself.",
+      "Work so silently that victory itself becomes your introduction.",
+      "Strength of the body comes from practice; strength of the mind comes from brahmacharya."
+    ]
   },
   "achievements": {
     "eyebrow": "Achievements",
@@ -184,9 +255,9 @@
     }
   },
   "coaches": {
-    "badge": "Expert Coaches",
+    "badge": "Expert Team",
     "titleLine1": "Meet Our",
-    "titleLine2": "Champion Coaches",
+    "titleLine2": " Coaches / Trainers",
     "subtitle": "Learn traditional wrestling and modern strength training under experienced Akhada Gurus dedicated to building discipline, strength, and champions.",
     "eyebrow": "Coaches",
     "title": "Gurus who shape",
@@ -196,43 +267,36 @@
     "achievementsLabel": "Achievements",
     "items": {
       "guru": {
-        "name": "Guru Raghunandan",
-        "role": "Head Wrestling Coach",
-        "experience": "18+ Years",
+        "name": "Pahalwan Ashwani Kumar",
+        "role": "Founder",
+        "experience": "20+ Years",
         "specialty": "Traditional Kushti",
         "bio": "Master of mitti kushti who shapes champions through discipline, technique, and timeless Akhada values.",
         "specialization": "Classical Kushti",
         "achievements": "40+ state-level pehlwans mentored"
       },
       "mahavir": {
-        "name": "Mahavir Singh",
+        "name": "Pahalwan Satish kashyap",
         "role": "Strength Coach",
-        "experience": "12+ Years",
+        "experience": "20+ Years",
         "specialty": "Strength & Conditioning",
         "bio": "Builds explosive power with jori, gada, and modern conditioning crafted for pehlwani performance."
       },
       "vikram": {
-        "name": "Vikram Pehlwan",
+        "name": "Pahalwan Satendra Tomar",
         "role": "Fitness Coach",
-        "experience": "10+ Years",
+        "experience": "20+ Years",
         "specialty": "Functional Training",
         "bio": "Blends functional fitness with wrestling stamina so athletes stay sharp from dawn practice to dangal night.",
         "specialization": "Jori & Athletic Power",
         "achievements": "National-level conditioning specialist"
       },
-      "arjun": {
-        "name": "Arjun Pehlwan",
-        "role": "Youth Coach",
-        "experience": "8+ Years",
-        "specialty": "Beginner Training",
-        "bio": "Guides young pehlwans with patience and precision — foundations first, then fearless competition spirit."
-      },
       "anita": {
-        "name": "Coach Anita Sharma",
-        "role": "Performance Coach",
-        "experience": "11+ Years",
-        "specialization": "Recovery & Nutrition",
-        "achievements": "Sports science certified"
+        "name": "Anita Kakar (NIS Coach)",
+        "role": "NIS Coach",
+        "experience": "10+ Years",
+        "specialty": "Scientific Training",
+        "bio": "NIS-certified coach guiding athletes with modern sports science, technique refinement, and championship-focused discipline."
       }
     }
   },

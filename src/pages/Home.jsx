@@ -3,6 +3,7 @@ import Footer from '../components/layout/Footer';
 import Hero from '../components/sections/Hero';
 import Coaches from '../components/sections/Coaches';
 import Programs from '../components/sections/Programs';
+import TrainingSchedule from '../components/sections/TrainingSchedule';
 import Videos from '../components/sections/Videos';
 import Gallery from '../components/sections/Gallery';
 import Facilities from '../components/sections/Facilities';
@@ -20,6 +21,7 @@ export default function Home() {
         <Hero />
         <Coaches />
         <Programs />
+        <TrainingSchedule />
         <Videos />
         <Gallery />
         <Facilities />

@@ -4,7 +4,7 @@ import coachesImg from '../assets/akhada/coaches-athletes.png';
 import coachGuru from '../assets/akhada/coaches/guru-raghunandan.png';
 import coachMahavir from '../assets/akhada/coaches/mahavir-singh.png';
 import coachVikram from '../assets/akhada/coaches/vikram-pehlwan.png';
-import coachArjun from '../assets/akhada/coaches/arjun-pehlwan.png';
+import coachAnita from '../assets/akhada/coaches/anita-kakar.png';
 
 export const images = {
   hero: heroImg,
@@ -24,6 +24,7 @@ export const navLinks = [
   { labelKey: 'nav.home', href: '/#home' },
   { labelKey: 'nav.coaches', href: '/#coaches' },
   { labelKey: 'nav.programs', href: '/#programs' },
+  { labelKey: 'nav.schedule', href: '/#schedule' },
   { labelKey: 'nav.videos', href: '/#videos' },
   { labelKey: 'nav.gallery', href: '/#gallery' },
   { labelKey: 'nav.facilities', href: '/#facilities' },
@@ -58,7 +59,7 @@ export const championCoaches = [
   { key: 'guru', image: coachGuru },
   { key: 'mahavir', image: coachMahavir },
   { key: 'vikram', image: coachVikram },
-  { key: 'arjun', image: coachArjun },
+  { key: 'anita', image: coachAnita },
 ];
 
 export const achievements = [
