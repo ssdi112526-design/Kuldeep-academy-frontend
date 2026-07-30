@@ -1,15 +1,8 @@
-const STATUS_LABELS = {
-  new: 'New',
-  in_progress: 'In Progress',
-  resolved: 'Resolved',
-  closed: 'Closed',
-};
-
 function Row({ label, value }) {
   return (
     <div className="border-b border-slate-100 py-3 last:border-0">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-sm text-ink">{value || '-'}</p>
+      <p className="mt-1 text-sm text-ink">{value || '0'}</p>
     </div>
   );
 }
@@ -47,10 +40,9 @@ export default function ViewModal({ contact, onClose }) {
           <Row label="Full Name" value={contact.fullName} />
           <Row label="Email" value={contact.email} />
           <Row label="Phone" value={contact.phone} />
-          <Row label="Company" value={contact.organisation} />
-          <Row label="Service Required" value={contact.serviceRequired} />
+          <Row label="PAN Number" value={contact.panNumber} />
+          <Row label="Aadhaar Number" value={contact.aadhaarNumber} />
           <Row label="Message" value={contact.message} />
-          <Row label="Status" value={STATUS_LABELS[contact.status] || contact.status} />
           <Row
             label="Submitted On"
             value={
@@ -60,7 +52,7 @@ export default function ViewModal({ contact, onClose }) {
                     timeStyle: 'short',
                     timeZone: 'Asia/Kolkata',
                   }).format(new Date(contact.createdAt))
-                : '-'
+                : '0'
             }
           />
         </div>

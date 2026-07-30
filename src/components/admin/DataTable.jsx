@@ -1,9 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { FaEye, FaTrash } from 'react-icons/fa';
-import Spinner from '../ui/Spinner';
+import { PanelLoader } from '../ui/PageLoader';
 import EmptyState from './EmptyState';
-
-const STATUS_OPTIONS = ['new', 'in_progress', 'resolved', 'closed'];
 
 function HeaderCheckbox({ checked, indeterminate, onChange }) {
   const ref = useRef(null);
@@ -35,14 +33,9 @@ export default function DataTable({
   onToggleAllOnPage,
   onView,
   onDeleteOne,
-  onStatusChange,
 }) {
   if (loading) {
-    return (
-      <div className="mt-6 flex justify-center rounded-xl border border-slate-100 bg-white py-16">
-        <Spinner />
-      </div>
-    );
+    return <PanelLoader message="Loading inquiries..." />;
   }
 
   if (error) {
@@ -79,9 +72,9 @@ export default function DataTable({
             <th className="px-4 py-3">Name</th>
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Phone</th>
-            <th className="px-4 py-3">Company</th>
+            <th className="px-4 py-3">PAN</th>
+            <th className="px-4 py-3">Aadhaar</th>
             <th className="px-4 py-3">Message</th>
-            <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3">Actions</th>
           </tr>
         </thead>
@@ -105,25 +98,17 @@ export default function DataTable({
                   timeZone: 'Asia/Kolkata',
                 }).format(new Date(contact.createdAt))}
               </td>
-              <td className="px-4 py-3 font-medium text-ink">{contact.fullName}</td>
-              <td className="px-4 py-3 text-muted">{contact.email}</td>
-              <td className="px-4 py-3 text-muted">{contact.phone || '-'}</td>
-              <td className="px-4 py-3 text-muted">{contact.organisation || '-'}</td>
-              <td className="max-w-xs truncate px-4 py-3 text-muted" title={contact.message}>
-                {contact.message}
+              <td className="px-4 py-3 font-medium text-ink">{contact.fullName || '0'}</td>
+              <td className="px-4 py-3 text-muted">{contact.email || '0'}</td>
+              <td className="px-4 py-3 text-muted">{contact.phone || '0'}</td>
+              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
+                {contact.panNumber || '0'}
               </td>
-              <td className="px-4 py-3">
-                <select
-                  value={contact.status}
-                  onChange={(e) => onStatusChange(contact._id, e.target.value)}
-                  className="rounded border border-slate-200 px-2 py-1 text-xs"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
+                {contact.aadhaarNumber || '0'}
+              </td>
+              <td className="max-w-xs truncate px-4 py-3 text-muted" title={contact.message}>
+                {contact.message || '0'}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">

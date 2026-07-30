@@ -1,74 +1,35 @@
-import { useEffect, useState } from 'react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import Hero from '../components/sections/Hero';
-import Services from '../components/sections/Services';
-import Products from '../components/sections/Products';
-import Team from '../components/sections/Team';
-import Partners from '../components/sections/Partners';
-import WhatWeHandle from '../components/sections/WhatWeHandle';
-import Equipment from '../components/sections/Equipment';
-import Coverage from '../components/sections/Coverage';
-import FAQ from '../components/sections/FAQ';
+import Coaches from '../components/sections/Coaches';
+import Programs from '../components/sections/Programs';
+import Videos from '../components/sections/Videos';
+import Gallery from '../components/sections/Gallery';
+import Facilities from '../components/sections/Facilities';
+import Features from '../components/sections/Features';
+import About from '../components/sections/About';
+import Achievements from '../components/sections/Achievements';
+import Testimonials from '../components/sections/Testimonials';
 import Contact from '../components/sections/Contact';
-import { contentService } from '../services';
-import {
-  fallbackCoverage,
-  fallbackEquipment,
-  fallbackFaqs,
-  fallbackPartners,
-  fallbackProducts,
-  fallbackServices,
-  fallbackTeam,
-} from '../data/content';
 
 export default function Home() {
-  const [content, setContent] = useState({
-    services: fallbackServices,
-    products: fallbackProducts,
-    partners: fallbackPartners,
-    team: fallbackTeam,
-    coverage: fallbackCoverage,
-    faqs: fallbackFaqs,
-    equipment: fallbackEquipment,
-  });
-
-  useEffect(() => {
-    contentService
-      .getAll()
-      .then((res) => {
-        const data = res.data.data;
-        setContent({
-          services: data.services?.length ? data.services : fallbackServices,
-          products: data.products?.length ? data.products : fallbackProducts,
-          partners: data.partners?.length ? data.partners : fallbackPartners,
-          team: data.team?.length ? data.team : fallbackTeam,
-          coverage: data.coverage?.length ? data.coverage : fallbackCoverage,
-          faqs: data.faqs?.length ? data.faqs : fallbackFaqs,
-          equipment: data.equipment?.length ? data.equipment : fallbackEquipment,
-        });
-      })
-      .catch(() => {
-        /* keep fallback content if API is offline */
-      });
-  }, []);
-
   return (
-    <>
+    <div className="min-h-screen bg-white">
       <Navbar />
       <main>
         <Hero />
-        <Services services={content.services} />
-        <Products products={content.products} />
-        <Team team={content.team} />
-        <Partners partners={content.partners} />
-        <WhatWeHandle />
-        <Equipment equipment={content.equipment} />
-        <Coverage coverage={content.coverage} />
-        <FAQ faqs={content.faqs} />
+        <Coaches />
+        <Programs />
+        <Videos />
+        <Gallery />
+        <Facilities />
+        <Features />
+        <About />
+        <Achievements />
+        <Testimonials />
         <Contact />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

@@ -1,219 +1,111 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { FaClipboardList, FaCalendarDay, FaEnvelopeOpenText } from 'react-icons/fa';
+import {
+  FaClipboardList,
+  FaDumbbell,
+  FaImages,
+  FaBuilding,
+  FaInbox,
+  FaVideo,
+  FaUsers,
+  FaUserTie,
+} from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
-import ConfirmDialog from '../components/ui/ConfirmDialog';
+import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { contactService } from '../services';
-import useDebouncedValue from '../hooks/useDebouncedValue';
-import { triggerBlobDownload, parseBlobError } from '../utils/downloadBlob';
+import { cmsStatsService } from '../services';
 import StatCard from '../components/admin/StatCard';
-import SearchBar from '../components/admin/SearchBar';
-import FilterBar from '../components/admin/FilterBar';
-import BulkActionsBar from '../components/admin/BulkActionsBar';
-import DataTable from '../components/admin/DataTable';
-import Pagination from '../components/admin/Pagination';
-import ViewModal from '../components/admin/ViewModal';
+import ContactsPanel from '../components/admin/ContactsPanel';
+import ProgramsPanel from '../components/admin/ProgramsPanel';
+import GalleryPanel from '../components/admin/GalleryPanel';
+import FacilitiesPanel from '../components/admin/FacilitiesPanel';
+import VideosPanel from '../components/admin/VideosPanel';
+import EntryStudentsPanel from '../components/admin/EntryStudentsPanel';
+import EntryCoachesPanel from '../components/admin/EntryCoachesPanel';
+import EntryEquipmentPanel from '../components/admin/EntryEquipmentPanel';
+import { formatBytes } from '../utils/videoUtils';
 
-const EMPTY_FILTERS = { dateFilter: '', startDate: '', endDate: '', status: '' };
-const MIME_TYPES = {
-  csv: 'text/csv',
-  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-};
+const NAV = [
+  { id: 'dashboard', label: 'Dashboard', icon: FaClipboardList },
+  { id: 'inquiries', label: 'Inquiries', icon: FaInbox },
+  {
+    id: 'content',
+    label: 'Content Management',
+    children: [
+      { id: 'programs', label: 'Programs', icon: FaDumbbell },
+      { id: 'gallery', label: 'Gallery', icon: FaImages },
+      { id: 'facilities', label: 'Facilities', icon: FaBuilding },
+      { id: 'videos', label: 'Videos', icon: FaVideo },
+    ],
+  },
+  {
+    id: 'entry',
+    label: 'Entry Management',
+    children: [
+      { id: 'students', label: 'Students', icon: FaUsers },
+      { id: 'coaches', label: 'Coaches', icon: FaUserTie },
+      { id: 'equipment', label: 'Equipment & Tools', icon: FaBuilding },
+    ],
+  },
+];
 
 export default function Admin() {
   const { user, loading, isAdmin, logout } = useAuth();
-  const toast = useToast();
-
-  const [contacts, setContacts] = useState([]);
-  const [listLoading, setListLoading] = useState(true);
-  const [listError, setListError] = useState('');
-
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 400);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [confirmState, setConfirmState] = useState({ open: false, mode: null, targetId: null, loading: false });
-  const [viewingContact, setViewingContact] = useState(null);
-  const [exporting, setExporting] = useState(false);
-
-  const [stats, setStats] = useState({ totalContacts: 0, totalMessages: 0, todayContacts: 0, statusBreakdown: {} });
+  const [section, setSection] = useState('dashboard');
+  const [cmsStats, setCmsStats] = useState({
+    totalPrograms: 0,
+    totalGallery: 0,
+    totalFacilities: 0,
+    totalVideos: 0,
+    publishedVideos: 0,
+    draftVideos: 0,
+    featuredVideos: 0,
+    totalStorageBytes: 0,
+  });
   const [statsLoading, setStatsLoading] = useState(true);
 
-  const filtersKey = JSON.stringify({ debouncedSearch, ...filters });
-  const prevFiltersKeyRef = useRef(filtersKey);
-
-  const buildParams = (page) => ({
-    page,
-    limit: pagination.limit,
-    ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
-    ...(filters.status && { status: filters.status }),
-    ...(filters.dateFilter && { dateFilter: filters.dateFilter }),
-    ...(filters.dateFilter === 'custom' && filters.startDate && { startDate: filters.startDate }),
-    ...(filters.dateFilter === 'custom' && filters.endDate && { endDate: filters.endDate }),
-  });
-
-  const fetchContacts = async (page) => {
-    setListLoading(true);
-    setListError('');
-    try {
-      const res = await contactService.list(buildParams(page));
-      const { contacts: list, pagination: p } = res.data.data;
-      setContacts(list);
-      setPagination((prev) => ({ ...prev, total: p.total, pages: p.pages, page: p.page }));
-      return list;
-    } catch (err) {
-      setListError(err.response?.data?.message || 'Failed to load records');
-      return [];
-    } finally {
-      setListLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
+  const refreshCmsStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await contactService.stats();
-      setStats(res.data.data);
+      const res = await cmsStatsService.get();
+      setCmsStats(res.data.data);
     } catch {
-      /* stats are non-critical; leave previous values */
+      /* non-critical */
     } finally {
       setStatsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (!isAdmin) return;
-    fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    const filtersChanged = prevFiltersKeyRef.current !== filtersKey;
-    prevFiltersKeyRef.current = filtersKey;
-
-    if (filtersChanged && pagination.page !== 1) {
-      setPagination((prev) => ({ ...prev, page: 1 }));
-      return;
-    }
-
-    fetchContacts(pagination.page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, pagination.page, pagination.limit, filtersKey]);
+    if (isAdmin) refreshCmsStats();
+  }, [isAdmin, refreshCmsStats]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted">Loading...</div>
-    );
+    return <PageLoader message="Loading admin panel..." />;
   }
 
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
 
-  const toggleRow = (id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const titles = {
+    dashboard: { title: 'Dashboard', subtitle: 'Content overview for Raghunandan Akhada.' },
+    inquiries: { title: 'Inquiries', subtitle: 'Manage contact form submissions.' },
+    programs: { title: 'Programs', subtitle: 'Create and manage training programs.' },
+    gallery: { title: 'Gallery', subtitle: 'Upload and organize gallery images.' },
+    facilities: { title: 'Facilities', subtitle: 'Manage akhada facilities.' },
+    videos: { title: 'Videos', subtitle: 'Upload and manage Akhada training & championship videos.' },
+    students: { title: 'Students', subtitle: 'Manage student entries, documents and profiles.' },
+    coaches: { title: 'Coaches', subtitle: 'Manage coach entries, documents and profiles.' },
+    equipment: { title: 'Equipment & Tools', subtitle: 'Manage akhada equipment, QR codes and history.' },
   };
 
-  const toggleAllOnPage = () => {
-    const pageIds = contacts.map((c) => c._id);
-    const allSelected = pageIds.every((id) => selectedIds.has(id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allSelected) {
-        pageIds.forEach((id) => next.delete(id));
-      } else {
-        pageIds.forEach((id) => next.add(id));
-      }
-      return next;
-    });
-  };
-
-  const handleStatusChange = async (id, status) => {
-    try {
-      const res = await contactService.updateStatus(id, status);
-      setContacts((prev) => prev.map((c) => (c._id === id ? res.data.data.contact : c)));
-      fetchStats();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Status update failed');
-    }
-  };
-
-  const handleDeleteOne = (id) => {
-    setConfirmState({ open: true, mode: 'single', targetId: id, loading: false });
-  };
-
-  const handleBulkDeleteClick = () => {
-    if (selectedIds.size === 0) {
-      toast.error('Please select at least one record.');
-      return;
-    }
-    setConfirmState({ open: true, mode: 'bulk', targetId: null, loading: false });
-  };
-
-  const handleConfirmDelete = async () => {
-    setConfirmState((s) => ({ ...s, loading: true }));
-    try {
-      if (confirmState.mode === 'single') {
-        await contactService.remove(confirmState.targetId);
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(confirmState.targetId);
-          return next;
-        });
-        toast.success('Record deleted successfully');
-      } else {
-        const ids = [...selectedIds];
-        await contactService.bulkDelete(ids);
-        setSelectedIds(new Set());
-        toast.success(`${ids.length} record(s) deleted successfully`);
-      }
-
-      setConfirmState({ open: false, mode: null, targetId: null, loading: false });
-
-      const remaining = await fetchContacts(pagination.page);
-      if (remaining.length === 0 && pagination.page > 1) {
-        setPagination((prev) => ({ ...prev, page: prev.page - 1 }));
-      }
-      fetchStats();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
-      setConfirmState((s) => ({ ...s, loading: false }));
-    }
-  };
-
-  const handleExport = async (format) => {
-    if (selectedIds.size === 0) {
-      toast.error('Please select at least one record.');
-      return;
-    }
-    setExporting(true);
-    try {
-      const res = await contactService.exportRecords({ ids: [...selectedIds], format });
-      const blob = new Blob([res.data], { type: MIME_TYPES[format] });
-      const date = new Date().toISOString().slice(0, 10);
-      triggerBlobDownload(blob, `contacts-${date}.${format}`);
-      toast.success('Export downloaded successfully');
-    } catch (err) {
-      toast.error(await parseBlobError(err));
-    } finally {
-      setExporting(false);
-    }
-  };
+  const meta = titles[section] || titles.dashboard;
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="border-b border-slate-100 bg-white">
+    <div className="flex h-screen flex-col overflow-hidden bg-surface">
+      {/* Fixed top bar — does not scroll */}
+      <header className="z-40 shrink-0 border-b border-slate-100 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3">
@@ -221,82 +113,116 @@ export default function Admin() {
             <Link to="/" className="text-sm font-medium text-brand hover:underline">
               Website
             </Link>
-            <Button variant="outline" onClick={logout}>
+            <Button variant="secondary" onClick={logout} className="rounded-lg px-4 py-2 text-sm">
               Logout
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold text-ink">Admin Dashboard</h1>
-        <p className="mt-1 text-sm text-muted">Manage inquiries submitted from the website form.</p>
+      <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-0 px-4 sm:px-6 lg:flex-row lg:gap-6">
+        {/* Sticky side menu — stays while content scrolls */}
+        <aside className="z-30 w-full shrink-0 border-b border-slate-100 bg-surface py-4 lg:w-56 lg:overflow-y-auto lg:border-b-0 lg:py-8">
+          <nav className="rounded-xl border border-slate-100 bg-white p-3 lg:sticky lg:top-8">
+            {NAV.map((item) =>
+              item.children ? (
+                <div key={item.id} className="mt-2">
+                  <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {item.label}
+                  </p>
+                  {item.children.map((child) => {
+                    const Icon = child.icon;
+                    const active = section === child.id;
+                    return (
+                      <button
+                        key={child.id}
+                        type="button"
+                        onClick={() => setSection(child.id)}
+                        className={`mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
+                          active ? 'bg-brand/10 text-brand' : 'text-ink hover:bg-slate-50'
+                        }`}
+                      >
+                        <Icon size={14} />
+                        {child.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSection(item.id)}
+                  className={`mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
+                    section === item.id ? 'bg-brand/10 text-brand' : 'text-ink hover:bg-slate-50'
+                  }`}
+                >
+                  <item.icon size={14} />
+                  {item.label}
+                </button>
+              )
+            )}
+          </nav>
+        </aside>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard label="Total Records" value={stats.totalContacts} icon={FaClipboardList} loading={statsLoading} />
-          <StatCard label="Today's Records" value={stats.todayContacts} icon={FaCalendarDay} loading={statsLoading} />
-          <StatCard
-            label="New / Unresolved"
-            value={stats.statusBreakdown?.new ?? 0}
-            icon={FaEnvelopeOpenText}
-            loading={statsLoading}
-          />
-        </div>
+        {/* Only this area scrolls */}
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto py-6 lg:py-8">
+          <h1 className="text-2xl font-bold text-ink">{meta.title}</h1>
+          <p className="mt-1 text-sm text-muted">{meta.subtitle}</p>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBar value={search} onChange={setSearch} />
-          <FilterBar filters={filters} onChange={setFilters} />
-        </div>
+          <div className="mt-6 pb-10">
+            {section === 'dashboard' && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                  label="Total Programs"
+                  value={cmsStats.totalPrograms}
+                  icon={FaDumbbell}
+                  loading={statsLoading}
+                />
+                <StatCard
+                  label="Total Gallery Images"
+                  value={cmsStats.totalGallery}
+                  icon={FaImages}
+                  loading={statsLoading}
+                />
+                <StatCard
+                  label="Total Facilities"
+                  value={cmsStats.totalFacilities}
+                  icon={FaBuilding}
+                  loading={statsLoading}
+                />
+                <StatCard
+                  label="Total Videos"
+                  value={cmsStats.totalVideos}
+                  icon={FaVideo}
+                  loading={statsLoading}
+                />
+                <StatCard
+                  label="Published Videos"
+                  value={cmsStats.publishedVideos}
+                  icon={FaVideo}
+                  loading={statsLoading}
+                />
+                <StatCard
+                  label="Video Storage"
+                  value={formatBytes(cmsStats.totalStorageBytes || 0)}
+                  icon={FaVideo}
+                  loading={statsLoading}
+                />
+              </div>
+            )}
 
-        <div className="mt-4">
-          <BulkActionsBar
-            count={selectedIds.size}
-            onExport={handleExport}
-            onBulkDelete={handleBulkDeleteClick}
-            onClear={() => setSelectedIds(new Set())}
-            exporting={exporting}
-          />
-        </div>
-
-        <DataTable
-          contacts={contacts}
-          loading={listLoading}
-          error={listError}
-          page={pagination.page}
-          limit={pagination.limit}
-          selectedIds={selectedIds}
-          onToggleRow={toggleRow}
-          onToggleAllOnPage={toggleAllOnPage}
-          onView={setViewingContact}
-          onDeleteOne={handleDeleteOne}
-          onStatusChange={handleStatusChange}
-        />
-
-        {!listLoading && !listError && contacts.length > 0 && (
-          <Pagination
-            pagination={pagination}
-            onPageChange={(page) => setPagination((prev) => ({ ...prev, page: Math.min(Math.max(1, page), prev.pages) }))}
-            onLimitChange={(limit) => setPagination((prev) => ({ ...prev, limit, page: 1 }))}
-          />
-        )}
-      </main>
-
-      <ConfirmDialog
-        open={confirmState.open}
-        title="Are you sure you want to delete this record?"
-        message={
-          confirmState.mode === 'bulk'
-            ? `This will permanently delete ${selectedIds.size} selected record(s).`
-            : 'This action cannot be undone.'
-        }
-        confirmLabel="Delete"
-        danger
-        loading={confirmState.loading}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmState({ open: false, mode: null, targetId: null, loading: false })}
-      />
-
-      <ViewModal contact={viewingContact} onClose={() => setViewingContact(null)} />
+            {section === 'inquiries' && <ContactsPanel />}
+            {section === 'programs' && <ProgramsPanel onChanged={refreshCmsStats} />}
+            {section === 'gallery' && <GalleryPanel onChanged={refreshCmsStats} />}
+            {section === 'facilities' && <FacilitiesPanel onChanged={refreshCmsStats} />}
+            {section === 'videos' && <VideosPanel onChanged={refreshCmsStats} />}
+            {section === 'students' && <EntryStudentsPanel />}
+            {section === 'coaches' && <EntryCoachesPanel />}
+            {section === 'equipment' && <EntryEquipmentPanel />}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

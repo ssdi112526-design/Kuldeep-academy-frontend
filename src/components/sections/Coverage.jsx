@@ -3,7 +3,7 @@ import SectionHeading from '../ui/SectionHeading';
 
 export default function Coverage({ coverage = [] }) {
   return (
-    <section id="coverage" className="bg-surface py-16 md:py-20">
+    <section id="pricing" className="bg-surface py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Active Coverage Areas"

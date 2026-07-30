@@ -1,0 +1,325 @@
+{
+  "brand": {
+    "name": "Raghunandan",
+    "akhada": "Akhada"
+  },
+  "nav": {
+    "home": "Home",
+    "programs": "Programs",
+    "videos": "Videos",
+    "gallery": "Gallery",
+    "facilities": "Facilities",
+    "features": "Features",
+    "achievements": "Achievements",
+    "coaches": "Coaches",
+    "contact": "Contact",
+    "join": "Join Akhada"
+  },
+  "lang": {
+    "label": "English",
+    "english": "English",
+    "hindi": "हिन्दी",
+    "switch": "Switch language"
+  },
+  "hero": {
+    "badge": "India's Smart Digital Akhada Platform",
+    "titleLine1": "Build Champions",
+    "titleLine2": "Preserve Tradition",
+    "subtitle": "Manage athletes, memberships, training, tournaments, attendance, and payments — all in one intelligent platform built for Indian Akhadas.",
+    "ctaPrimary": "Join Akhada",
+    "ctaSecondary": "Explore Heritage",
+    "imageAlt": "Premium Indian Akhada — pehlwans training at dawn"
+  },
+  "programs": {
+    "eyebrow": "Programs",
+    "title": "Training paths that build",
+    "highlight": "champions.",
+    "subtitle": "Equal focus on mitti, strength, and competition — designed for every stage of a pehlwan's journey.",
+    "items": {
+      "strength": {
+        "title": "Strength Training",
+        "text": "Jori, gada, and functional power built the pehlwani way."
+      },
+      "mud": {
+        "title": "Mud Practice",
+        "text": "Authentic kushti sessions in the mitti arena."
+      },
+      "advanced": {
+        "title": "Advanced Wrestling",
+        "text": "Competition technique, counters, and match intelligence."
+      }
+    },
+    "tags": {
+      "beginner": "Beginner Wrestling",
+      "yoga": "Yoga & Mobility",
+      "traditional": "Traditional Fitness",
+      "competition": "Competition Peaking"
+    }
+  },
+  "videos": {
+    "badge": "🎥 Akhada Media",
+    "titleLine1": "Watch Our Training &",
+    "titleLine2": "Championship Videos",
+    "subtitle": "Experience authentic Akhada training, Dab Pach techniques, championship bouts, coaching sessions, and inspiring moments from our wrestlers.",
+    "featured": "Featured Video",
+    "watchNow": "Watch Now",
+    "empty": "Videos coming soon. Check back for training and championship highlights.",
+    "loadError": "Unable to load videos right now.",
+    "views": "views",
+    "backToVideos": "Back to videos",
+    "notFound": "Video not found."
+  },
+  "gallery": {
+    "eyebrow": "Gallery",
+    "title": "Life inside the",
+    "highlight": "Akhada.",
+    "subtitle": "Authentic moments of training, recovery, and competition — captured in equal, aligned frames.",
+    "captions": {
+      "technique": "Technique under pressure",
+      "yoga": "Breath, balance, recovery",
+      "competition": "Competition intensity",
+      "strength": "Traditional strength",
+      "recovery": "Cleanse and rise again",
+      "mitti": "Rooted in the earth"
+    },
+    "close": "Close"
+  },
+  "facilities": {
+    "eyebrow": "Facilities",
+    "title": "Spaces built for",
+    "highlight": "discipline.",
+    "subtitle": "From mitti to recovery — every facility supports authentic training with modern care.",
+    "items": {
+      "mud": {
+        "title": "Mud Arena",
+        "text": "A sacred mitti pit prepared daily for authentic practice."
+      },
+      "nutrition": {
+        "title": "Nutrition Support",
+        "text": "Wholesome pehlwan diets guided with modern clarity."
+      },
+      "recovery": {
+        "title": "Recovery Area",
+        "text": "Cool-down and cleansing rituals after intense sessions."
+      }
+    },
+    "tags": {
+      "gym": "Modern Gym",
+      "changing": "Changing Rooms",
+      "competition": "Competition Zone",
+      "attendance": "Digital Attendance"
+    }
+  },
+  "features": {
+    "eyebrow": "Features",
+    "title": "Everything your Akhada needs",
+    "highlight": "to run better.",
+    "subtitle": "A focused toolkit for athletes, coaches, and administrators — clear, fast, and reliable.",
+    "items": {
+      "profiles": {
+        "title": "Athlete Profiles",
+        "text": "Complete pehlwan records, progress history, and growth timelines."
+      },
+      "memberships": {
+        "title": "Memberships",
+        "text": "Flexible plans, renewals, and clear status for every member."
+      },
+      "attendance": {
+        "title": "Attendance",
+        "text": "Reliable digital check-ins that match early-morning discipline."
+      },
+      "training": {
+        "title": "Training Plans",
+        "text": "Structured kushti, strength, and recovery programs by coaches."
+      },
+      "analytics": {
+        "title": "Analytics",
+        "text": "Track strength, stamina, weight, and competition readiness."
+      },
+      "tournaments": {
+        "title": "Tournaments",
+        "text": "Organize dangals, brackets, results, and rankings with ease."
+      },
+      "coach": {
+        "title": "Coach Tools",
+        "text": "One dashboard for batches, schedules, and athlete insights."
+      },
+      "payments": {
+        "title": "Payments",
+        "text": "Fees, dues, and receipts — transparent for families and admins."
+      }
+    }
+  },
+  "about": {
+    "eyebrow": "About",
+    "title": "Tradition meets",
+    "highlight": "modern excellence.",
+    "subtitle": "Raghunandan Akhada unites centuries of pehlwani discipline with a clean digital operating system for every academy.",
+    "imageAlt": "Heritage Akhada grounds",
+    "pillars": {
+      "heritage": {
+        "title": "Heritage",
+        "text": "Centuries of Pehlwani and Kushti live on in every session — respect, mitti, and mastery."
+      },
+      "discipline": {
+        "title": "Discipline",
+        "text": "Dawn routines, rigorous practice, and character-first coaching that builds leaders."
+      },
+      "technology": {
+        "title": "Technology",
+        "text": "Digital records, attendance, payments, and analytics that keep the Akhada running smoothly."
+      }
+    }
+  },
+  "achievements": {
+    "eyebrow": "Achievements",
+    "title": "Results that speak for",
+    "highlight": "themselves.",
+    "subtitle": "Champions forged through mitti, mentorship, and measurable excellence.",
+    "items": {
+      "champions": "Champions Trained",
+      "medals": "Medals Won",
+      "national": "National Players",
+      "years": "Years of Excellence"
+    }
+  },
+  "coaches": {
+    "badge": "Expert Coaches",
+    "titleLine1": "Meet Our",
+    "titleLine2": "Champion Coaches",
+    "subtitle": "Learn traditional wrestling and modern strength training under experienced Akhada Gurus dedicated to building discipline, strength, and champions.",
+    "eyebrow": "Coaches",
+    "title": "Gurus who shape",
+    "highlight": "leaders.",
+    "imageAlt": "Pehlwans of Raghunandan Akhada",
+    "specialization": "Specialization",
+    "achievementsLabel": "Achievements",
+    "items": {
+      "guru": {
+        "name": "Guru Raghunandan",
+        "role": "Head Wrestling Coach",
+        "experience": "18+ Years",
+        "specialty": "Traditional Kushti",
+        "bio": "Master of mitti kushti who shapes champions through discipline, technique, and timeless Akhada values.",
+        "specialization": "Classical Kushti",
+        "achievements": "40+ state-level pehlwans mentored"
+      },
+      "mahavir": {
+        "name": "Mahavir Singh",
+        "role": "Strength Coach",
+        "experience": "12+ Years",
+        "specialty": "Strength & Conditioning",
+        "bio": "Builds explosive power with jori, gada, and modern conditioning crafted for pehlwani performance."
+      },
+      "vikram": {
+        "name": "Vikram Pehlwan",
+        "role": "Fitness Coach",
+        "experience": "10+ Years",
+        "specialty": "Functional Training",
+        "bio": "Blends functional fitness with wrestling stamina so athletes stay sharp from dawn practice to dangal night.",
+        "specialization": "Jori & Athletic Power",
+        "achievements": "National-level conditioning specialist"
+      },
+      "arjun": {
+        "name": "Arjun Pehlwan",
+        "role": "Youth Coach",
+        "experience": "8+ Years",
+        "specialty": "Beginner Training",
+        "bio": "Guides young pehlwans with patience and precision — foundations first, then fearless competition spirit."
+      },
+      "anita": {
+        "name": "Coach Anita Sharma",
+        "role": "Performance Coach",
+        "experience": "11+ Years",
+        "specialization": "Recovery & Nutrition",
+        "achievements": "Sports science certified"
+      }
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Testimonials",
+    "title": "Trusted by the",
+    "highlight": "Akhada family.",
+    "subtitle": "Athletes, coaches, and parents who rely on clarity, discipline, and care.",
+    "prev": "Previous testimonial",
+    "next": "Next testimonial",
+    "items": {
+      "arjun": {
+        "name": "Arjun Pehlwan",
+        "role": "State Gold Medalist",
+        "quote": "Attendance, fees, and training plans finally live in one place. Our discipline got sharper — and so did our results."
+      },
+      "suresh": {
+        "name": "Suresh Guru",
+        "role": "Senior Coach, Delhi",
+        "quote": "Technology should serve tradition, not replace it. This platform respects every pehlwan and every dawn session."
+      },
+      "meera": {
+        "name": "Meera Kapoor",
+        "role": "Parent of Junior Athlete",
+        "quote": "Progress, payments, and achievements are clear. It feels premium, trustworthy, and rooted in Indian sporting culture."
+      }
+    }
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Start your",
+    "highlight": "Akhada journey.",
+    "subtitle": "Talk to us about academy onboarding, training, or a live platform demo.",
+    "name": "Name",
+    "namePlaceholder": "Your full name",
+    "phone": "Phone",
+    "phonePlaceholder": "+91",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "pan": "PAN Number",
+    "panPlaceholder": "ABCDE1234F",
+    "aadhaar": "Aadhaar Number",
+    "aadhaarPlaceholder": "12-digit Aadhaar",
+    "message": "Message",
+    "messagePlaceholder": "Tell us about your Akhada or goals...",
+    "send": "Send Message",
+    "sent": "Message sent successfully!",
+    "successTitle": "Message Sent Successfully!",
+    "successBody": "Thank you for contacting Raghunandan Akhada. We'll get back to you shortly.",
+    "successClose": "OK",
+    "mapTitle": "Raghunandan Akhada location",
+    "errors": {
+      "title": "Please complete the form",
+      "generic": "Please fill all required fields correctly.",
+      "nameRequired": "Please enter your full name.",
+      "nameShort": "Name must be at least 2 characters.",
+      "phoneRequired": "Please enter your phone number.",
+      "phoneInvalid": "Please enter a valid phone number.",
+      "emailRequired": "Please enter your email address.",
+      "emailInvalid": "Please enter a valid email address.",
+      "panRequired": "Please enter your PAN number.",
+      "panInvalid": "Please enter a valid PAN number (e.g. ABCDE1234F).",
+      "aadhaarRequired": "Please enter your Aadhaar number.",
+      "aadhaarInvalid": "Please enter a valid 12-digit Aadhaar number.",
+      "messageRequired": "Please enter your message.",
+      "messageShort": "Message must be at least 5 characters.",
+      "submitFailed": "Failed to send message. Please try again."
+    }
+  },
+  "footer": {
+    "tagline": "Modern software for traditional Indian Akhadas — athletes, training, and excellence in one place.",
+    "quickLinks": "Quick Links",
+    "programs": "Programs",
+    "contact": "Contact",
+    "gallery": "Gallery",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "rights": "All rights reserved.",
+    "programItems": {
+      "beginner": "Beginner Wrestling",
+      "advanced": "Advanced Wrestling",
+      "strength": "Strength Training",
+      "mud": "Mud Practice",
+      "competition": "Competition Training"
+    }
+  },
+  "common": {
+    "loading": "Loading..."
+  }
+}

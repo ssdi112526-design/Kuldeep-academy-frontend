@@ -3,7 +3,7 @@ import { getIcon } from '../../utils/icons';
 
 export default function Team({ team = [] }) {
   return (
-    <section id="team" className="bg-surface py-16 md:py-20">
+    <section id="about" className="bg-surface py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Our Team"

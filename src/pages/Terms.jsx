@@ -1,6 +1,6 @@
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
-import { companyInfo } from '../data/content';
+import { companyInfo } from '../data/akhada';
 
 const SECTIONS = [
   {

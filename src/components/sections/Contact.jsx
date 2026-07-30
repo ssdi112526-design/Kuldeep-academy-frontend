@@ -1,212 +1,367 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { FaCheckCircle, FaClock, FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
-import SectionHeading from '../ui/SectionHeading';
+import {
+  FaCheckCircle,
+  FaEnvelope,
+  FaMapMarkerAlt,
+  FaPhoneAlt,
+  FaFacebookF,
+  FaLinkedinIn,
+  FaInstagram,
+  FaYoutube,
+} from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 import Button from '../ui/Button';
-import BusinessInfoCard from '../ui/BusinessInfoCard';
-import { companyInfo, serviceOptions } from '../../data/content';
+import Reveal, { SectionHeading } from '../ui/Reveal';
+import ValidationPopup from '../ui/ValidationPopup';
+import { companyInfo, socialLinks } from '../../data/akhada';
+import useTranslation from '../../hooks/useTranslation';
+import { useToast } from '../../context/ToastContext';
 import { contactService } from '../../services';
 
-export default function Contact() {
-  const [submitted, setSubmitted] = useState(false);
-  const [serverError, setServerError] = useState('');
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm();
+const socialIconMap = {
+  FaFacebookF,
+  FaXTwitter,
+  FaLinkedinIn,
+  FaInstagram,
+  FaYoutube,
+};
 
-  const onSubmit = async (data) => {
-    setServerError('');
-    try {
-      await contactService.create(data);
-      setSubmitted(true);
-      reset();
-    } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        error.response?.data?.errors?.[0] ||
-        'Unable to send message. Please try again or call us directly.';
-      setServerError(message);
+const EMPTY = {
+  name: '',
+  email: '',
+  phone: '',
+  panNumber: '',
+  aadhaarNumber: '',
+  message: '',
+};
+
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const AADHAAR_REGEX = /^[0-9]{12}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[+\d][\d\s-]{7,18}$/;
+
+const inputBase =
+  'mt-1.5 w-full rounded-xl border bg-white px-4 py-3 text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#2563EB]';
+const inputOk = 'border-[#E5E7EB]';
+const inputErr = 'border-red-400 focus:border-red-500';
+
+export default function Contact() {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
     }
   };
 
+  const validate = () => {
+    const errors = {};
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+    const pan = form.panNumber.trim().toUpperCase();
+    const aadhaar = form.aadhaarNumber.trim().replace(/\s+/g, '');
+    const message = form.message.trim();
+
+    if (!name) errors.name = t('contact.errors.nameRequired');
+    else if (name.length < 2) errors.name = t('contact.errors.nameShort');
+
+    if (!phone) errors.phone = t('contact.errors.phoneRequired');
+    else if (!PHONE_REGEX.test(phone)) errors.phone = t('contact.errors.phoneInvalid');
+
+    if (!email) errors.email = t('contact.errors.emailRequired');
+    else if (!EMAIL_REGEX.test(email)) errors.email = t('contact.errors.emailInvalid');
+
+    if (!pan) errors.panNumber = t('contact.errors.panRequired');
+    else if (!PAN_REGEX.test(pan)) errors.panNumber = t('contact.errors.panInvalid');
+
+    if (!aadhaar) errors.aadhaarNumber = t('contact.errors.aadhaarRequired');
+    else if (!AADHAAR_REGEX.test(aadhaar)) errors.aadhaarNumber = t('contact.errors.aadhaarInvalid');
+
+    if (!message) errors.message = t('contact.errors.messageRequired');
+    else if (message.length < 5) errors.message = t('contact.errors.messageShort');
+
+    return errors;
+  };
+
+  const showValidationAlert = (errors) => {
+    const order = ['name', 'phone', 'email', 'panNumber', 'aadhaarNumber', 'message'];
+    const firstKey = order.find((key) => errors[key]);
+    const message = firstKey ? errors[firstKey] : t('contact.errors.generic');
+    setValidationPopup({
+      open: true,
+      title: t('contact.errors.title'),
+      message,
+    });
+    toast.error(message);
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const errors = validate();
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showValidationAlert(errors);
+      const firstId = Object.keys(errors)[0];
+      document.getElementById(`contact-${firstId}`)?.focus();
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await contactService.create({
+        fullName: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        panNumber: form.panNumber.trim().toUpperCase(),
+        aadhaarNumber: form.aadhaarNumber.trim().replace(/\s+/g, ''),
+        serviceRequired: 'General Inquiry',
+        message: form.message.trim(),
+      });
+      setForm(EMPTY);
+      setFieldErrors({});
+      setShowSuccess(true);
+      toast.success(t('contact.sent'));
+    } catch (err) {
+      const apiErrors = err?.response?.data?.errors;
+      const msg =
+        (Array.isArray(apiErrors) && apiErrors[0]) ||
+        err?.response?.data?.message ||
+        t('contact.errors.submitFailed');
+      const text = typeof msg === 'string' ? msg : t('contact.errors.submitFailed');
+      setValidationPopup({
+        open: true,
+        title: t('contact.errors.title'),
+        message: text,
+      });
+      toast.error(text);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fieldClass = (key) => `${inputBase} ${fieldErrors[key] ? inputErr : inputOk}`;
+
   return (
-    <section id="contact" className="bg-surface py-16 md:py-20">
+    <section id="contact" className="section bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow="Contact Us"
-          title="Get In Touch"
-          subtitle="Contact us to discuss your NPA portfolio and recovery requirements. We respond within one business day."
-        />
+        <Reveal>
+          <SectionHeading
+            eyebrow={t('contact.eyebrow')}
+            title={t('contact.title')}
+            highlight={t('contact.highlight')}
+            subtitle={t('contact.subtitle')}
+          />
+        </Reveal>
 
-        <div className="space-y-8">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <InfoCard
-              icon={FaMapMarkerAlt}
-              title="Registered Office"
-              body={companyInfo.address}
-            />
-            <InfoCard
-              icon={FaPhoneAlt}
-              title="Phone"
-              body={
-                <div className="space-y-1">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Reveal>
+            <form onSubmit={onSubmit} className="card p-6 md:p-8" noValidate>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-[#374151]">
+                  {t('contact.name')}
+                  <input
+                    id="contact-name"
+                    value={form.name}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    className={fieldClass('name')}
+                    placeholder={t('contact.namePlaceholder')}
+                  />
+                  {fieldErrors.name ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.name}</span>
+                  ) : null}
+                </label>
+
+                <label className="block text-sm font-medium text-[#374151]">
+                  {t('contact.phone')}
+                  <input
+                    id="contact-phone"
+                    value={form.phone}
+                    onChange={(e) => updateField('phone', e.target.value)}
+                    className={fieldClass('phone')}
+                    placeholder={t('contact.phonePlaceholder')}
+                  />
+                  {fieldErrors.phone ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.phone}</span>
+                  ) : null}
+                </label>
+
+                <label className="block text-sm font-medium text-[#374151] sm:col-span-2">
+                  {t('contact.email')}
+                  <input
+                    id="contact-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateField('email', e.target.value)}
+                    className={fieldClass('email')}
+                    placeholder={t('contact.emailPlaceholder')}
+                  />
+                  {fieldErrors.email ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.email}</span>
+                  ) : null}
+                </label>
+
+                <label className="block text-sm font-medium text-[#374151]">
+                  {t('contact.pan')}
+                  <input
+                    id="contact-panNumber"
+                    value={form.panNumber}
+                    onChange={(e) =>
+                      updateField(
+                        'panNumber',
+                        e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10)
+                      )
+                    }
+                    maxLength={10}
+                    className={`${fieldClass('panNumber')} uppercase`}
+                    placeholder={t('contact.panPlaceholder')}
+                    autoComplete="off"
+                  />
+                  {fieldErrors.panNumber ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.panNumber}</span>
+                  ) : null}
+                </label>
+
+                <label className="block text-sm font-medium text-[#374151]">
+                  {t('contact.aadhaar')}
+                  <input
+                    id="contact-aadhaarNumber"
+                    inputMode="numeric"
+                    value={form.aadhaarNumber}
+                    onChange={(e) =>
+                      updateField('aadhaarNumber', e.target.value.replace(/\D/g, '').slice(0, 12))
+                    }
+                    maxLength={12}
+                    className={fieldClass('aadhaarNumber')}
+                    placeholder={t('contact.aadhaarPlaceholder')}
+                    autoComplete="off"
+                  />
+                  {fieldErrors.aadhaarNumber ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.aadhaarNumber}</span>
+                  ) : null}
+                </label>
+
+                <label className="block text-sm font-medium text-[#374151] sm:col-span-2">
+                  {t('contact.message')}
+                  <textarea
+                    id="contact-message"
+                    rows={4}
+                    value={form.message}
+                    onChange={(e) => updateField('message', e.target.value)}
+                    className={`${fieldClass('message')} resize-none`}
+                    placeholder={t('contact.messagePlaceholder')}
+                  />
+                  {fieldErrors.message ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.message}</span>
+                  ) : null}
+                </label>
+              </div>
+
+              <Button type="submit" disabled={loading} className="mt-5 w-full sm:w-auto">
+                {loading ? '...' : t('contact.send')}
+              </Button>
+            </form>
+          </Reveal>
+
+          <Reveal delay={0.08}>
+            <div className="flex h-full flex-col gap-5">
+              <div className="card p-6">
+                <ul className="space-y-4 text-sm text-[#6B7280]">
+                  <li className="flex gap-3">
+                    <FaMapMarkerAlt className="mt-1 shrink-0 text-[#F59E0B]" />
+                    <span>{companyInfo.address}</span>
+                  </li>
                   {companyInfo.phones.map((phone) => (
-                    <a key={phone} href={`tel:${phone.replace(/\s/g, '')}`} className="block hover:text-brand">
-                      {phone}
-                    </a>
+                    <li key={phone} className="flex items-center gap-3">
+                      <FaPhoneAlt className="shrink-0 text-[#F59E0B]" />
+                      <a href={`tel:${phone.replace(/\s/g, '')}`} className="hover:text-[#111827]">
+                        {phone}
+                      </a>
+                    </li>
                   ))}
-                </div>
-              }
-            />
-            <InfoCard
-              icon={FaEnvelope}
-              title="Email"
-              body={
-                <a href={`mailto:${companyInfo.email}`} className="hover:text-brand">
-                  {companyInfo.email}
-                </a>
-              }
-            />
-            <InfoCard icon={FaClock} title="Working Hours" body={companyInfo.hours} />
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-stretch">
-            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:p-8">
-              {submitted ? (
-                <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-                  <FaCheckCircle className="mb-4 text-5xl text-emerald-500" />
-                  <h3 className="text-2xl font-bold text-ink">Message Sent!</h3>
-                  <p className="mt-2 text-muted">We&apos;ll get back to you shortly.</p>
-                  <Button className="mt-6" onClick={() => setSubmitted(false)}>
-                    Send Another Message
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-xl font-bold text-ink">Send a Message</h3>
-                  <p className="mt-1 text-sm text-muted">
-                    Fill in the details and our team will get back to you shortly.
-                  </p>
-
-                  <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Full Name *" error={errors.fullName?.message}>
-                        <input
-                          className={inputClass(errors.fullName)}
-                          placeholder="e.g. Rajesh Sharma"
-                          {...register('fullName', { required: 'Full name is required' })}
-                        />
-                      </Field>
-                      <Field label="Email Address *" error={errors.email?.message}>
-                        <input
-                          type="email"
-                          className={inputClass(errors.email)}
-                          placeholder="you@company.com"
-                          {...register('email', {
-                            required: 'Email is required',
-                            pattern: {
-                              value: /^\S+@\S+\.\S+$/,
-                              message: 'Enter a valid email',
-                            },
-                          })}
-                        />
-                      </Field>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Phone Number" error={errors.phone?.message}>
-                        <input
-                          className={inputClass(errors.phone)}
-                          placeholder="+91 98765 43210"
-                          {...register('phone')}
-                        />
-                      </Field>
-                      <Field label="Organisation" error={errors.organisation?.message}>
-                        <input
-                          className={inputClass(errors.organisation)}
-                          placeholder="Bank / NBFC name"
-                          {...register('organisation')}
-                        />
-                      </Field>
-                    </div>
-
-                    <Field label="Service Required *" error={errors.serviceRequired?.message}>
-                      <select
-                        className={inputClass(errors.serviceRequired)}
-                        defaultValue=""
-                        {...register('serviceRequired', { required: 'Please select a service' })}
+                  <li className="flex items-center gap-3">
+                    <FaEnvelope className="shrink-0 text-[#F59E0B]" />
+                    <a href={`mailto:${companyInfo.email}`} className="hover:text-[#111827]">
+                      {companyInfo.email}
+                    </a>
+                  </li>
+                </ul>
+                <div className="mt-5 flex gap-2">
+                  {socialLinks.map((social) => {
+                    const Icon = socialIconMap[social.icon];
+                    return (
+                      <a
+                        key={social.label}
+                        href={social.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={social.label}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:border-[#2563EB]/40 hover:text-[#2563EB]"
                       >
-                        <option value="" disabled>
-                          Select a service
-                        </option>
-                        {serviceOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-
-                    <Field label="Message *" error={errors.message?.message}>
-                      <textarea
-                        rows={4}
-                        className={inputClass(errors.message)}
-                        placeholder="Briefly describe your requirement or NPA portfolio details..."
-                        {...register('message', { required: 'Message is required' })}
-                      />
-                    </Field>
-
-                    {serverError && (
-                      <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{serverError}</p>
-                    )}
-
-                    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-                      {isSubmitting ? 'Sending...' : 'Send Message'}
-                    </Button>
-
-                    <p className="text-xs text-muted">
-                      Your information is kept confidential and never shared.
-                    </p>
-                  </form>
-                </>
-              )}
+                        <Icon size={14} />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="min-h-[240px] flex-1 overflow-hidden rounded-[24px] border border-[#E5E7EB] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
+                <iframe
+                  title={t('contact.mapTitle')}
+                  src="https://maps.google.com/maps?q=Karawal%20Nagar%20Delhi&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                  className="h-full min-h-[240px] w-full"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
             </div>
-
-            <BusinessInfoCard />
-          </div>
+          </Reveal>
         </div>
       </div>
+
+      <ValidationPopup
+        open={validationPopup.open}
+        title={validationPopup.title}
+        message={validationPopup.message}
+        onClose={() => setValidationPopup({ open: false, title: '', message: '' })}
+      />
+
+      {showSuccess ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#111827]/55 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-success-title"
+          onClick={() => setShowSuccess(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-[24px] bg-white p-8 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+              <FaCheckCircle size={36} />
+            </div>
+            <h3 id="contact-success-title" className="mt-5 font-display text-xl font-bold text-[#111827]">
+              {t('contact.successTitle')}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">{t('contact.successBody')}</p>
+            <Button type="button" className="mt-6 w-full sm:w-auto" onClick={() => setShowSuccess(false)}>
+              {t('contact.successClose')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
-}
-
-function Field({ label, error, children }) {
-  return (
-    <label className="block text-sm">
-      <span className="mb-1.5 block font-medium text-ink-soft">{label}</span>
-      {children}
-      {error && <span className="mt-1 block text-xs text-red-500">{error}</span>}
-    </label>
-  );
-}
-
-function InfoCard({ icon: Icon, title, body }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-brand-light text-brand">
-        <Icon size={16} />
-      </div>
-      <h3 className="font-bold text-ink">{title}</h3>
-      <div className="mt-1 text-sm leading-relaxed text-muted">{body}</div>
-    </div>
-  );
-}
-
-function inputClass(error) {
-  return `w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 ${
-    error ? 'border-red-400' : 'border-slate-200'
-  }`;
 }

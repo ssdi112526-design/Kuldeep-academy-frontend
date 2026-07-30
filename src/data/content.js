@@ -1,7 +1,8 @@
 export const companyInfo = {
-  name: 'Kartik Repossession Agency',
-  tagline: "India's trusted partner for legally compliant vehicle and asset recovery — serving leading banks and NBFC.",
-  badge: "India's Premier Asset Recovery Agency",
+  name: 'Raghunandan Akhada Academy',
+  tagline:
+    'Empowering traditional Indian Akhadas with modern digital management, athlete records, memberships, tournaments, payments, attendance, and performance tracking.',
+  badge: "India's Smart Akhada Management Platform",
   address: 'P-155, Plot No. 52, Gali No. 5, Phase-4, Shiv Vihar, Karawal Nagar, North East Delhi – 110094',
   phones: ['+91 96540 08400', '+91 96540 08500'],
   email: 'kartikashwanikumar@gmail.com',
@@ -9,11 +10,12 @@ export const companyInfo = {
 };
 
 export const navLinks = [
-  { label: 'Services', href: '/#services' },
-  { label: 'Our Partners', href: '/#partners' },
-  { label: 'Fast Recovery', href: '/#what-we-handle' },
-  { label: 'Networking', href: '/#coverage' },
-  { label: 'FAQs', href: '/#faq' },
+  { label: 'Home', href: '/#home' },
+  { label: 'Features', href: '/#features' },
+  { label: 'Modules', href: '/#modules' },
+  { label: 'Pricing', href: '/#pricing' },
+  { label: 'About', href: '/#about' },
+  { label: 'Contact', href: '/#contact' },
 ];
 
 export const fallbackServices = [
