@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FaClipboardList, FaCalendarDay, FaEnvelopeOpenText } from 'react-icons/fa';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { contactService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
@@ -12,6 +13,7 @@ import BulkActionsBar from './BulkActionsBar';
 import DataTable from './DataTable';
 import Pagination from './Pagination';
 import ViewModal from './ViewModal';
+import AccessDenied from './AccessDenied';
 
 const EMPTY_FILTERS = { dateFilter: '', startDate: '', endDate: '', status: '' };
 const MIME_TYPES = {
@@ -21,6 +23,10 @@ const MIME_TYPES = {
 
 export default function ContactsPanel() {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('inquiries');
+  const canDelete = can('inquiries.delete');
+  const canExport = can('inquiries.export');
   const [contacts, setContacts] = useState([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState('');
@@ -93,6 +99,7 @@ export default function ContactsPanel() {
   }, [pagination.page, pagination.limit, filtersKey]);
 
   const toggleRow = (id) => {
+    if (!canDelete && !canExport) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -102,6 +109,7 @@ export default function ContactsPanel() {
   };
 
   const toggleAllOnPage = () => {
+    if (!canDelete && !canExport) return;
     const pageIds = contacts.map((c) => c._id);
     const allSelected = pageIds.every((id) => selectedIds.has(id));
     setSelectedIds((prev) => {
@@ -113,6 +121,10 @@ export default function ContactsPanel() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete inquiries');
+      return;
+    }
     setConfirmState((s) => ({ ...s, loading: true }));
     try {
       if (confirmState.mode === 'single') {
@@ -142,6 +154,10 @@ export default function ContactsPanel() {
   };
 
   const handleExport = async (format) => {
+    if (!canExport) {
+      toast.error('You do not have permission to export inquiries');
+      return;
+    }
     if (selectedIds.size === 0) {
       toast.error('Please select at least one record.');
       return;
@@ -159,6 +175,8 @@ export default function ContactsPanel() {
     }
   };
 
+  if (!canView) return <AccessDenied />;
+
   return (
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -172,8 +190,10 @@ export default function ContactsPanel() {
         />
       </div>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBar value={search} onChange={setSearch} />
+      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <SearchBar value={search} onChange={setSearch} />
+        </div>
         <FilterBar filters={filters} onChange={setFilters} />
       </div>
 
@@ -190,6 +210,8 @@ export default function ContactsPanel() {
           }}
           onClear={() => setSelectedIds(new Set())}
           exporting={exporting}
+          canExport={canExport}
+          canDelete={canDelete}
         />
       </div>
 
@@ -203,7 +225,9 @@ export default function ContactsPanel() {
         onToggleRow={toggleRow}
         onToggleAllOnPage={toggleAllOnPage}
         onView={setViewingContact}
-        onDeleteOne={(id) => setConfirmState({ open: true, mode: 'single', targetId: id, loading: false })}
+        onDeleteOne={canDelete ? (id) => setConfirmState({ open: true, mode: 'single', targetId: id, loading: false }) : undefined}
+        canSelect={canDelete || canExport}
+        canDelete={canDelete}
       />
 
       {!listLoading && !listError && contacts.length > 0 && (

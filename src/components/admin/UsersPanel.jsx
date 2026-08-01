@@ -5,8 +5,6 @@ import {
   FaKey,
   FaPlus,
   FaTrash,
-  FaUserCheck,
-  FaUserSlash,
   FaEyeSlash,
   FaRandom,
 } from 'react-icons/fa';
@@ -20,6 +18,8 @@ import { usePermissions } from '../../context/PermissionContext';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const EMPTY = {
   name: '',
@@ -61,13 +61,14 @@ export default function UsersPanel() {
   const [preview, setPreview] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const [resetModal, setResetModal] = useState({ open: false, user: null, password: '', confirmPassword: '', loading: false });
 
-  const canView = can('users.view') || isSuperAdmin;
-  const canCreate = can('users.create') || isSuperAdmin;
-  const canEdit = can('users.edit') || isSuperAdmin;
-  const canDelete = can('users.delete') || isSuperAdmin;
+  const canView = can('users.view');
+  const canCreate = can('users.create');
+  const canEdit = can('users.edit');
+  const canDelete = can('users.delete');
 
   const roleOptions = useMemo(() => {
     if (isSuperAdmin) return roles;
@@ -120,6 +121,7 @@ export default function UsersPanel() {
     setFile(null);
     setPreview('');
     setShowPassword(false);
+    setFormError('');
     setModalOpen(true);
   };
 
@@ -138,6 +140,7 @@ export default function UsersPanel() {
     });
     setFile(null);
     setPreview(user.profileImage ? mediaUrl(user.profileImage) : '');
+    setFormError('');
     setModalOpen(true);
   };
 
@@ -156,11 +159,15 @@ export default function UsersPanel() {
   const saveUser = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.username.trim() || !form.email.trim() || !form.roleId) {
-      toast.error('Name, username, email and role are required');
+      const message = 'Name, username, email and role are required';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (!editing && (!form.password || form.password !== form.confirmPassword)) {
-      toast.error('Password and confirm password must match');
+      const message = 'Password and confirm password must match';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     setSaving(true);
@@ -185,7 +192,9 @@ export default function UsersPanel() {
       setModalOpen(false);
       fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -199,19 +208,8 @@ export default function UsersPanel() {
       setConfirm({ open: false, id: null, loading: false });
       fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((c) => ({ ...c, loading: false }));
-    }
-  };
-
-  const toggleStatus = async (user) => {
-    if (!canEdit) return;
-    try {
-      await userAdminService.setStatus(user.id, !user.isActive);
-      toast.success(user.isActive ? 'User disabled' : 'User enabled');
-      fetchList(pagination.page);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Status update failed');
     }
   };
 
@@ -342,11 +340,6 @@ export default function UsersPanel() {
                             <FaKey size={13} />
                           </button>
                         )}
-                        {canEdit && (
-                          <button type="button" title={u.isActive ? 'Disable' : 'Enable'} onClick={() => toggleStatus(u)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
-                            {u.isActive ? <FaUserSlash size={13} /> : <FaUserCheck size={13} />}
-                          </button>
-                        )}
                         {canDelete && (
                           <button type="button" title="Delete" onClick={() => setConfirm({ open: true, id: u.id, loading: false })} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
                             <FaTrash size={13} />
@@ -379,6 +372,7 @@ export default function UsersPanel() {
           <form onSubmit={saveUser} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="font-display text-xl font-bold text-ink">{editing ? 'Edit User' : 'Create Account'}</h3>
             <p className="mt-1 text-sm text-muted">Manage staff access for Raghunandan Akhada admin.</p>
+            <FormErrorBanner message={formError} />
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">

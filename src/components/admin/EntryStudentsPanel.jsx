@@ -7,9 +7,11 @@ import ImageUploader from './ImageUploader';
 import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { entryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
+import { getApiErrorMessage } from '../../utils/apiError';
 import {
   fieldClass,
   firstErrorMessage,
@@ -25,6 +27,7 @@ import {
   validatePan,
 } from '../../utils/formValidation';
 import EntryStudentProfileModal from './EntryStudentProfileModal';
+import AccessDenied from './AccessDenied';
 
 const STATUS_OPTIONS = ['Active', 'Inactive', 'Suspended'];
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
@@ -80,6 +83,13 @@ const EMPTY = {
 
 export default function EntryStudentsPanel() {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('students');
+  const canCreate = can('students.create');
+  const canEdit = can('students.edit');
+  const canDelete = can('students.delete');
+  const canExport = can('students.export');
+  const canUpload = can('students.upload');
 
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState(null);
@@ -223,7 +233,10 @@ export default function EntryStudentsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit]);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditingId(null);
     setForm(EMPTY);
     setFieldErrors({});
@@ -233,6 +246,7 @@ export default function EntryStudentsPanel() {
   };
 
   const openEdit = async (id) => {
+    if (!canEdit) return;
     setProfileLoading(false);
     try {
       const res = await entryService.students.getOne(id);
@@ -299,6 +313,18 @@ export default function EntryStudentsPanel() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (editingId && !canEdit) {
+      toast.error('You do not have permission to edit students');
+      return;
+    }
+    if (!editingId && !canCreate) {
+      toast.error('You do not have permission to create students');
+      return;
+    }
+    if (photoFile && !canUpload) {
+      toast.error('You do not have permission to upload student photos');
+      return;
+    }
     const errors = validateStudentForm();
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -391,7 +417,7 @@ export default function EntryStudentsPanel() {
       await fetchStats();
       fetchList(pagination.page);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Save failed';
+      const msg = getApiErrorMessage(err, 'Save failed');
       setValidationPopup({ open: true, title: 'Save failed', message: msg });
       toast.error(msg);
     } finally {
@@ -400,6 +426,10 @@ export default function EntryStudentsPanel() {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete students');
+      return;
+    }
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await entryService.students.remove(confirm.id);
@@ -408,12 +438,16 @@ export default function EntryStudentsPanel() {
       await fetchStats();
       await fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
 
   const handleExport = async () => {
+    if (!canExport) {
+      toast.error('You do not have permission to export students');
+      return;
+    }
     setExporting(true);
     try {
       const res = await entryService.students.exportRecords({ format: 'xlsx', search: search.trim() });
@@ -489,12 +523,16 @@ export default function EntryStudentsPanel() {
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={handleExport} disabled={exporting} className="rounded-lg px-4 py-2.5 text-sm">
-            {exporting ? 'Exporting...' : 'Export Excel'}
-          </Button>
-          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-            <FaPlus /> Add Student
-          </Button>
+          {canExport ? (
+            <Button onClick={handleExport} disabled={exporting} className="rounded-lg px-4 py-2.5 text-sm">
+              {exporting ? 'Exporting...' : 'Export Excel'}
+            </Button>
+          ) : null}
+          {canCreate ? (
+            <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+              <FaPlus /> Add Student
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -525,7 +563,7 @@ export default function EntryStudentsPanel() {
         </label>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white">
         {loading ? (
           <div className="space-y-3 p-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -589,22 +627,26 @@ export default function EntryStudentsPanel() {
                       >
                         <FaEye />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => openEdit(s.id)}
-                        className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"
-                        aria-label="Edit"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirm({ open: true, id: s.id, loading: false })}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                        aria-label="Delete"
-                      >
-                        <FaTrash />
-                      </button>
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(s.id)}
+                          className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"
+                          aria-label="Edit"
+                        >
+                          <FaEdit />
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => setConfirm({ open: true, id: s.id, loading: false })}
+                          className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                          aria-label="Delete"
+                        >
+                          <FaTrash />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -823,6 +865,10 @@ export default function EntryStudentsPanel() {
                 <ImageUploader
                   previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
                   onChange={(f) => {
+                    if (!canUpload) {
+                      toast.error('You do not have permission to upload student photos');
+                      return;
+                    }
                     setPhotoFile(f);
                     setPhotoPreview(URL.createObjectURL(f));
                     if (fieldErrors.photo) {

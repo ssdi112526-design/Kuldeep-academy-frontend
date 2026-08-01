@@ -3,7 +3,11 @@ import { FaEdit, FaPlus, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa
 import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { scheduleService } from '../../services';
+import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const EMPTY_SESSION = {
   key: '',
@@ -32,6 +36,11 @@ const EMPTY_DAY = {
 
 export default function SchedulePanel() {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('schedule');
+  const canCreate = can('schedule.create');
+  const canEdit = can('schedule.edit');
+  const canDelete = can('schedule.delete');
   const [tab, setTab] = useState('sessions');
   const [sessions, setSessions] = useState([]);
   const [days, setDays] = useState([]);
@@ -41,6 +50,7 @@ export default function SchedulePanel() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_SESSION);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
 
   const fetchAll = async () => {
@@ -64,13 +74,18 @@ export default function SchedulePanel() {
     fetchAll();
   }, []);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setForm(tab === 'sessions' ? EMPTY_SESSION : EMPTY_DAY);
+    setFormError('');
     setModalOpen(true);
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return;
     setEditing(item);
     if (tab === 'sessions') {
       setForm({
@@ -98,21 +113,34 @@ export default function SchedulePanel() {
         isActive: item.isActive,
       });
     }
+    setFormError('');
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (editing && !canEdit) {
+      toast.error('You do not have permission to edit the schedule');
+      return;
+    }
+    if (!editing && !canCreate) {
+      toast.error('You do not have permission to create schedule items');
+      return;
+    }
     setSaving(true);
     try {
       if (tab === 'sessions') {
         if (!form.titleEn.trim() || !form.titleHi.trim() || !form.timeEn.trim() || !form.timeHi.trim()) {
-          toast.error('Titles and times are required');
+          const message = 'Titles and times are required';
+          setFormError(message);
+          toast.error(message);
           setSaving(false);
           return;
         }
         if (!editing && !form.key.trim()) {
-          toast.error('Session key is required (e.g. morning)');
+          const message = 'Session key is required (e.g. morning)';
+          setFormError(message);
+          toast.error(message);
           setSaving(false);
           return;
         }
@@ -130,12 +158,16 @@ export default function SchedulePanel() {
         else await scheduleService.createSession({ ...payload, key: form.key.trim().toLowerCase() });
       } else {
         if (!form.labelEn.trim() || !form.labelHi.trim()) {
-          toast.error('Day labels are required');
+          const message = 'Day labels are required';
+          setFormError(message);
+          toast.error(message);
           setSaving(false);
           return;
         }
         if (!editing && !form.dayKey.trim()) {
-          toast.error('Day key is required (e.g. monday)');
+          const message = 'Day key is required (e.g. monday)';
+          setFormError(message);
+          toast.error(message);
           setSaving(false);
           return;
         }
@@ -157,13 +189,19 @@ export default function SchedulePanel() {
       setModalOpen(false);
       fetchAll();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleToggle = async (item) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to edit the schedule');
+      return;
+    }
     try {
       if (tab === 'sessions') await scheduleService.updateSession(item._id, { isActive: !item.isActive });
       else await scheduleService.updateDay(item._id, { isActive: !item.isActive });
@@ -174,6 +212,10 @@ export default function SchedulePanel() {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete schedule items');
+      return;
+    }
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       if (tab === 'sessions') await scheduleService.removeSession(confirm.id);
@@ -182,7 +224,7 @@ export default function SchedulePanel() {
       setConfirm({ open: false, id: null, loading: false });
       fetchAll();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
@@ -212,12 +254,14 @@ export default function SchedulePanel() {
             Weekly Days
           </button>
         </div>
-        <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-          <FaPlus /> {tab === 'sessions' ? 'Add Session' : 'Add Day'}
-        </Button>
+        {canCreate ? (
+          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+            <FaPlus /> {tab === 'sessions' ? 'Add Session' : 'Add Day'}
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white">
         {loading ? (
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((i) => (
@@ -249,29 +293,41 @@ export default function SchedulePanel() {
                   </td>
                   <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(item)}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(item)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                         item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                      {item.isActive ? 'Active' : 'Inactive'}
-                    </button>
+                      }`}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button type="button" onClick={() => openEdit(item)} className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10" aria-label="Edit">
-                      <FaEdit />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                      aria-label="Delete"
-                    >
-                      <FaTrash />
-                    </button>
+                    {canEdit ? (
+                      <button type="button" onClick={() => openEdit(item)} className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10" aria-label="Edit">
+                        <FaEdit />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        aria-label="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -301,29 +357,41 @@ export default function SchedulePanel() {
                   <td className="max-w-[180px] truncate px-4 py-3 text-xs text-muted">{item.morningEn}</td>
                   <td className="max-w-[180px] truncate px-4 py-3 text-xs text-muted">{item.eveningEn}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(item)}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(item)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                         item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                      {item.isActive ? 'Active' : 'Inactive'}
-                    </button>
+                      }`}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button type="button" onClick={() => openEdit(item)} className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10" aria-label="Edit">
-                      <FaEdit />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                      aria-label="Delete"
-                    >
-                      <FaTrash />
-                    </button>
+                    {canEdit ? (
+                      <button type="button" onClick={() => openEdit(item)} className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10" aria-label="Edit">
+                        <FaEdit />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        aria-label="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -341,6 +409,7 @@ export default function SchedulePanel() {
             <h3 className="text-lg font-bold text-ink">
               {editing ? 'Edit' : 'Add'} {tab === 'sessions' ? 'Session' : 'Day'}
             </h3>
+            <FormErrorBanner message={formError} />
             <div className="mt-4 space-y-4">
               {tab === 'sessions' ? (
                 <>

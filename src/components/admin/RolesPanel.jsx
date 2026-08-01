@@ -9,10 +9,12 @@ import { usePermissions } from '../../context/PermissionContext';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 export default function RolesPanel() {
   const toast = useToast();
-  const { can, isSuperAdmin } = usePermissions();
+  const { can } = usePermissions();
   const [roles, setRoles] = useState([]);
   const [menus, setMenus] = useState([]);
   const [allPermissions, setAllPermissions] = useState([]);
@@ -23,13 +25,17 @@ export default function RolesPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', permissions: [] });
+  const [hiddenPermissions, setHiddenPermissions] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
 
-  const canView = can('roles.view') || isSuperAdmin;
-  const canCreate = can('roles.create') || isSuperAdmin;
-  const canEdit = can('roles.edit') || isSuperAdmin;
-  const canDelete = can('roles.delete') || isSuperAdmin;
+  const canView = can('roles.view');
+  const canCreate = can('roles.create');
+  const canEdit = can('roles.edit');
+  const canDelete = can('roles.delete');
+
+  const catalogKeySet = useMemo(() => new Set(allPermissions.map((p) => p.key)), [allPermissions]);
 
   const permissionsByMenu = useMemo(() => {
     const map = {};
@@ -74,17 +80,23 @@ export default function RolesPanel() {
 
   const openCreate = () => {
     setEditing(null);
+    setHiddenPermissions([]);
     setForm({ name: '', description: '', permissions: [] });
+    setFormError('');
     setModalOpen(true);
   };
 
   const openEdit = (role) => {
+    if (!canEdit) return;
     setEditing(role);
+    const allKeys = [...(role.permissions || [])];
+    setHiddenPermissions(allKeys.filter((k) => catalogKeySet.size && !catalogKeySet.has(k)));
     setForm({
       name: role.name,
       description: role.description || '',
-      permissions: [...(role.permissions || [])],
+      permissions: allKeys.filter((k) => !catalogKeySet.size || catalogKeySet.has(k)),
     });
+    setFormError('');
     setModalOpen(true);
   };
 
@@ -97,35 +109,55 @@ export default function RolesPanel() {
     }));
   };
 
-  const toggleMenuAll = (menuKey, keys) => {
-    const allOn = keys.every((k) => form.permissions.includes(k));
+  /** Select All only toggles keys for THIS menu — never other modules. */
+  const toggleMenuAll = (_menuKey, keys) => {
+    const scoped = keys.filter((k) => catalogKeySet.has(k) || !catalogKeySet.size);
+    const allOn = scoped.length > 0 && scoped.every((k) => form.permissions.includes(k));
     setForm((f) => ({
       ...f,
       permissions: allOn
-        ? f.permissions.filter((k) => !keys.includes(k))
-        : Array.from(new Set([...f.permissions, ...keys])),
+        ? f.permissions.filter((k) => !scoped.includes(k))
+        : Array.from(new Set([...f.permissions, ...scoped])),
     }));
   };
 
   const saveRole = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      toast.error('Role name is required');
+      const message = 'Role name is required';
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
+    if (editing && !canEdit) {
+      toast.error('You do not have permission to edit roles');
+      return;
+    }
+    if (!editing && !canCreate) {
+      toast.error('You do not have permission to create roles');
       return;
     }
     setSaving(true);
     try {
+      const visibleKeys = form.permissions.filter((k) => !catalogKeySet.size || catalogKeySet.has(k));
+      const payload = {
+        name: form.name.trim(),
+        description: form.description,
+        permissions: Array.from(new Set([...visibleKeys, ...hiddenPermissions])),
+      };
       if (editing) {
-        await roleAdminService.update(editing.id, form);
+        await roleAdminService.update(editing.id, payload);
         toast.success('Role updated');
       } else {
-        await roleAdminService.create(form);
+        await roleAdminService.create(payload);
         toast.success('Role created');
       }
       setModalOpen(false);
       fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -150,7 +182,7 @@ export default function RolesPanel() {
       setConfirm({ open: false, id: null, loading: false });
       fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((c) => ({ ...c, loading: false }));
     }
   };
@@ -255,6 +287,7 @@ export default function RolesPanel() {
             <div className="border-b border-slate-100 px-6 py-4">
               <h3 className="font-display text-xl font-bold text-ink">{editing ? 'Edit Role & Permissions' : 'Create Role'}</h3>
               <p className="mt-1 text-sm text-muted">Assign menu-level permissions for this role.</p>
+              <FormErrorBanner message={formError} />
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <div className="grid gap-4 sm:grid-cols-2">

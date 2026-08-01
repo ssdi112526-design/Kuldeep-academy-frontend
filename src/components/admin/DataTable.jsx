@@ -33,6 +33,8 @@ export default function DataTable({
   onToggleAllOnPage,
   onView,
   onDeleteOne,
+  canSelect,
+  canDelete,
 }) {
   if (loading) {
     return <PanelLoader message="Loading inquiries..." />;
@@ -60,20 +62,20 @@ export default function DataTable({
       <table className="min-w-full text-left text-sm">
         <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase text-muted">
           <tr>
-            <th className="px-4 py-3">
-              <HeaderCheckbox
-                checked={allSelected}
-                indeterminate={someSelected}
-                onChange={onToggleAllOnPage}
-              />
-            </th>
+            {canSelect ? (
+              <th className="px-4 py-3">
+                <HeaderCheckbox
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onChange={onToggleAllOnPage}
+                />
+              </th>
+            ) : null}
             <th className="px-4 py-3">S.No.</th>
             <th className="px-4 py-3">Date &amp; Time</th>
             <th className="px-4 py-3">Name</th>
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Phone</th>
-            <th className="px-4 py-3">PAN</th>
-            <th className="px-4 py-3">Aadhaar</th>
             <th className="px-4 py-3">Message</th>
             <th className="px-4 py-3">Actions</th>
           </tr>
@@ -81,15 +83,17 @@ export default function DataTable({
         <tbody>
           {contacts.map((contact, index) => (
             <tr key={contact._id} className="border-b border-slate-50 align-top hover:bg-slate-50/60">
-              <td className="px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(contact._id)}
-                  onChange={() => onToggleRow(contact._id)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/40"
-                  aria-label={`Select ${contact.fullName}`}
-                />
-              </td>
+              {canSelect ? (
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(contact._id)}
+                    onChange={() => onToggleRow(contact._id)}
+                    className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/40"
+                    aria-label={`Select ${contact.fullName}`}
+                  />
+                </td>
+              ) : null}
               <td className="px-4 py-3 text-muted">{(page - 1) * limit + index + 1}</td>
               <td className="whitespace-nowrap px-4 py-3 text-muted">
                 {new Intl.DateTimeFormat('en-IN', {
@@ -100,15 +104,9 @@ export default function DataTable({
               </td>
               <td className="px-4 py-3 font-medium text-ink">{contact.fullName || '0'}</td>
               <td className="px-4 py-3 text-muted">{contact.email || '0'}</td>
-              <td className="px-4 py-3 text-muted">{contact.phone || '0'}</td>
-              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
-                {contact.panNumber || '0'}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">
-                {contact.aadhaarNumber || '0'}
-              </td>
+              <td className="px-4 py-3 text-muted">{contact.phone || '—'}</td>
               <td className="max-w-xs truncate px-4 py-3 text-muted" title={contact.message}>
-                {contact.message || '0'}
+                {contact.message || '—'}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -120,14 +118,16 @@ export default function DataTable({
                   >
                     <FaEye />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteOne(contact._id)}
-                    aria-label="Delete"
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <FaTrash />
-                  </button>
+                  {canDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteOne(contact._id)}
+                      aria-label="Delete"
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
+                  ) : null}
                 </div>
               </td>
             </tr>

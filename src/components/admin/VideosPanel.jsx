@@ -6,11 +6,15 @@ import VideoUploader from './VideoUploader';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { videoService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { formatBytes } from '../../utils/videoUtils';
 import VideoPlayerModal from '../ui/VideoPlayerModal';
+import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const CATEGORIES = [
   'Dangal Highlights',
@@ -39,6 +43,13 @@ const EMPTY = {
 
 export default function VideosPanel({ onChanged }) {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('videos');
+  const canCreate = can('videos.create');
+  const canEdit = can('videos.edit');
+  const canDelete = can('videos.delete');
+  const canUpload = can('videos.upload');
+  const canPublish = can('videos.publish');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -51,6 +62,7 @@ export default function VideosPanel({ onChanged }) {
   const [form, setForm] = useState(EMPTY);
   const [videoFile, setVideoFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const [preview, setPreview] = useState(null);
   const [stats, setStats] = useState(null);
@@ -100,14 +112,19 @@ export default function VideosPanel({ onChanged }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit, debouncedSearch, statusFilter]);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
-    setForm(EMPTY);
+    setForm({ ...EMPTY, status: canPublish ? 'published' : 'draft' });
     setVideoFile(null);
+    setFormError('');
     setModalOpen(true);
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return;
     setEditing(item);
     setForm({
       title: item.title,
@@ -121,21 +138,44 @@ export default function VideosPanel({ onChanged }) {
       status: item.status || 'draft',
     });
     setVideoFile(null);
+    setFormError('');
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (editing && !canEdit) {
+      toast.error('You do not have permission to edit videos');
+      return;
+    }
+    if (!editing && !canCreate) {
+      toast.error('You do not have permission to create videos');
+      return;
+    }
+    if (videoFile && !canUpload) {
+      toast.error('You do not have permission to upload videos');
+      return;
+    }
+    if (!canPublish && form.status !== (editing?.status || 'draft')) {
+      toast.error('You do not have permission to publish videos');
+      return;
+    }
     if (!form.title.trim() || !form.description.trim()) {
-      toast.error('Title and description are required');
+      const message = 'Title and description are required';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (!editing && !videoFile) {
-      toast.error('Please upload an MP4 or WebM video');
+      const message = 'Please upload an MP4 or WebM video';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (editing && !videoFile && !editing.videoFile) {
-      toast.error('Please upload an MP4 or WebM video');
+      const message = 'Please upload an MP4 or WebM video';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     setSaving(true);
@@ -154,13 +194,19 @@ export default function VideosPanel({ onChanged }) {
       fetchStats();
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.response?.data?.errors?.[0] || 'Save failed');
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
   const toggleStatus = async (item) => {
+    if (!canPublish) {
+      toast.error('You do not have permission to publish videos');
+      return;
+    }
     try {
       await videoService.update(item._id, {
         title: item.title,
@@ -179,6 +225,10 @@ export default function VideosPanel({ onChanged }) {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete videos');
+      return;
+    }
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await videoService.remove(confirm.id);
@@ -188,7 +238,7 @@ export default function VideosPanel({ onChanged }) {
       fetchStats();
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
@@ -253,12 +303,14 @@ export default function VideosPanel({ onChanged }) {
             <option value="draft">Draft</option>
           </select>
         </div>
-        <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-          <FaPlus /> Upload Video
-        </Button>
+        {canCreate ? (
+          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+            <FaPlus /> Upload Video
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white">
         {loading ? (
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((i) => (
@@ -302,18 +354,28 @@ export default function VideosPanel({ onChanged }) {
                   <td className="px-4 py-3 text-muted">{item.category}</td>
                   <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => toggleStatus(item)}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    {canPublish ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(item)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.status === 'published'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.status === 'published' ? <FaToggleOn /> : <FaToggleOff />}
+                        {item.status}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                         item.status === 'published'
                           ? 'bg-emerald-50 text-emerald-700'
                           : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {item.status === 'published' ? <FaToggleOn /> : <FaToggleOff />}
-                      {item.status}
-                    </button>
+                      }`}>
+                        {item.status}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
@@ -324,22 +386,26 @@ export default function VideosPanel({ onChanged }) {
                     >
                       <FaPlay />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => openEdit(item)}
-                      className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
-                      aria-label="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                      aria-label="Delete"
-                    >
-                      <FaTrash />
-                    </button>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
+                        aria-label="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        aria-label="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -363,6 +429,7 @@ export default function VideosPanel({ onChanged }) {
             className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
             <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Video' : 'Upload Video'}</h3>
+            <FormErrorBanner message={formError} />
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="block text-sm font-medium text-ink sm:col-span-2">
                 Title
@@ -439,23 +506,31 @@ export default function VideosPanel({ onChanged }) {
                 />
                 Featured Video
               </label>
-              <label className="block text-sm font-medium text-ink">
-                Status
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
-                >
-                  <option value="published">Published</option>
-                  <option value="draft">Draft</option>
-                </select>
-              </label>
+              {canPublish ? (
+                <label className="block text-sm font-medium text-ink">
+                  Status
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  >
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </label>
+              ) : null}
               <div className="sm:col-span-2">
                 <p className="mb-2 text-sm font-medium text-ink">Video file (MP4 / WebM)</p>
                 <VideoUploader
                   file={videoFile}
                   currentPath={editing?.videoFile || ''}
-                  onChange={setVideoFile}
+                  onChange={(file) => {
+                    if (!canUpload) {
+                      toast.error('You do not have permission to upload videos');
+                      return;
+                    }
+                    setVideoFile(file);
+                  }}
                   onClear={() => setVideoFile(null)}
                   label="Click to upload MP4 / WebM video"
                 />

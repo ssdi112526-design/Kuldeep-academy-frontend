@@ -7,9 +7,11 @@ import ImageUploader from './ImageUploader';
 import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { entryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
+import { getApiErrorMessage } from '../../utils/apiError';
 import {
   fieldClass,
   firstErrorMessage,
@@ -24,6 +26,7 @@ import {
   validatePan,
 } from '../../utils/formValidation';
 import EntryCoachProfileModal from './EntryCoachProfileModal';
+import AccessDenied from './AccessDenied';
 
 const STATUS_OPTIONS = ['Active', 'Inactive', 'Suspended'];
 
@@ -48,6 +51,13 @@ const EMPTY = {
 
 export default function EntryCoachesPanel() {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('coaches');
+  const canCreate = can('coaches.create');
+  const canEdit = can('coaches.edit');
+  const canDelete = can('coaches.delete');
+  const canExport = can('coaches.export');
+  const canUpload = can('coaches.upload');
 
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState(null);
@@ -152,7 +162,10 @@ export default function EntryCoachesPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit]);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditingId(null);
     setForm(EMPTY);
     setFieldErrors({});
@@ -163,6 +176,7 @@ export default function EntryCoachesPanel() {
   };
 
   const openEdit = async (id) => {
+    if (!canEdit) return;
     try {
       const res = await entryService.coaches.getOne(id);
       const coach = res.data.data.coach;
@@ -200,6 +214,18 @@ export default function EntryCoachesPanel() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (editingId && !canEdit) {
+      toast.error('You do not have permission to edit coaches');
+      return;
+    }
+    if (!editingId && !canCreate) {
+      toast.error('You do not have permission to create coaches');
+      return;
+    }
+    if ((photoFile || certificateFiles.length > 0) && !canUpload) {
+      toast.error('You do not have permission to upload coach files');
+      return;
+    }
     const errors = validateCoachForm();
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -260,7 +286,7 @@ export default function EntryCoachesPanel() {
       await fetchStats();
       fetchList(pagination.page);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Save failed';
+      const msg = getApiErrorMessage(err, 'Save failed');
       setValidationPopup({ open: true, title: 'Save failed', message: msg });
       toast.error(msg);
     } finally {
@@ -269,6 +295,10 @@ export default function EntryCoachesPanel() {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete coaches');
+      return;
+    }
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await entryService.coaches.remove(confirm.id);
@@ -277,7 +307,7 @@ export default function EntryCoachesPanel() {
       await fetchStats();
       await fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
@@ -293,6 +323,10 @@ export default function EntryCoachesPanel() {
   };
 
   const handleExport = async () => {
+    if (!canExport) {
+      toast.error('You do not have permission to export coaches');
+      return;
+    }
     setExporting(true);
     try {
       const res = await entryService.coaches.exportRecords({
@@ -347,16 +381,20 @@ export default function EntryCoachesPanel() {
           </select>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleExport} disabled={exporting} className="rounded-lg px-4 py-2.5 text-sm">
-            {exporting ? 'Exporting...' : 'Export Excel'}
-          </Button>
-          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-            <FaPlus /> Add Coach
-          </Button>
+          {canExport ? (
+            <Button onClick={handleExport} disabled={exporting} className="rounded-lg px-4 py-2.5 text-sm">
+              {exporting ? 'Exporting...' : 'Export Excel'}
+            </Button>
+          ) : null}
+          {canCreate ? (
+            <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+              <FaPlus /> Add Coach
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white">
         {loading ? (
           <div className="space-y-3 p-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -409,16 +447,20 @@ export default function EntryCoachesPanel() {
                       <button type="button" onClick={() => openProfile(c.id)} className="rounded-lg p-2 text-brand hover:bg-brand/10">
                         <FaEye />
                       </button>
-                      <button type="button" onClick={() => openEdit(c.id)} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50">
-                        <FaEdit />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirm({ open: true, id: c.id, loading: false })}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                      >
-                        <FaTrash />
-                      </button>
+                      {canEdit ? (
+                        <button type="button" onClick={() => openEdit(c.id)} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50">
+                          <FaEdit />
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => setConfirm({ open: true, id: c.id, loading: false })}
+                          className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                        >
+                          <FaTrash />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -530,6 +572,10 @@ export default function EntryCoachesPanel() {
                 <ImageUploader
                   previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
                   onChange={(f) => {
+                    if (!canUpload) {
+                      toast.error('You do not have permission to upload coach files');
+                      return;
+                    }
                     setPhotoFile(f);
                     setPhotoPreview(URL.createObjectURL(f));
                     if (fieldErrors.photo) {
@@ -551,7 +597,13 @@ export default function EntryCoachesPanel() {
                   type="file"
                   accept="image/*,application/pdf"
                   multiple
-                  onChange={(e) => setCertificateFiles([...((e.target.files && Array.from(e.target.files)) || [])])}
+                  onChange={(e) => {
+                    if (!canUpload) {
+                      toast.error('You do not have permission to upload coach files');
+                      return;
+                    }
+                    setCertificateFiles([...((e.target.files && Array.from(e.target.files)) || [])]);
+                  }}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
                 {certificateFiles.length ? (

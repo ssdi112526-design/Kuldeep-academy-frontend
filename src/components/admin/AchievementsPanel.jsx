@@ -3,15 +3,24 @@ import { FaEdit, FaPlus, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa
 import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { achievementService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
+import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const EMPTY = { labelEn: '', labelHi: '', value: 0, suffix: '+', displayOrder: 0, isActive: true };
 
 export default function AchievementsPanel() {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('achievements');
+  const canCreate = can('achievements.create');
+  const canEdit = can('achievements.edit');
+  const canDelete = can('achievements.delete');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,6 +31,7 @@ export default function AchievementsPanel() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
 
@@ -55,13 +65,18 @@ export default function AchievementsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit, debouncedSearch]);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFormError('');
     setModalOpen(true);
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return;
     setEditing(item);
     setForm({
       labelEn: item.labelEn || '',
@@ -71,13 +86,24 @@ export default function AchievementsPanel() {
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive,
     });
+    setFormError('');
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (editing && !canEdit) {
+      toast.error('You do not have permission to edit achievements');
+      return;
+    }
+    if (!editing && !canCreate) {
+      toast.error('You do not have permission to create achievements');
+      return;
+    }
     if (!form.labelEn.trim() || !form.labelHi.trim()) {
-      toast.error('English and Hindi labels are required');
+      const message = 'English and Hindi labels are required';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     setSaving(true);
@@ -96,13 +122,19 @@ export default function AchievementsPanel() {
       setModalOpen(false);
       fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleToggle = async (item) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to edit achievements');
+      return;
+    }
     try {
       await achievementService.update(item._id, { isActive: !item.isActive });
       fetchList(pagination.page);
@@ -112,6 +144,10 @@ export default function AchievementsPanel() {
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete achievements');
+      return;
+    }
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await achievementService.remove(confirm.id);
@@ -119,7 +155,7 @@ export default function AchievementsPanel() {
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
@@ -128,12 +164,14 @@ export default function AchievementsPanel() {
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchBar value={search} onChange={setSearch} placeholder="Search achievements..." />
-        <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-          <FaPlus /> Add Achievement
-        </Button>
+        {canCreate ? (
+          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+            <FaPlus /> Add Achievement
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white">
         {loading ? (
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((i) => (
@@ -168,34 +206,46 @@ export default function AchievementsPanel() {
                   </td>
                   <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(item)}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(item)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                         item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                      {item.isActive ? 'Active' : 'Inactive'}
-                    </button>
+                      }`}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(item)}
-                      className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
-                      aria-label="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                      aria-label="Delete"
-                    >
-                      <FaTrash />
-                    </button>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
+                        aria-label="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        aria-label="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -219,6 +269,7 @@ export default function AchievementsPanel() {
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
             <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Achievement' : 'Add Achievement'}</h3>
+            <FormErrorBanner message={formError} />
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-medium text-ink">
                 Label (English)

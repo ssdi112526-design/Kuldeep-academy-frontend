@@ -30,13 +30,9 @@ const EMPTY = {
   name: '',
   email: '',
   phone: '',
-  panNumber: '',
-  aadhaarNumber: '',
   message: '',
 };
 
-const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-const AADHAAR_REGEX = /^[0-9]{12}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+\d][\d\s-]{7,18}$/;
 
@@ -70,8 +66,6 @@ export default function Contact() {
     const name = form.name.trim();
     const email = form.email.trim();
     const phone = form.phone.trim();
-    const pan = form.panNumber.trim().toUpperCase();
-    const aadhaar = form.aadhaarNumber.trim().replace(/\s+/g, '');
     const message = form.message.trim();
 
     if (!name) errors.name = t('contact.errors.nameRequired');
@@ -83,12 +77,6 @@ export default function Contact() {
     if (!email) errors.email = t('contact.errors.emailRequired');
     else if (!EMAIL_REGEX.test(email)) errors.email = t('contact.errors.emailInvalid');
 
-    if (!pan) errors.panNumber = t('contact.errors.panRequired');
-    else if (!PAN_REGEX.test(pan)) errors.panNumber = t('contact.errors.panInvalid');
-
-    if (!aadhaar) errors.aadhaarNumber = t('contact.errors.aadhaarRequired');
-    else if (!AADHAAR_REGEX.test(aadhaar)) errors.aadhaarNumber = t('contact.errors.aadhaarInvalid');
-
     if (!message) errors.message = t('contact.errors.messageRequired');
     else if (message.length < 5) errors.message = t('contact.errors.messageShort');
 
@@ -96,7 +84,7 @@ export default function Contact() {
   };
 
   const showValidationAlert = (errors) => {
-    const order = ['name', 'phone', 'email', 'panNumber', 'aadhaarNumber', 'message'];
+    const order = ['name', 'phone', 'email', 'message'];
     const firstKey = order.find((key) => errors[key]);
     const message = firstKey ? errors[firstKey] : t('contact.errors.generic');
     setValidationPopup({
@@ -125,8 +113,6 @@ export default function Contact() {
         fullName: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        panNumber: form.panNumber.trim().toUpperCase(),
-        aadhaarNumber: form.aadhaarNumber.trim().replace(/\s+/g, ''),
         serviceRequired: 'General Inquiry',
         message: form.message.trim(),
       });
@@ -210,46 +196,6 @@ export default function Contact() {
                   />
                   {fieldErrors.email ? (
                     <span className="mt-1 block text-xs text-red-500">{fieldErrors.email}</span>
-                  ) : null}
-                </label>
-
-                <label className="block text-sm font-medium text-[#374151]">
-                  {t('contact.pan')}
-                  <input
-                    id="contact-panNumber"
-                    value={form.panNumber}
-                    onChange={(e) =>
-                      updateField(
-                        'panNumber',
-                        e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10)
-                      )
-                    }
-                    maxLength={10}
-                    className={`${fieldClass('panNumber')} uppercase`}
-                    placeholder={t('contact.panPlaceholder')}
-                    autoComplete="off"
-                  />
-                  {fieldErrors.panNumber ? (
-                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.panNumber}</span>
-                  ) : null}
-                </label>
-
-                <label className="block text-sm font-medium text-[#374151]">
-                  {t('contact.aadhaar')}
-                  <input
-                    id="contact-aadhaarNumber"
-                    inputMode="numeric"
-                    value={form.aadhaarNumber}
-                    onChange={(e) =>
-                      updateField('aadhaarNumber', e.target.value.replace(/\D/g, '').slice(0, 12))
-                    }
-                    maxLength={12}
-                    className={fieldClass('aadhaarNumber')}
-                    placeholder={t('contact.aadhaarPlaceholder')}
-                    autoComplete="off"
-                  />
-                  {fieldErrors.aadhaarNumber ? (
-                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.aadhaarNumber}</span>
                   ) : null}
                 </label>
 

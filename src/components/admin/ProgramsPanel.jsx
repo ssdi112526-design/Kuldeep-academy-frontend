@@ -3,17 +3,28 @@ import { FaEdit, FaPlus, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa
 import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { programService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import ImageUploader from './ImageUploader';
+import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const EMPTY = { title: '', description: '', displayOrder: 0, isActive: true };
 
 export default function ProgramsPanel({ onChanged }) {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('programs');
+  const canCreate = can('programs.create');
+  const canEdit = can('programs.edit');
+  const canDelete = can('programs.delete');
+  const canUpload = can('programs.upload');
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,6 +37,7 @@ export default function ProgramsPanel({ onChanged }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
 
@@ -59,15 +71,20 @@ export default function ProgramsPanel({ onChanged }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit, debouncedSearch]);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
     setFile(null);
     setPreview('');
+    setFormError('');
     setModalOpen(true);
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return;
     setEditing(item);
     setForm({
       title: item.title,
@@ -77,17 +94,34 @@ export default function ProgramsPanel({ onChanged }) {
     });
     setFile(null);
     setPreview(item.image ? mediaUrl(item.image) : '');
+    setFormError('');
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (editing && !canEdit) {
+      toast.error('You do not have permission to edit programs');
+      return;
+    }
+    if (!editing && !canCreate) {
+      toast.error('You do not have permission to create programs');
+      return;
+    }
     if (!form.title.trim() || !form.description.trim()) {
-      toast.error('Title and description are required');
+      const message = 'Title and description are required';
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (!editing && !file) {
-      toast.error('Please upload an image');
+      const message = 'Please upload an image';
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
+    if (file && !canUpload && !canCreate && !canEdit) {
+      toast.error('You do not have permission to upload images');
       return;
     }
     setSaving(true);
@@ -105,13 +139,19 @@ export default function ProgramsPanel({ onChanged }) {
       fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleToggle = async (item) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to edit programs');
+      return;
+    }
     try {
       await programService.update(item._id, {
         title: item.title,
@@ -136,7 +176,7 @@ export default function ProgramsPanel({ onChanged }) {
       await fetchList(page);
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
@@ -145,12 +185,14 @@ export default function ProgramsPanel({ onChanged }) {
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchBar value={search} onChange={setSearch} placeholder="Search programs..." />
-        <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-          <FaPlus /> Add Program
-        </Button>
+        {canCreate ? (
+          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+            <FaPlus /> Add Program
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white">
         {loading ? (
           <div className="space-y-3 p-4">
             {[1, 2, 3].map((i) => (
@@ -190,37 +232,51 @@ export default function ProgramsPanel({ onChanged }) {
                   </td>
                   <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(item)}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                      {item.isActive ? 'Active' : 'Inactive'}
-                    </button>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(item)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted">
                     {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(item)}
-                      className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
-                      aria-label="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                      aria-label="Delete"
-                    >
-                      <FaTrash />
-                    </button>
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
+                        aria-label="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        aria-label="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -244,6 +300,7 @@ export default function ProgramsPanel({ onChanged }) {
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
             <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Program' : 'Add Program'}</h3>
+            <FormErrorBanner message={formError} />
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-medium text-ink">
                 Title
@@ -284,6 +341,10 @@ export default function ProgramsPanel({ onChanged }) {
               <ImageUploader
                 previewUrl={file ? URL.createObjectURL(file) : preview}
                 onChange={(f) => {
+                  if (!canUpload && !canCreate && !canEdit) {
+                    toast.error('You do not have upload permission');
+                    return;
+                  }
                   setFile(f);
                   setPreview(URL.createObjectURL(f));
                 }}

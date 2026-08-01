@@ -3,20 +3,31 @@ import { FaEdit, FaPlus, FaTrash } from 'react-icons/fa';
 import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { galleryService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
+import { getApiErrorMessage } from '../../utils/apiError';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import ImageUploader from './ImageUploader';
+import AccessDenied from './AccessDenied';
+import FormErrorBanner from './FormErrorBanner';
 
 const EMPTY = { title: '', category: 'General', displayOrder: 0 };
 
 export default function GalleryPanel({ onChanged }) {
   const toast = useToast();
+  const { can, canModule } = usePermissions();
+  const canView = canModule('gallery');
+  const canCreate = can('gallery.create');
+  const canEdit = can('gallery.edit');
+  const canDelete = can('gallery.delete');
+  const canUpload = can('gallery.upload');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
   const [pagination, setPagination] = useState({ page: 1, limit: 12, total: 0, pages: 1 });
@@ -29,6 +40,13 @@ export default function GalleryPanel({ onChanged }) {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
+
+  const allowFilePick = canUpload || canCreate || canEdit;
+
+  const showError = (message) => {
+    setFormError(message);
+    toast.error(message);
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -43,7 +61,7 @@ export default function GalleryPanel({ onChanged }) {
       setItems(gallery);
       setPagination((prev) => ({ ...prev, ...p }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load gallery');
+      setError(getApiErrorMessage(err, 'Failed to load gallery'));
     } finally {
       setLoading(false);
     }
@@ -60,16 +78,21 @@ export default function GalleryPanel({ onChanged }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit, debouncedSearch]);
 
+  if (!canView) return <AccessDenied />;
+
   const openCreate = () => {
+    if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
     setFiles([]);
     setFile(null);
     setPreview('');
+    setFormError('');
     setModalOpen(true);
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return;
     setEditing(item);
     setForm({
       title: item.title || '',
@@ -79,13 +102,27 @@ export default function GalleryPanel({ onChanged }) {
     setFiles([]);
     setFile(null);
     setPreview(mediaUrl(item.image));
+    setFormError('');
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setFormError('');
+    if (editing && !canEdit) {
+      showError('You do not have permission to edit gallery items');
+      return;
+    }
+    if (!editing && !canCreate) {
+      showError('You do not have permission to create gallery items');
+      return;
+    }
+    if ((file || files.length > 0) && !allowFilePick) {
+      showError('You do not have permission to upload images');
+      return;
+    }
     if (!editing && (!files || files.length === 0)) {
-      toast.error('Please upload at least one image');
+      showError('Please upload at least one image');
       return;
     }
     setSaving(true);
@@ -99,16 +136,21 @@ export default function GalleryPanel({ onChanged }) {
       else await galleryService.create(payload, files);
       toast.success(editing ? 'Gallery item updated' : 'Images uploaded');
       setModalOpen(false);
+      setFormError('');
       fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      showError(getApiErrorMessage(err, 'Save failed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error('You do not have permission to delete gallery items');
+      return;
+    }
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await galleryService.remove(confirm.id);
@@ -117,7 +159,7 @@ export default function GalleryPanel({ onChanged }) {
       await fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
     }
   };
@@ -126,9 +168,11 @@ export default function GalleryPanel({ onChanged }) {
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchBar value={search} onChange={setSearch} placeholder="Search gallery..." />
-        <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-          <FaPlus /> Upload Images
-        </Button>
+        {canCreate ? (
+          <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
+            <FaPlus /> Upload Images
+          </Button>
+        ) : null}
       </div>
 
       <div className="mt-4">
@@ -139,7 +183,7 @@ export default function GalleryPanel({ onChanged }) {
             ))}
           </div>
         ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-sm text-muted">
             No gallery images yet. Upload your first set.
@@ -148,25 +192,29 @@ export default function GalleryPanel({ onChanged }) {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => (
               <article key={item._id} className="group overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
-                <div className="relative aspect-square overflow-hidden">
+                <div className="relative aspect-square overflow-hidden bg-slate-100">
                   <img src={mediaUrl(item.image)} alt={item.title || ''} className="h-full w-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-ink/70 to-transparent p-3 opacity-0 transition group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(item)}
-                      className="rounded-full bg-white p-2 text-brand"
-                      aria-label="Edit"
-                    >
-                      <FaEdit size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                      className="rounded-full bg-white p-2 text-red-500"
-                      aria-label="Delete"
-                    >
-                      <FaTrash size={12} />
-                    </button>
+                  <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className="rounded-lg bg-white/95 p-2 text-brand shadow"
+                        aria-label="Edit"
+                      >
+                        <FaEdit size={12} />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        className="rounded-lg bg-white/95 p-2 text-red-500 shadow"
+                        aria-label="Delete"
+                      >
+                        <FaTrash size={12} />
+                      </button>
+                    ) : null}
                   </div>
                 </div>
                 <div className="p-3">
@@ -197,6 +245,7 @@ export default function GalleryPanel({ onChanged }) {
           >
             <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Gallery Item' : 'Upload Gallery Images'}</h3>
             <div className="mt-4 space-y-4">
+              <FormErrorBanner message={formError} />
               <label className="block text-sm font-medium text-ink">
                 Title (optional)
                 <input
@@ -226,6 +275,11 @@ export default function GalleryPanel({ onChanged }) {
                 <ImageUploader
                   previewUrl={file ? URL.createObjectURL(file) : preview}
                   onChange={(f) => {
+                    if (!allowFilePick) {
+                      showError('You do not have permission to upload images');
+                      return;
+                    }
+                    setFormError('');
                     setFile(f);
                     setPreview(URL.createObjectURL(f));
                   }}
@@ -234,7 +288,14 @@ export default function GalleryPanel({ onChanged }) {
                 <ImageUploader
                   multiple
                   value={files}
-                  onChange={(list) => setFiles(list)}
+                  onChange={(list) => {
+                    if (!allowFilePick) {
+                      showError('You do not have permission to upload images');
+                      return;
+                    }
+                    setFormError('');
+                    setFiles(list);
+                  }}
                   label="Drag & drop images or click to browse"
                 />
               )}

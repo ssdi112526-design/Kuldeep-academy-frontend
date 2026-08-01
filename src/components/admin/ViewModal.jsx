@@ -40,8 +40,6 @@ export default function ViewModal({ contact, onClose }) {
           <Row label="Full Name" value={contact.fullName} />
           <Row label="Email" value={contact.email} />
           <Row label="Phone" value={contact.phone} />
-          <Row label="PAN Number" value={contact.panNumber} />
-          <Row label="Aadhaar Number" value={contact.aadhaarNumber} />
           <Row label="Message" value={contact.message} />
           <Row
             label="Submitted On"

@@ -3,25 +3,45 @@ import { useAuth } from './AuthContext';
 
 const PermissionContext = createContext(null);
 
+function toKey(menuOrKey, action) {
+  if (!menuOrKey) return '';
+  if (action) return `${menuOrKey}.${action}`;
+  return String(menuOrKey);
+}
+
 export function PermissionProvider({ children }) {
   const { user } = useAuth();
   const permissions = user?.permissions || [];
+  const isSuperAdmin = Boolean(user?.isSuperAdmin || permissions.includes('*.*'));
 
+  /**
+   * Exact permission check only.
+   * Usage: can('programs.edit') or can('programs', 'edit')
+   * No inheritance: view does not grant edit/delete/create/upload.
+   */
   const can = useCallback(
-    (key) => {
+    (menuOrKey, action) => {
+      const key = toKey(menuOrKey, action);
       if (!key) return false;
-      if (user?.isSuperAdmin || permissions.includes('*.*')) return true;
-      if (permissions.includes(key)) return true;
-      // wildcard menu.* support
-      const [menu] = String(key).split('.');
-      if (permissions.includes(`${menu}.*`)) return true;
-      return false;
+      if (isSuperAdmin) return true;
+      return permissions.includes(key);
     },
-    [permissions, user?.isSuperAdmin]
+    [permissions, isSuperAdmin]
   );
 
   const canAny = useCallback((keys = []) => keys.some((k) => can(k)), [can]);
   const canAll = useCallback((keys = []) => keys.every((k) => can(k)), [can]);
+
+  /** True if user has any permission under a module (for sidebar visibility). */
+  const canModule = useCallback(
+    (menu) => {
+      if (!menu) return false;
+      if (isSuperAdmin) return true;
+      const prefix = `${menu}.`;
+      return permissions.some((p) => p === menu || p.startsWith(prefix));
+    },
+    [permissions, isSuperAdmin]
+  );
 
   const value = useMemo(
     () => ({
@@ -29,10 +49,11 @@ export function PermissionProvider({ children }) {
       can,
       canAny,
       canAll,
-      canAccessAdmin: Boolean(user?.canAccessAdmin || user?.isSuperAdmin || user?.role === 'admin'),
-      isSuperAdmin: Boolean(user?.isSuperAdmin),
+      canModule,
+      canAccessAdmin: Boolean(user?.canAccessAdmin || isSuperAdmin || user?.role === 'admin'),
+      isSuperAdmin,
     }),
-    [permissions, can, canAny, canAll, user]
+    [permissions, can, canAny, canAll, canModule, user, isSuperAdmin]
   );
 
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>;

@@ -12,10 +12,12 @@ export function ToastProvider({ children }) {
   }, []);
 
   const push = useCallback(
-    (message, type) => {
+    (message, type, durationMs) => {
+      const text = String(message || '').trim() || (type === 'error' ? 'Something went wrong' : 'Done');
       const id = ++idRef.current;
-      setToasts((prev) => [...prev, { id, message, type }]);
-      setTimeout(() => remove(id), 3500);
+      setToasts((prev) => [...prev, { id, message: text, type }]);
+      const ms = durationMs ?? (type === 'error' ? 5500 : 3500);
+      setTimeout(() => remove(id), ms);
     },
     [remove]
   );
