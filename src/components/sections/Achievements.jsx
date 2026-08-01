@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Reveal, { SectionHeading } from '../ui/Reveal';
-import { achievements } from '../../data/akhada';
+import { achievements as fallbackAchievements } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
+import { achievementService } from '../../services';
 
 function useCountUp(target, active, duration = 1400) {
   const [value, setValue] = useState(0);
@@ -34,9 +35,46 @@ function Stat({ item, active, label }) {
 }
 
 export default function Achievements() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const ref = useRef(null);
   const [active, setActive] = useState(false);
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await achievementService.listPublic();
+        const list = res.data?.data?.achievements || [];
+        if (!cancelled && list.length) {
+          setItems(
+            list.map((a) => ({
+              id: a._id || a.id,
+              value: a.value,
+              suffix: a.suffix || '+',
+              label: language === 'hi' ? a.labelHi : a.labelEn,
+            })),
+          );
+          return;
+        }
+      } catch {
+        /* fall through to static */
+      }
+      if (!cancelled) {
+        setItems(
+          fallbackAchievements.map((a) => ({
+            id: a.key,
+            value: a.value,
+            suffix: a.suffix,
+            label: t(`achievements.items.${a.key}`),
+          })),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [language, t]);
 
   useEffect(() => {
     const el = ref.current;
@@ -63,9 +101,9 @@ export default function Achievements() {
           />
         </Reveal>
         <div ref={ref} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {achievements.map((item, i) => (
-            <Reveal key={item.key} delay={i * 0.05}>
-              <Stat item={item} active={active} label={t(`achievements.items.${item.key}`)} />
+          {items.map((item, i) => (
+            <Reveal key={item.id} delay={i * 0.05}>
+              <Stat item={item} active={active} label={item.label} />
             </Reveal>
           ))}
         </div>

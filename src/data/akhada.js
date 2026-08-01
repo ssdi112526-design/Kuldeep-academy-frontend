@@ -22,14 +22,13 @@ export const companyInfo = {
 /** Nav items use translation keys via labelKey */
 export const navLinks = [
   { labelKey: 'nav.home', href: '/#home' },
-  { labelKey: 'nav.coaches', href: '/#coaches' },
   { labelKey: 'nav.programs', href: '/#programs' },
   { labelKey: 'nav.schedule', href: '/#schedule' },
   { labelKey: 'nav.videos', href: '/#videos' },
   { labelKey: 'nav.gallery', href: '/#gallery' },
   { labelKey: 'nav.facilities', href: '/#facilities' },
   { labelKey: 'nav.features', href: '/#features' },
-  { labelKey: 'nav.achievements', href: '/#achievements' },
+  { labelKey: 'nav.coaches', href: '/#coaches' },
   { labelKey: 'nav.contact', href: '/#contact' },
 ];
 

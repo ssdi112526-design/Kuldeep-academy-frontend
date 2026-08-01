@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import Logo from '../ui/Logo';
-import Button from '../ui/Button';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { navLinks } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
@@ -26,8 +25,12 @@ export default function Navbar() {
 
   const isActive = (href) => {
     if (href === '/#home') return pathname === '/' && (!hash || hash === '#home' || hash === '');
+    if (href === '/admin') return pathname.startsWith('/admin') || pathname.startsWith('/login');
     return hash && href.endsWith(hash);
   };
+
+  const navCtaClass =
+    'inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full bg-[#2563EB] px-5 text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#1D4ED8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/40';
 
   return (
     <header
@@ -62,10 +65,16 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher />
-          <div className="hidden lg:block">
-            <Button href="/#contact" className="px-5 py-2.5 text-[13px]">
+          <div className="hidden lg:inline-grid lg:grid-cols-2 lg:gap-2">
+            <Link to="/#contact" className={navCtaClass}>
               {t('nav.join')}
-            </Button>
+            </Link>
+            <Link
+              to="/admin"
+              className={`${navCtaClass} ${isActive('/admin') ? 'bg-[#1D4ED8]' : ''}`}
+            >
+              {t('nav.admin')}
+            </Link>
           </div>
           <button
             type="button"
@@ -96,9 +105,18 @@ export default function Navbar() {
                 {t(link.labelKey)}
               </Link>
             ))}
-            <Button href="/#contact" className="mt-3 w-full" onClick={() => setOpen(false)}>
-              {t('nav.join')}
-            </Button>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Link to="/#contact" onClick={() => setOpen(false)} className={`${navCtaClass} h-11 w-full`}>
+                {t('nav.join')}
+              </Link>
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className={`${navCtaClass} h-11 w-full ${isActive('/admin') ? 'bg-[#1D4ED8]' : ''}`}
+              >
+                {t('nav.admin')}
+              </Link>
+            </div>
           </nav>
         </div>
       )}

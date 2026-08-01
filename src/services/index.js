@@ -204,3 +204,60 @@ export const entryService = {
     remove: (id) => api.delete(`/admin/equipment/${id}`),
   },
 };
+
+export const achievementService = {
+  listPublic: () => api.get('/achievements'),
+  list: (params) => api.get('/admin/achievements', { params }),
+  create: (payload) => api.post('/admin/achievements', payload),
+  update: (id, payload) => api.put(`/admin/achievements/${id}`, payload),
+  remove: (id) => api.delete(`/admin/achievements/${id}`),
+};
+
+export const scheduleService = {
+  listPublic: () => api.get('/schedule'),
+  listSessions: (params) => api.get('/admin/schedule/sessions', { params }),
+  createSession: (payload) => api.post('/admin/schedule/sessions', payload),
+  updateSession: (id, payload) => api.put(`/admin/schedule/sessions/${id}`, payload),
+  removeSession: (id) => api.delete(`/admin/schedule/sessions/${id}`),
+  listDays: (params) => api.get('/admin/schedule/days', { params }),
+  createDay: (payload) => api.post('/admin/schedule/days', payload),
+  updateDay: (id, payload) => api.put(`/admin/schedule/days/${id}`, payload),
+  removeDay: (id) => api.delete(`/admin/schedule/days/${id}`),
+};
+
+export const userAdminService = {
+  list: (params) => api.get('/admin/users', { params }),
+  getOne: (id) => api.get(`/admin/users/${id}`),
+  create: (data, profileImage) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      form.append(key, String(value));
+    });
+    if (profileImage) form.append('profileImage', profileImage);
+    return api.post('/admin/users', form);
+  },
+  update: (id, data, profileImage) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      form.append(key, String(value));
+    });
+    if (profileImage) form.append('profileImage', profileImage);
+    return api.put(`/admin/users/${id}`, form);
+  },
+  remove: (id) => api.delete(`/admin/users/${id}`),
+  setStatus: (id, isActive) => api.patch(`/admin/users/${id}/status`, { isActive }),
+  resetPassword: (id, payload) => api.post(`/admin/users/${id}/reset-password`, payload),
+  generatePassword: () => api.get('/admin/users/generate-password'),
+};
+
+export const roleAdminService = {
+  list: (params) => api.get('/admin/roles', { params }),
+  getOne: (id) => api.get(`/admin/roles/${id}`),
+  create: (payload) => api.post('/admin/roles', payload),
+  update: (id, payload) => api.put(`/admin/roles/${id}`, payload),
+  remove: (id) => api.delete(`/admin/roles/${id}`),
+  clone: (id, payload) => api.post(`/admin/roles/${id}/clone`, payload || {}),
+  permissionsCatalog: () => api.get('/admin/permissions'),
+};

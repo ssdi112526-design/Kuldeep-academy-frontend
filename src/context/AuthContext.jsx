@@ -3,6 +3,13 @@ import { authService } from '../services';
 
 const AuthContext = createContext(null);
 
+function normalizeUser(payload) {
+  if (!payload) return null;
+  const user = payload.user || payload;
+  const permissions = payload.permissions || user.permissions || [];
+  return { ...user, permissions };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +23,7 @@ export function AuthProvider({ children }) {
 
     authService
       .me()
-      .then((res) => setUser(res.data.data.user))
+      .then((res) => setUser(normalizeUser(res.data.data)))
       .catch(() => {
         localStorage.removeItem('kra_token');
         setUser(null);
@@ -26,8 +33,9 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const res = await authService.login(credentials);
-    const { token, user: loggedInUser } = res.data.data;
+    const { token } = res.data.data;
     localStorage.setItem('kra_token', token);
+    const loggedInUser = normalizeUser(res.data.data);
     setUser(loggedInUser);
     return loggedInUser;
   };
@@ -42,9 +50,21 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const canAccessAdmin = Boolean(
+    user?.canAccessAdmin || user?.isSuperAdmin || user?.role === 'admin' || (user?.permissions || []).length > 0
+  );
+
   const value = useMemo(
-    () => ({ user, loading, login, logout, isAdmin: user?.role === 'admin' }),
-    [user, loading]
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      isAdmin: canAccessAdmin,
+      canAccessAdmin,
+      isSuperAdmin: Boolean(user?.isSuperAdmin),
+    }),
+    [user, loading, canAccessAdmin]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

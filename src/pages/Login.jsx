@@ -34,7 +34,7 @@ export default function Login() {
     setError('');
     try {
       const user = await login(data);
-      if (user.role === 'admin') {
+      if (user.canAccessAdmin || user.isSuperAdmin || user.role === 'admin' || (user.permissions || []).length) {
         navigate('/admin');
       } else {
         navigate('/');

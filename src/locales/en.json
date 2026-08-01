@@ -14,7 +14,9 @@
     "achievements": "Achievements",
     "coaches": "Coaches",
     "contact": "Contact",
-    "join": "Join Akhada"
+    "join": "Join Akhada",
+    "akhada": "Akhada",
+    "admin": "Admin"
   },
   "lang": {
     "label": "English",
@@ -29,6 +31,7 @@
     "subtitle": "Manage athletes, memberships, training, tournaments, attendance, and payments — all in one intelligent platform built for Indian Akhadas.",
     "ctaPrimary": "Join Akhada",
     "ctaSecondary": "Explore Heritage",
+    "ctaAdmin": "Admin",
     "imageAlt": "Premium Indian Akhada — pehlwans training at dawn"
   },
   "programs": {
@@ -292,7 +295,7 @@
         "achievements": "National-level conditioning specialist"
       },
       "anita": {
-        "name": "Anita Kakar (NIS Coach)",
+        "name": "Anita KakKar (NIS Coach)",
         "role": "NIS Coach",
         "experience": "10+ Years",
         "specialty": "Scientific Training",

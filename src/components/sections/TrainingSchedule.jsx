@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sunrise,
@@ -16,53 +17,57 @@ import {
 import Reveal from '../ui/Reveal';
 import Button from '../ui/Button';
 import useTranslation from '../../hooks/useTranslation';
+import { scheduleService } from '../../services';
 
-const SESSION_CARDS = [
-  { key: 'morning', Icon: Sunrise, accent: 'from-[#FF9933]/25 to-transparent' },
-  { key: 'evening', Icon: Sunset, accent: 'from-[#D4AF37]/25 to-transparent' },
-  { key: 'sunday', Icon: Moon, accent: 'from-slate-400/20 to-transparent' },
-];
+const SESSION_META = {
+  morning: { Icon: Sunrise, accent: 'from-[#FF9933]/25 to-transparent' },
+  evening: { Icon: Sunset, accent: 'from-[#D4AF37]/25 to-transparent' },
+  sunday: { Icon: Moon, accent: 'from-slate-400/20 to-transparent' },
+};
 
-const DAYS = [
+const DAY_BADGES = {
+  monday: 'bg-amber-500/20 text-amber-300 ring-amber-400/30',
+  tuesday: 'bg-orange-500/20 text-orange-300 ring-orange-400/30',
+  wednesday: 'bg-yellow-500/20 text-yellow-200 ring-yellow-400/30',
+  thursday: 'bg-amber-500/20 text-amber-200 ring-amber-400/30',
+  friday: 'bg-orange-500/20 text-orange-200 ring-orange-400/30',
+  saturday: 'bg-[#D4AF37]/20 text-[#F5D76E] ring-[#D4AF37]/30',
+  sunday: 'bg-slate-500/20 text-slate-300 ring-slate-400/30',
+};
+
+const FALLBACK_DAYS = [
   {
     key: 'monday',
-    badge: 'bg-amber-500/20 text-amber-300 ring-amber-400/30',
     morning: ['running', 'wrestlingPractice', 'strength'],
     evening: ['wrestlingTechniques', 'strength'],
   },
   {
     key: 'tuesday',
-    badge: 'bg-orange-500/20 text-orange-300 ring-orange-400/30',
     morning: ['running', 'wrestlingTechniques'],
     evening: ['wrestlingTechniques', 'sports'],
   },
   {
     key: 'wednesday',
-    badge: 'bg-yellow-500/20 text-yellow-200 ring-yellow-400/30',
     morning: ['running', 'wrestlingPractice', 'strength'],
     evening: ['wrestlingPractice', 'gym'],
   },
   {
     key: 'thursday',
-    badge: 'bg-amber-500/20 text-amber-200 ring-amber-400/30',
     morning: ['running', 'wrestlingTechniques'],
     evening: ['wrestlingTechniques', 'strength'],
   },
   {
     key: 'friday',
-    badge: 'bg-orange-500/20 text-orange-200 ring-orange-400/30',
     morning: ['running', 'wrestlingPractice', 'endurance'],
     evening: ['sparring', 'gym'],
   },
   {
     key: 'saturday',
-    badge: 'bg-[#D4AF37]/20 text-[#F5D76E] ring-[#D4AF37]/30',
     morning: ['crossCountry', 'wrestlingTechniques'],
     evening: ['crossCountry', 'wrestlingTechniques', 'gym'],
   },
   {
     key: 'sunday',
-    badge: 'bg-slate-500/20 text-slate-300 ring-slate-400/30',
     morning: ['holiday'],
     evening: ['holiday'],
     holiday: true,
@@ -93,6 +98,28 @@ const LEGEND = [
   'sparring',
 ];
 
+function splitText(text = '') {
+  return String(text)
+    .split(/[,،|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function TextPills({ parts }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {parts.map((part) => (
+        <span
+          key={part}
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 backdrop-blur-sm"
+        >
+          {part}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function ActivityPills({ keys, t }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -114,7 +141,79 @@ function ActivityPills({ keys, t }) {
 }
 
 export default function TrainingSchedule() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const hi = language === 'hi';
+  const [apiSessions, setApiSessions] = useState(null);
+  const [apiDays, setApiDays] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await scheduleService.listPublic();
+        const { sessions = [], days = [] } = res.data?.data || {};
+        if (!cancelled) {
+          setApiSessions(sessions.length ? sessions : null);
+          setApiDays(days.length ? days : null);
+        }
+      } catch {
+        if (!cancelled) {
+          setApiSessions(null);
+          setApiDays(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sessions = useMemo(() => {
+    if (apiSessions?.length) {
+      return apiSessions.map((s) => {
+        const meta = SESSION_META[s.key] || SESSION_META.morning;
+        return {
+          key: s.key,
+          Icon: meta.Icon,
+          accent: meta.accent,
+          title: hi ? s.titleHi : s.titleEn,
+          time: hi ? s.timeHi : s.timeEn,
+          note: hi ? s.noteHi || s.noteEn : s.noteEn || s.noteHi,
+        };
+      });
+    }
+    return ['morning', 'evening', 'sunday'].map((key) => {
+      const meta = SESSION_META[key];
+      return {
+        key,
+        Icon: meta.Icon,
+        accent: meta.accent,
+        title: t(`schedule.sessions.${key}.title`),
+        time: t(`schedule.sessions.${key}.time`),
+        note: t(`schedule.sessions.${key}.note`),
+      };
+    });
+  }, [apiSessions, hi, t]);
+
+  const days = useMemo(() => {
+    if (apiDays?.length) {
+      return apiDays.map((d) => ({
+        key: d.dayKey,
+        label: hi ? d.labelHi : d.labelEn,
+        morningParts: splitText(hi ? d.morningHi : d.morningEn),
+        eveningParts: splitText(hi ? d.eveningHi : d.eveningEn),
+        holiday: Boolean(d.isHoliday),
+        fromApi: true,
+        badge: DAY_BADGES[d.dayKey] || DAY_BADGES.monday,
+      }));
+    }
+    return FALLBACK_DAYS.map((d) => ({
+      ...d,
+      label: t(`schedule.days.${d.key}`),
+      fromApi: false,
+      badge: DAY_BADGES[d.key],
+    }));
+  }, [apiDays, hi, t]);
 
   return (
     <section
@@ -164,28 +263,20 @@ export default function TrainingSchedule() {
         </Reveal>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {SESSION_CARDS.map((card, i) => {
+          {sessions.map((card, i) => {
             const Icon = card.Icon;
             return (
               <Reveal key={card.key} delay={i * 0.08}>
-                <article
-                  className="group relative overflow-hidden rounded-[20px] border border-white/10 bg-white/5 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#D4AF37]/40 hover:shadow-[0_0_32px_rgba(212,175,55,0.28)]"
-                >
+                <article className="group relative overflow-hidden rounded-[20px] border border-white/10 bg-white/5 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#D4AF37]/40 hover:shadow-[0_0_32px_rgba(212,175,55,0.28)]">
                   <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${card.accent}`} />
                   <div className="relative flex items-start gap-3">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37]">
                       <Icon size={20} aria-hidden />
                     </span>
                     <div>
-                      <h3 className="font-display text-base font-semibold text-white">
-                        {t(`schedule.sessions.${card.key}.title`)}
-                      </h3>
-                      <p className="mt-1 text-sm font-medium text-[#F5D76E]">
-                        {t(`schedule.sessions.${card.key}.time`)}
-                      </p>
-                      <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                        {t(`schedule.sessions.${card.key}.note`)}
-                      </p>
+                      <h3 className="font-display text-base font-semibold text-white">{card.title}</h3>
+                      <p className="mt-1 text-sm font-medium text-[#F5D76E]">{card.time}</p>
+                      {card.note ? <p className="mt-2 text-xs leading-relaxed text-slate-400">{card.note}</p> : null}
                     </div>
                   </div>
                 </article>
@@ -194,7 +285,6 @@ export default function TrainingSchedule() {
           })}
         </div>
 
-        {/* Desktop / tablet table */}
         <Reveal delay={0.1}>
           <div className="mt-10 hidden overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] shadow-[0_16px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl md:block">
             <div className="max-h-[560px] overflow-auto">
@@ -207,7 +297,7 @@ export default function TrainingSchedule() {
                   </tr>
                 </thead>
                 <tbody>
-                  {DAYS.map((day, i) => (
+                  {days.map((day, i) => (
                     <motion.tr
                       key={day.key}
                       initial={{ opacity: 0, y: 12 }}
@@ -219,17 +309,15 @@ export default function TrainingSchedule() {
                       } ${day.holiday ? 'opacity-90' : ''}`}
                     >
                       <td className="whitespace-nowrap px-5 py-4 align-top">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${day.badge}`}
-                        >
-                          {t(`schedule.days.${day.key}`)}
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${day.badge}`}>
+                          {day.label}
                         </span>
                       </td>
                       <td className="px-5 py-4 align-top">
-                        <ActivityPills keys={day.morning} t={t} />
+                        {day.fromApi ? <TextPills parts={day.morningParts} /> : <ActivityPills keys={day.morning} t={t} />}
                       </td>
                       <td className="px-5 py-4 align-top">
-                        <ActivityPills keys={day.evening} t={t} />
+                        {day.fromApi ? <TextPills parts={day.eveningParts} /> : <ActivityPills keys={day.evening} t={t} />}
                       </td>
                     </motion.tr>
                   ))}
@@ -239,28 +327,25 @@ export default function TrainingSchedule() {
           </div>
         </Reveal>
 
-        {/* Mobile stacked cards */}
         <div className="mt-8 space-y-3 md:hidden">
-          {DAYS.map((day, i) => (
+          {days.map((day, i) => (
             <Reveal key={day.key} delay={i * 0.04}>
               <article className="rounded-[18px] border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${day.badge}`}
-                >
-                  {t(`schedule.days.${day.key}`)}
+                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${day.badge}`}>
+                  {day.label}
                 </span>
                 <div className="mt-3 space-y-3">
                   <div>
                     <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#D4AF37]">
                       {t('schedule.table.morning')}
                     </p>
-                    <ActivityPills keys={day.morning} t={t} />
+                    {day.fromApi ? <TextPills parts={day.morningParts} /> : <ActivityPills keys={day.morning} t={t} />}
                   </div>
                   <div>
                     <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#FF9933]">
                       {t('schedule.table.evening')}
                     </p>
-                    <ActivityPills keys={day.evening} t={t} />
+                    {day.fromApi ? <TextPills parts={day.eveningParts} /> : <ActivityPills keys={day.evening} t={t} />}
                   </div>
                 </div>
               </article>
@@ -268,33 +353,33 @@ export default function TrainingSchedule() {
           ))}
         </div>
 
-        <Reveal delay={0.12}>
-          <div className="mt-8 rounded-[20px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#D4AF37]">
-              {t('schedule.legendTitle')}
-            </h3>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {LEGEND.map((key) => {
-                const meta = ACTIVITY_META[key];
-                const Icon = meta.Icon;
-                return (
-                  <div key={key} className="flex items-center gap-2 text-xs text-slate-300">
-                    <Icon size={15} className={meta.color} aria-hidden />
-                    <span>{t(`schedule.activities.${key}`)}</span>
-                  </div>
-                );
-              })}
+        {!apiDays && (
+          <Reveal delay={0.12}>
+            <div className="mt-8 rounded-[20px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#D4AF37]">
+                {t('schedule.legendTitle')}
+              </h3>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {LEGEND.map((key) => {
+                  const meta = ACTIVITY_META[key];
+                  const Icon = meta.Icon;
+                  return (
+                    <div key={key} className="flex items-center gap-2 text-xs text-slate-300">
+                      <Icon size={15} className={meta.color} aria-hidden />
+                      <span>{t(`schedule.activities.${key}`)}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        )}
 
         <Reveal delay={0.1}>
           <div className="relative mt-12 overflow-hidden rounded-[24px] border border-[#D4AF37]/25 bg-gradient-to-br from-[#111827] via-[#0F172A] to-[#1a1208] p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-10">
             <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#D4AF37]/15 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-12 -left-8 h-40 w-40 rounded-full bg-[#FF9933]/12 blur-3xl" />
-            <h3 className="relative font-display text-2xl font-bold text-white sm:text-3xl">
-              {t('schedule.cta.title')}
-            </h3>
+            <h3 className="relative font-display text-2xl font-bold text-white sm:text-3xl">{t('schedule.cta.title')}</h3>
             <p className="relative mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-[15px]">
               {t('schedule.cta.text')}
             </p>
