@@ -251,6 +251,29 @@ export const attendanceService = {
   scan: (payload) => api.post('/student/attendance/scan', payload),
 };
 
+export const attendanceSettingsService = {
+  get: () => api.get('/admin/attendance/settings'),
+  update: (payload) => api.put('/admin/attendance/settings', payload),
+  test: (payload) => api.post('/admin/attendance/settings/test', payload),
+  distance: (params) => api.get('/admin/attendance/settings/distance', { params }),
+};
+
+export const biometricService = {
+  listDevices: () => api.get('/admin/biometric/devices'),
+  getDevice: (id) => api.get(`/admin/biometric/devices/${id}`),
+  createDevice: (payload) => api.post('/admin/biometric/devices', payload),
+  updateDevice: (id, payload) => api.put(`/admin/biometric/devices/${id}`, payload),
+  deleteDevice: (id) => api.delete(`/admin/biometric/devices/${id}`),
+  testDevice: (id) => api.post(`/admin/biometric/devices/${id}/test`),
+  syncDevice: (id) => api.post(`/admin/biometric/devices/${id}/sync`),
+  deviceLogs: (id, params) => api.get(`/admin/biometric/devices/${id}/logs`, { params }),
+  unknownLogs: (params) => api.get('/admin/biometric/unknown-logs', { params }),
+  setStudentBiometric: (id, biometricUserId) =>
+    api.put(`/admin/students/${id}/biometric`, { biometricUserId }),
+  setCoachBiometric: (id, biometricUserId) =>
+    api.put(`/admin/coaches/${id}/biometric`, { biometricUserId }),
+};
+
 export const coachPortalService = {
   myProfile: () => api.get('/coach/profile'),
   myAttendance: () => api.get('/coach/attendance'),
@@ -264,14 +287,12 @@ export const coachAttendanceService = {
   coachSummary: (params) => api.get('/admin/coach-attendance/summary/coaches', { params }),
   coachHistory: (coachId, params) =>
     api.get(`/admin/coach-attendance/coaches/${coachId}/history`, { params }),
-  coaches: () => api.get('/admin/coach-attendance/coaches'),
   activeQr: () => api.get('/admin/coach-attendance/qr/active'),
   generateQr: (payload) => api.post('/admin/coach-attendance/qr/generate', payload || {}),
   closeQr: (id) =>
     id
       ? api.post(`/admin/coach-attendance/qr/${id}/close`)
       : api.post('/admin/coach-attendance/qr/close'),
-  markPresent: (payload) => api.post('/admin/coach-attendance/mark', payload),
   exportRecords: (payload) =>
     api.post('/admin/coach-attendance/export', payload, { responseType: 'blob' }),
 };

@@ -91,6 +91,8 @@ export default function CoachAttendancePanel() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all | present | absent
+  const [methodFilter, setMethodFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [periodMode, setPeriodMode] = useState('month'); // month | select | custom | all
   const [selectedMonth, setSelectedMonth] = useState(''); // YYYY-MM
   const [availableMonths, setAvailableMonths] = useState([]);
@@ -108,13 +110,13 @@ export default function CoachAttendancePanel() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyData, setHistoryData] = useState(null);
-  const [coaches, setCoaches] = useState([]);
-  const [markingId, setMarkingId] = useState(null);
 
   const periodParams = useCallback(() => {
     const params = {
       search: search.trim() || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
+      method: methodFilter !== 'all' ? methodFilter : undefined,
+      location: locationFilter !== 'all' ? locationFilter : undefined,
       view: 'matrix',
     };
     if (periodMode === 'all') {
@@ -132,7 +134,7 @@ export default function CoachAttendancePanel() {
       params.period = 'month';
     }
     return params;
-  }, [periodMode, selectedMonth, from, to, search, statusFilter]);
+  }, [periodMode, selectedMonth, from, to, search, statusFilter, methodFilter, locationFilter]);
 
   const loadActiveQr = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setQrLoading(true);
@@ -248,10 +250,6 @@ export default function CoachAttendancePanel() {
   useEffect(() => {
     if (!canView) return;
     loadActiveQr();
-    coachAttendanceService
-      .coaches()
-      .then((res) => setCoaches(res.data?.data?.coaches || []))
-      .catch(() => setCoaches([]));
   }, [canView, loadActiveQr]);
 
   useEffect(() => {
@@ -267,31 +265,7 @@ export default function CoachAttendancePanel() {
   useEffect(() => {
     if (!canView || tab !== 'records') return;
     loadRecords(1);
-  }, [canView, tab, periodMode, selectedMonth, from, to, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleMarkCoach = async (coachId) => {
-    if (!canCreate) {
-      toast.error('You do not have permission to mark attendance');
-      return;
-    }
-    setMarkingId(coachId);
-    try {
-      const payload = { coachId };
-      if (session?.id) {
-        payload.sessionId = session.id;
-        if (session.qrPayload?.token) payload.token = session.qrPayload.token;
-      }
-      const res = await coachAttendanceService.markPresent(payload);
-      toast.success('Coach marked Present');
-      if (res.data?.data?.nextSession) setSession(res.data.data.nextSession);
-      else await loadActiveQr({ silent: true });
-      await loadStats();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to mark coach attendance'));
-    } finally {
-      setMarkingId(null);
-    }
-  };
+  }, [canView, tab, periodMode, selectedMonth, from, to, statusFilter, methodFilter, locationFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerate = async () => {
     if (!canCreate) {
@@ -396,11 +370,13 @@ export default function CoachAttendancePanel() {
     <div className="space-y-5">
       <FormErrorBanner message={error} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Total Coaches" value={stats?.totalCoaches ?? stats?.totalStudents ?? 0} icon={FaUsers} loading={statsLoading} />
         <StatCard label="Present Today" value={stats?.present ?? 0} icon={FaUserCheck} loading={statsLoading} />
         <StatCard label="Absent Today" value={stats?.absent ?? 0} icon={FaUserTimes} loading={statsLoading} />
         <StatCard label="Attendance %" value={stats ? `${stats.attendanceRate ?? 0}%` : '0%'} icon={FaCheck} loading={statsLoading} />
+        <StatCard label="QR Attendance" value={stats?.qrAttendance ?? 0} icon={FaQrcode} loading={statsLoading} />
+        <StatCard label="Biometric" value={stats?.biometricAttendance ?? 0} icon={FaUserCheck} loading={statsLoading} />
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -458,52 +434,6 @@ export default function CoachAttendancePanel() {
             ) : null}
           </div>
           {qrBlock}
-          {canCreate ? (
-            <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <h4 className="text-sm font-bold text-ink">Mark Coach Present</h4>
-                <p className="text-xs text-muted">
-                  Select a coach to mark today&apos;s attendance (uses coach QR session; student QR is rejected)
-                </p>
-              </div>
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-surface text-xs uppercase text-muted">
-                  <tr>
-                    <th className="px-4 py-3">Coach ID</th>
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Mobile</th>
-                    <th className="px-4 py-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coaches.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-muted">
-                        No active coaches found.
-                      </td>
-                    </tr>
-                  ) : (
-                    coaches.map((c) => (
-                      <tr key={c.id} className="border-t border-slate-100">
-                        <td className="px-4 py-3 font-medium">{c.coachCode}</td>
-                        <td className="px-4 py-3">{c.fullName}</td>
-                        <td className="px-4 py-3">{c.mobile || 0}</td>
-                        <td className="px-4 py-3">
-                          <Button
-                            className="rounded-lg"
-                            disabled={markingId === c.id}
-                            onClick={() => handleMarkCoach(c.id)}
-                          >
-                            {markingId === c.id ? 'Markingâ€¦' : 'Mark Present'}
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
         </div>
       ) : (
         <div className="space-y-4">
@@ -564,6 +494,30 @@ export default function CoachAttendancePanel() {
                   <option value="all">All</option>
                   <option value="present">Present</option>
                   <option value="absent">Absent</option>
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-xs text-muted">Source</span>
+                <select
+                  value={methodFilter}
+                  onChange={(e) => setMethodFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="QR">QR</option>
+                  <option value="BIOMETRIC">Biometric</option>
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-xs text-muted">Location</span>
+                <select
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="verified">Verified</option>
+                  <option value="not_verified">Not Verified</option>
                 </select>
               </label>
               <Button variant="secondary" onClick={() => loadRecords(1)} className="rounded-lg">
@@ -673,18 +627,21 @@ export default function CoachAttendancePanel() {
                   <th className="px-4 py-3">Father</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Check-in</th>
+                  <th className="px-4 py-3">Source</th>
+                  <th className="px-4 py-3">Distance</th>
+                  <th className="px-4 py-3">Location</th>
                 </tr>
               </thead>
               <tbody>
                 {recordsLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted">
-                      Loadingâ€¦
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                      Loading…
                     </td>
                   </tr>
                 ) : records.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
                       No attendance records found.
                     </td>
                   </tr>
@@ -717,6 +674,9 @@ export default function CoachAttendancePanel() {
                           </span>
                         </td>
                         <td className="px-4 py-3">{r.checkIn ? r.checkIn : formatTime(r.markedAt)}</td>
+                        <td className="px-4 py-3">{isPresent ? r.sourceLabel || r.method || 'QR' : '—'}</td>
+                        <td className="px-4 py-3">{r.distanceLabel || '—'}</td>
+                        <td className="px-4 py-3">{r.locationLabel || '—'}</td>
                       </tr>
                     );
                   })

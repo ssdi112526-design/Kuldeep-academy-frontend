@@ -8,7 +8,7 @@ import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { entryService } from '../../services';
+import { entryService, biometricService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -50,6 +50,7 @@ const EMPTY = {
   loginUsername: '',
   password: '',
   confirmPassword: '',
+  biometricUserId: '',
 };
 
 export default function EntryCoachesPanel() {
@@ -222,6 +223,7 @@ export default function EntryCoachesPanel() {
         loginUsername: coach.username || coach.loginAccount?.username || '',
         password: '',
         confirmPassword: '',
+        biometricUserId: coach.biometricUserId || '',
       });
 
       setPhotoFile(null);
@@ -300,12 +302,27 @@ export default function EntryCoachesPanel() {
           photo: photoFile || undefined,
           certificates: certificateFiles?.length ? certificateFiles : undefined,
         });
+        try {
+          await biometricService.setCoachBiometric(editingId, form.biometricUserId.trim() || null);
+        } catch (bioErr) {
+          toast.error(getApiErrorMessage(bioErr, 'Coach saved but biometric ID failed'));
+          setSaving(false);
+          return;
+        }
         toast.success('Coach updated');
       } else {
-        await entryService.coaches.create(payload, {
+        const created = await entryService.coaches.create(payload, {
           photo: photoFile,
           certificates: certificateFiles?.length ? certificateFiles : undefined,
         });
+        const newId = created.data?.data?.coach?.id;
+        if (newId && form.biometricUserId.trim()) {
+          try {
+            await biometricService.setCoachBiometric(newId, form.biometricUserId.trim());
+          } catch (bioErr) {
+            toast.error(getApiErrorMessage(bioErr, 'Coach created but biometric ID failed'));
+          }
+        }
         toast.success('Coach created');
       }
 
@@ -681,6 +698,38 @@ export default function EntryCoachesPanel() {
               <label className="block text-sm font-medium text-ink">
                 Specialization
                 <input value={form.specialization} onChange={(e) => updateField('specialization', e.target.value)} className={fieldClass(fieldErrors, 'specialization')} />
+              </label>
+
+              <label className="block text-sm font-medium text-ink sm:col-span-2">
+                Biometric Enrollment
+                <span className="mt-0.5 block text-xs font-normal text-muted">
+                  Assign the device user ID used on the fingerprint machine (must be unique across students and coaches).
+                </span>
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <input
+                    value={form.biometricUserId}
+                    onChange={(e) => updateField('biometricUserId', e.target.value)}
+                    className={`${fieldClass(fieldErrors, 'biometricUserId')} max-w-xs`}
+                    placeholder="e.g. 501"
+                  />
+                  {editingId ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="rounded-lg"
+                      onClick={async () => {
+                        try {
+                          await biometricService.setCoachBiometric(editingId, form.biometricUserId.trim() || null);
+                          toast.success('Biometric ID saved');
+                        } catch (err) {
+                          toast.error(getApiErrorMessage(err, 'Failed to save biometric ID'));
+                        }
+                      }}
+                    >
+                      Enroll Biometric
+                    </Button>
+                  ) : null}
+                </div>
               </label>
 
               <div className="sm:col-span-2">

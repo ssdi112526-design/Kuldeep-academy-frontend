@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { attendanceService, authService } from '../services';
 import { mediaUrl } from '../utils/mediaUrl';
 import { getApiErrorMessage } from '../utils/apiError';
+import { getCurrentGpsPosition, formatAttendanceScanSuccess } from '../utils/geolocation';
 
 const SCANNER_ID = 'student-attendance-qr-reader';
 
@@ -117,17 +118,32 @@ export default function StudentDashboard() {
         } catch {
           throw new Error('Invalid Attendance QR.\nPlease scan the current QR displayed by the admin.');
         }
-        const res = await attendanceService.scan({ payload });
-        setScanResult(res.data?.data?.attendance || null);
-        toast.success(res.data?.message || 'Attendance marked successfully');
+
+        let gps;
+        try {
+          gps = await getCurrentGpsPosition();
+        } catch (locErr) {
+          throw new Error(locErr.message || 'Location permission is required for attendance.');
+        }
+
+        const res = await attendanceService.scan({
+          payload,
+          latitude: gps.latitude,
+          longitude: gps.longitude,
+          accuracy: gps.accuracy,
+          timestamp: new Date(gps.timestamp).toISOString(),
+        });
+        const attendance = res.data?.data?.attendance || null;
+        setScanResult(attendance);
+        toast.success(formatAttendanceScanSuccess(attendance) || res.data?.message || 'Attendance marked successfully');
         await stopScanner();
         await loadData();
         setSection('attendance');
       } catch (err) {
+        const code = err.response?.data?.code;
         const msg = err.response?.data?.message || err.message || 'Scan failed';
         toast.error(msg);
-        // Keep scanner open for next QR unless already marked today
-        if (err.response?.data?.code === 'ATTENDANCE_ALREADY_MARKED') {
+        if (code === 'ATTENDANCE_ALREADY_MARKED' || code === 'LOCATION_OUTSIDE_RADIUS') {
           await stopScanner();
         }
       } finally {
@@ -217,6 +233,12 @@ export default function StudentDashboard() {
   }, [section, wantScanner, startScannerEngine]);
 
   const openScanner = async () => {
+    try {
+      await getCurrentGpsPosition();
+    } catch (err) {
+      toast.error(err.message || 'Location permission is required for attendance.');
+      return;
+    }
     setSection('scan');
     setWantScanner(true);
   };
@@ -377,11 +399,18 @@ export default function StudentDashboard() {
               {scanResult ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
                   <p className="font-bold">✓ Attendance Marked Successfully</p>
-                  <p className="mt-2">Student: {scanResult.studentName}</p>
+                  <p className="mt-2">Student: {scanResult.studentName || scanResult.name}</p>
                   <p>Registration ID: {scanResult.registrationId}</p>
                   <p>
                     Date: {scanResult.date} · Time: {scanResult.time}
                   </p>
+                  {scanResult.distanceFromAkhada != null || scanResult.distanceMeters != null ? (
+                    <p>
+                      Distance from Akhada:{' '}
+                      {Math.round(scanResult.distanceFromAkhada ?? scanResult.distanceMeters)} meters
+                    </p>
+                  ) : null}
+                  {scanResult.locationVerified ? <p>Location Verified ✓</p> : null}
                 </div>
               ) : null}
             </div>

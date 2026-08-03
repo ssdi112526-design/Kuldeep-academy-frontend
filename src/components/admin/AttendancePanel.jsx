@@ -91,6 +91,8 @@ export default function AttendancePanel() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all | present | absent
+  const [methodFilter, setMethodFilter] = useState('all'); // all | QR | BIOMETRIC
+  const [locationFilter, setLocationFilter] = useState('all'); // all | verified | not_verified
   const [periodMode, setPeriodMode] = useState('month'); // month | select | custom | all
   const [selectedMonth, setSelectedMonth] = useState(''); // YYYY-MM
   const [availableMonths, setAvailableMonths] = useState([]);
@@ -113,6 +115,8 @@ export default function AttendancePanel() {
     const params = {
       search: search.trim() || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
+      method: methodFilter !== 'all' ? methodFilter : undefined,
+      location: locationFilter !== 'all' ? locationFilter : undefined,
       view: 'matrix',
     };
     if (periodMode === 'all') {
@@ -130,7 +134,7 @@ export default function AttendancePanel() {
       params.period = 'month';
     }
     return params;
-  }, [periodMode, selectedMonth, from, to, search, statusFilter]);
+  }, [periodMode, selectedMonth, from, to, search, statusFilter, methodFilter, locationFilter]);
 
   const loadActiveQr = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setQrLoading(true);
@@ -261,7 +265,7 @@ export default function AttendancePanel() {
   useEffect(() => {
     if (!canView || tab !== 'records') return;
     loadRecords(1);
-  }, [canView, tab, periodMode, selectedMonth, from, to, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canView, tab, periodMode, selectedMonth, from, to, statusFilter, methodFilter, locationFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerate = async () => {
     if (!canCreate) {
@@ -363,11 +367,13 @@ export default function AttendancePanel() {
     <div className="space-y-5">
       <FormErrorBanner message={error} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Total Students" value={stats?.totalStudents ?? 0} icon={FaUsers} loading={statsLoading} />
         <StatCard label="Present Today" value={stats?.present ?? 0} icon={FaUserCheck} loading={statsLoading} />
         <StatCard label="Absent Today" value={stats?.absent ?? 0} icon={FaUserTimes} loading={statsLoading} />
         <StatCard label="Attendance %" value={stats ? `${stats.attendanceRate ?? 0}%` : '0%'} icon={FaCheck} loading={statsLoading} />
+        <StatCard label="QR Attendance" value={stats?.qrAttendance ?? 0} icon={FaQrcode} loading={statsLoading} />
+        <StatCard label="Biometric" value={stats?.biometricAttendance ?? 0} icon={FaUserCheck} loading={statsLoading} />
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -487,6 +493,30 @@ export default function AttendancePanel() {
                   <option value="absent">Absent</option>
                 </select>
               </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-xs text-muted">Source</span>
+                <select
+                  value={methodFilter}
+                  onChange={(e) => setMethodFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="QR">QR</option>
+                  <option value="BIOMETRIC">Biometric</option>
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-xs text-muted">Location</span>
+                <select
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="verified">Verified</option>
+                  <option value="not_verified">Not Verified</option>
+                </select>
+              </label>
               <Button variant="secondary" onClick={() => loadRecords(1)} className="rounded-lg">
                 Apply
               </Button>
@@ -594,18 +624,21 @@ export default function AttendancePanel() {
                   <th className="px-4 py-3">Father</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Check-in</th>
+                  <th className="px-4 py-3">Source</th>
+                  <th className="px-4 py-3">Distance</th>
+                  <th className="px-4 py-3">Location</th>
                 </tr>
               </thead>
               <tbody>
                 {recordsLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted">
-                      Loadingâ€¦
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                      Loading…
                     </td>
                   </tr>
                 ) : records.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
                       No attendance records found.
                     </td>
                   </tr>
@@ -638,6 +671,9 @@ export default function AttendancePanel() {
                           </span>
                         </td>
                         <td className="px-4 py-3">{r.checkIn ? r.checkIn : formatTime(r.markedAt)}</td>
+                        <td className="px-4 py-3">{isPresent ? r.sourceLabel || r.method || 'QR' : '—'}</td>
+                        <td className="px-4 py-3">{r.distanceLabel || '—'}</td>
+                        <td className="px-4 py-3">{r.locationLabel || '—'}</td>
                       </tr>
                     );
                   })

@@ -8,7 +8,7 @@ import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { entryService } from '../../services';
+import { entryService, biometricService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -79,6 +79,7 @@ const EMPTY = {
   attendanceTotal: 0,
   attendancePresent: 0,
   attendanceAbsent: 0,
+  biometricUserId: '',
   password: '',
   confirmPassword: '',
 };
@@ -317,6 +318,7 @@ export default function EntryStudentsPanel() {
         attendanceTotal: student.attendanceTotal ?? 0,
         attendancePresent: student.attendancePresent ?? 0,
         attendanceAbsent: student.attendanceAbsent ?? 0,
+        biometricUserId: student.biometricUserId || '',
       });
 
       setPhotoFile(null);
@@ -425,11 +427,26 @@ export default function EntryStudentsPanel() {
         await entryService.students.update(editingId, payload, {
           photo: photoFile || undefined,
         });
+        try {
+          await biometricService.setStudentBiometric(editingId, form.biometricUserId.trim() || null);
+        } catch (bioErr) {
+          toast.error(getApiErrorMessage(bioErr, 'Student saved but biometric ID failed'));
+          setSaving(false);
+          return;
+        }
         toast.success('Student updated');
       } else {
-        await entryService.students.create(payload, {
+        const created = await entryService.students.create(payload, {
           photo: photoFile,
         });
+        const newId = created.data?.data?.student?.id;
+        if (newId && form.biometricUserId.trim()) {
+          try {
+            await biometricService.setStudentBiometric(newId, form.biometricUserId.trim());
+          } catch (bioErr) {
+            toast.error(getApiErrorMessage(bioErr, 'Student created but biometric ID failed'));
+          }
+        }
         toast.success('Student created');
       }
 
@@ -936,6 +953,38 @@ export default function EntryStudentsPanel() {
                     <option key={c.id} value={c.id}>{c.fullName}</option>
                   ))}
                 </select>
+              </label>
+
+              <label className="block text-sm font-medium text-ink sm:col-span-2">
+                Biometric Enrollment
+                <span className="mt-0.5 block text-xs font-normal text-muted">
+                  Assign the device user ID used on the fingerprint machine (must be unique across students and coaches).
+                </span>
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <input
+                    value={form.biometricUserId}
+                    onChange={(e) => updateField('biometricUserId', e.target.value)}
+                    className={`${fieldClass(fieldErrors, 'biometricUserId')} max-w-xs`}
+                    placeholder="e.g. 101"
+                  />
+                  {editingId ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="rounded-lg"
+                      onClick={async () => {
+                        try {
+                          await biometricService.setStudentBiometric(editingId, form.biometricUserId.trim() || null);
+                          toast.success('Biometric ID saved');
+                        } catch (err) {
+                          toast.error(getApiErrorMessage(err, 'Failed to save biometric ID'));
+                        }
+                      }}
+                    >
+                      Enroll Biometric
+                    </Button>
+                  ) : null}
+                </div>
               </label>
 
               <div className="sm:col-span-2">

@@ -16,6 +16,8 @@ import {
   FaBars,
   FaTimes,
   FaCalendarCheck,
+  FaFingerprint,
+  FaCog,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -38,6 +40,8 @@ import AchievementsPanel from '../components/admin/AchievementsPanel';
 import SchedulePanel from '../components/admin/SchedulePanel';
 import AttendancePanel from '../components/admin/AttendancePanel';
 import CoachAttendancePanel from '../components/admin/CoachAttendancePanel';
+import BiometricDevicesPanel from '../components/admin/BiometricDevicesPanel';
+import AttendanceSettingsPanel from '../components/admin/AttendanceSettingsPanel';
 import AccessDenied from '../components/admin/AccessDenied';
 import { formatBytes } from '../utils/videoUtils';
 
@@ -71,6 +75,8 @@ const NAV = [
     children: [
       { id: 'attendance', label: 'Students', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
       { id: 'coach-attendance', label: 'Coaches', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
+      { id: 'biometric-devices', label: 'Biometric Devices', icon: FaFingerprint, module: 'attendance', permission: 'attendance.view' },
+      { id: 'attendance-settings', label: 'Attendance Settings', icon: FaCog, module: 'attendance', permission: 'attendance.view' },
     ],
   },
   {
@@ -98,6 +104,8 @@ const SECTION_MODULE = {
   equipment: 'equipment',
   attendance: 'attendance',
   'coach-attendance': 'attendance',
+  'biometric-devices': 'attendance',
+  'attendance-settings': 'attendance',
   users: 'users',
   roles: 'roles',
 };
@@ -239,6 +247,14 @@ export default function Admin() {
     equipment: { title: 'Equipment & Tools', subtitle: 'Manage akhada equipment, QR codes and history.' },
     attendance: { title: 'Student Attendance', subtitle: 'Mark daily student attendance, track history, and export reports.' },
     'coach-attendance': { title: 'Coach Attendance', subtitle: 'Mark daily coach attendance, track history, and export reports.' },
+    'biometric-devices': {
+      title: 'Biometric Devices',
+      subtitle: 'Manage fingerprint devices, sync agents, enrollment mappings, and unknown punch logs.',
+    },
+    'attendance-settings': {
+      title: 'Attendance Settings',
+      subtitle: 'Configure Akhada GPS location and 500m QR geofence radius.',
+    },
     users: { title: 'Users', subtitle: 'Create accounts and manage staff access.' },
     roles: { title: 'Roles & Permissions', subtitle: 'Configure role-based access across the admin panel.' },
   };
@@ -350,6 +366,8 @@ export default function Admin() {
                 {section === 'equipment' && <EntryEquipmentPanel />}
                 {section === 'attendance' && <AttendancePanel />}
                 {section === 'coach-attendance' && <CoachAttendancePanel />}
+                {section === 'biometric-devices' && <BiometricDevicesPanel />}
+                {section === 'attendance-settings' && <AttendanceSettingsPanel />}
                 {section === 'users' && <UsersPanel />}
                 {section === 'roles' && <RolesPanel />}
               </>
