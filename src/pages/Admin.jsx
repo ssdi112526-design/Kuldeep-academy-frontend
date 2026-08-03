@@ -15,6 +15,7 @@ import {
   FaTrophy,
   FaBars,
   FaTimes,
+  FaCalendarCheck,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -35,6 +36,8 @@ import UsersPanel from '../components/admin/UsersPanel';
 import RolesPanel from '../components/admin/RolesPanel';
 import AchievementsPanel from '../components/admin/AchievementsPanel';
 import SchedulePanel from '../components/admin/SchedulePanel';
+import AttendancePanel from '../components/admin/AttendancePanel';
+import CoachAttendancePanel from '../components/admin/CoachAttendancePanel';
 import AccessDenied from '../components/admin/AccessDenied';
 import { formatBytes } from '../utils/videoUtils';
 
@@ -63,6 +66,14 @@ const NAV = [
     ],
   },
   {
+    id: 'attendance-menu',
+    label: 'Attendance',
+    children: [
+      { id: 'attendance', label: 'Students', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
+      { id: 'coach-attendance', label: 'Coaches', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
+    ],
+  },
+  {
     id: 'user-mgmt',
     label: 'User Management',
     superAdminOnly: true,
@@ -85,6 +96,8 @@ const SECTION_MODULE = {
   students: 'students',
   coaches: 'coaches',
   equipment: 'equipment',
+  attendance: 'attendance',
+  'coach-attendance': 'attendance',
   users: 'users',
   roles: 'roles',
 };
@@ -129,7 +142,7 @@ function NavItems({ items, section, onSelect }) {
 }
 
 export default function Admin() {
-  const { user, loading, canAccessAdmin, logout } = useAuth();
+  const { user, loading, canAccessAdmin, logout, isStudent, isCoach } = useAuth();
   const { can, canModule, isSuperAdmin } = usePermissions();
   const [section, setSection] = useState('dashboard');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -208,6 +221,8 @@ export default function Admin() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (isStudent) return <Navigate to="/student" replace />;
+  if (isCoach) return <Navigate to="/coach" replace />;
   if (!canAccessAdmin && !isSuperAdmin) return <Navigate to="/" replace />;
 
   const titles = {
@@ -222,6 +237,8 @@ export default function Admin() {
     students: { title: 'Students', subtitle: 'Manage student entries, documents and profiles.' },
     coaches: { title: 'Coaches', subtitle: 'Manage coach entries, documents and profiles.' },
     equipment: { title: 'Equipment & Tools', subtitle: 'Manage akhada equipment, QR codes and history.' },
+    attendance: { title: 'Student Attendance', subtitle: 'Mark daily student attendance, track history, and export reports.' },
+    'coach-attendance': { title: 'Coach Attendance', subtitle: 'Mark daily coach attendance, track history, and export reports.' },
     users: { title: 'Users', subtitle: 'Create accounts and manage staff access.' },
     roles: { title: 'Roles & Permissions', subtitle: 'Configure role-based access across the admin panel.' },
   };
@@ -331,6 +348,8 @@ export default function Admin() {
                 {section === 'students' && <EntryStudentsPanel />}
                 {section === 'coaches' && <EntryCoachesPanel />}
                 {section === 'equipment' && <EntryEquipmentPanel />}
+                {section === 'attendance' && <AttendancePanel />}
+                {section === 'coach-attendance' && <CoachAttendancePanel />}
                 {section === 'users' && <UsersPanel />}
                 {section === 'roles' && <RolesPanel />}
               </>

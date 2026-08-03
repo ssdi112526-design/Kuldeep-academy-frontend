@@ -5,6 +5,9 @@ export const authService = {
   register: (payload) => api.post('/auth/register', payload),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
+  forgotPassword: (payload) => api.post('/auth/forgot-password', payload),
+  resetPassword: (payload) => api.post('/auth/reset-password', payload),
+  changePassword: (payload) => api.post('/auth/change-password', payload),
 };
 
 export const contactService = {
@@ -132,6 +135,7 @@ export const entryService = {
       return api.put(`/admin/students/${id}`, form);
     },
     remove: (id) => api.delete(`/admin/students/${id}`),
+    resetPassword: (id, payload) => api.post(`/admin/students/${id}/reset-password`, payload),
   },
   coaches: {
     list: (params) => api.get('/admin/coaches', { params }),
@@ -172,6 +176,7 @@ export const entryService = {
       return api.put(`/admin/coaches/${id}`, form);
     },
     remove: (id) => api.delete(`/admin/coaches/${id}`),
+    resetPassword: (id, payload) => api.post(`/admin/coaches/${id}/reset-password`, payload),
   },
   equipment: {
     list: (params) => api.get('/admin/equipment', { params }),
@@ -224,6 +229,53 @@ export const scheduleService = {
   updateDay: (id, payload) => api.put(`/admin/schedule/days/${id}`, payload),
   removeDay: (id) => api.delete(`/admin/schedule/days/${id}`),
 };
+
+export const attendanceService = {
+  stats: (params) => api.get('/admin/attendance/stats', { params }),
+  months: () => api.get('/admin/attendance/months'),
+  records: (params) => api.get('/admin/attendance/records', { params }),
+  roster: (params) => api.get('/admin/attendance/roster', { params }),
+  studentSummary: (params) => api.get('/admin/attendance/summary/students', { params }),
+  studentHistory: (studentId, params) =>
+    api.get(`/admin/attendance/students/${studentId}/history`, { params }),
+  record: (id) => api.get(`/admin/attendance/records/${id}`),
+  sessions: (params) => api.get('/admin/attendance/sessions', { params }),
+  activeQr: () => api.get('/admin/attendance/qr/active'),
+  generateQr: (payload) => api.post('/admin/attendance/qr/generate', payload || {}),
+  closeQr: (id) =>
+    id ? api.post(`/admin/attendance/qr/${id}/close`) : api.post('/admin/attendance/qr/close'),
+  exportRecords: (payload) =>
+    api.post('/admin/attendance/export', payload, { responseType: 'blob' }),
+  myProfile: () => api.get('/student/profile'),
+  myAttendance: () => api.get('/student/attendance'),
+  scan: (payload) => api.post('/student/attendance/scan', payload),
+};
+
+export const coachPortalService = {
+  myProfile: () => api.get('/coach/profile'),
+  myAttendance: () => api.get('/coach/attendance'),
+  scan: (payload) => api.post('/coach/attendance/scan', payload),
+};
+
+export const coachAttendanceService = {
+  stats: (params) => api.get('/admin/coach-attendance/stats', { params }),
+  months: () => api.get('/admin/coach-attendance/months'),
+  records: (params) => api.get('/admin/coach-attendance/records', { params }),
+  coachSummary: (params) => api.get('/admin/coach-attendance/summary/coaches', { params }),
+  coachHistory: (coachId, params) =>
+    api.get(`/admin/coach-attendance/coaches/${coachId}/history`, { params }),
+  coaches: () => api.get('/admin/coach-attendance/coaches'),
+  activeQr: () => api.get('/admin/coach-attendance/qr/active'),
+  generateQr: (payload) => api.post('/admin/coach-attendance/qr/generate', payload || {}),
+  closeQr: (id) =>
+    id
+      ? api.post(`/admin/coach-attendance/qr/${id}/close`)
+      : api.post('/admin/coach-attendance/qr/close'),
+  markPresent: (payload) => api.post('/admin/coach-attendance/mark', payload),
+  exportRecords: (payload) =>
+    api.post('/admin/coach-attendance/export', payload, { responseType: 'blob' }),
+};
+
 
 export const userAdminService = {
   list: (params) => api.get('/admin/users', { params }),

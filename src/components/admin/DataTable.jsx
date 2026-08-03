@@ -104,9 +104,9 @@ export default function DataTable({
               </td>
               <td className="px-4 py-3 font-medium text-ink">{contact.fullName || '0'}</td>
               <td className="px-4 py-3 text-muted">{contact.email || '0'}</td>
-              <td className="px-4 py-3 text-muted">{contact.phone || '—'}</td>
+              <td className="px-4 py-3 text-muted">{contact.phone || 0}</td>
               <td className="max-w-xs truncate px-4 py-3 text-muted" title={contact.message}>
-                {contact.message || '—'}
+                {contact.message || 0}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">

@@ -47,6 +47,9 @@ const EMPTY = {
   panNumber: '',
   achievements: '',
   biography: '',
+  loginUsername: '',
+  password: '',
+  confirmPassword: '',
 };
 
 export default function EntryCoachesPanel() {
@@ -58,6 +61,8 @@ export default function EntryCoachesPanel() {
   const canDelete = can('coaches.delete');
   const canExport = can('coaches.export');
   const canUpload = can('coaches.upload');
+  const canResetPassword = can('coaches.reset_password') || canEdit;
+  const canAttachFiles = canUpload || canCreate || canEdit;
 
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState(null);
@@ -85,6 +90,7 @@ export default function EntryCoachesPanel() {
 
   const [profile, setProfile] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [resetModal, setResetModal] = useState({ open: false, coach: null, password: '', confirmPassword: '', loading: false });
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -115,6 +121,19 @@ export default function EntryCoachesPanel() {
     if (aadhaar) errors.aadhaarNumber = aadhaar;
     if (pan) errors.panNumber = pan;
     if (!editingId && !photoFile) errors.photo = 'Coach photo is required';
+    if (!editingId) {
+      if (!form.loginUsername?.trim()) errors.loginUsername = 'Username is required';
+      if (!form.password) errors.password = 'Password is required';
+      else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.password)) {
+        errors.password = 'Password must be 8+ chars with upper, lower and a number';
+      }
+      if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    } else if (form.password || form.confirmPassword) {
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.password)) {
+        errors.password = 'Password must be 8+ chars with upper, lower and a number';
+      }
+      if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    }
     return errors;
   };
 
@@ -200,6 +219,9 @@ export default function EntryCoachesPanel() {
         panNumber: coach.panNumber || '',
         achievements: coach.achievements || '',
         biography: coach.biography || '',
+        loginUsername: coach.username || coach.loginAccount?.username || '',
+        password: '',
+        confirmPassword: '',
       });
 
       setPhotoFile(null);
@@ -222,7 +244,7 @@ export default function EntryCoachesPanel() {
       toast.error('You do not have permission to create coaches');
       return;
     }
-    if ((photoFile || certificateFiles.length > 0) && !canUpload) {
+    if ((photoFile || certificateFiles.length > 0) && !canAttachFiles) {
       toast.error('You do not have permission to upload coach files');
       return;
     }
@@ -237,6 +259,9 @@ export default function EntryCoachesPanel() {
         'dateOfBirth',
         'aadhaarNumber',
         'panNumber',
+        'loginUsername',
+        'password',
+        'confirmPassword',
         'photo',
       ]);
       setValidationPopup({ open: true, title: 'Validation required', message });
@@ -262,6 +287,10 @@ export default function EntryCoachesPanel() {
       panNumber: normalizePan(form.panNumber),
       achievements: form.achievements || undefined,
       biography: form.biography || undefined,
+      loginUsername: form.loginUsername?.trim() || undefined,
+      ...(form.password
+        ? { password: form.password, confirmPassword: form.confirmPassword }
+        : {}),
     };
 
     setSaving(true);
@@ -348,19 +377,19 @@ export default function EntryCoachesPanel() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Coaches</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalCoaches ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalCoaches ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Active Coaches</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.activeCoaches ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.activeCoaches ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Inactive Coaches</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.inactiveCoaches ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.inactiveCoaches ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Suspended Coaches</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.suspendedCoaches ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.suspendedCoaches ?? 0}</p>
         </div>
       </div>
 
@@ -412,8 +441,9 @@ export default function EntryCoachesPanel() {
                 <th className="px-4 py-3">Photo</th>
                 <th className="px-4 py-3">Coach ID</th>
                 <th className="px-4 py-3">Coach</th>
-                <th className="px-4 py-3">Specialization</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Username</th>
+                <th className="px-4 py-3">Account Status</th>
+                <th className="px-4 py-3">Attendance</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -428,20 +458,19 @@ export default function EntryCoachesPanel() {
                     <p className="font-medium text-ink">{c.fullName}</p>
                     <p className="text-xs text-muted">{c.mobile}</p>
                   </td>
-                  <td className="px-4 py-3 text-muted">{c.specialization || '—'}</td>
+                  <td className="px-4 py-3 text-muted">{c.username || c.loginAccount?.username || 0}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        c.status === 'Active'
+                        (c.accountStatus || c.status) === 'Active'
                           ? 'bg-emerald-50 text-emerald-700'
-                          : c.status === 'Inactive'
-                            ? 'bg-slate-100 text-slate-600'
-                            : 'bg-amber-50 text-amber-700'
+                          : 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {c.status}
+                      {c.accountStatus || c.status || 0}
                     </span>
                   </td>
+                  <td className="px-4 py-3 font-medium text-ink">{c.attendancePercentage ?? 0}%</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button type="button" onClick={() => openProfile(c.id)} className="rounded-lg p-2 text-brand hover:bg-brand/10">
@@ -450,6 +479,24 @@ export default function EntryCoachesPanel() {
                       {canEdit ? (
                         <button type="button" onClick={() => openEdit(c.id)} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50">
                           <FaEdit />
+                        </button>
+                      ) : null}
+                      {canResetPassword ? (
+                        <button
+                          type="button"
+                          title="Reset Password"
+                          onClick={() =>
+                            setResetModal({
+                              open: true,
+                              coach: c,
+                              password: '',
+                              confirmPassword: '',
+                              loading: false,
+                            })
+                          }
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-ink hover:bg-slate-100"
+                        >
+                          Reset PW
                         </button>
                       ) : null}
                       {canDelete ? (
@@ -562,6 +609,75 @@ export default function EntryCoachesPanel() {
                 </select>
               </label>
 
+              <div className="sm:col-span-2 rounded-xl border border-brand/20 bg-brand/5 p-4">
+                <h4 className="text-sm font-bold text-ink">Login Credentials</h4>
+                <p className="mt-1 text-xs text-muted">
+                  {editingId
+                    ? 'Leave password blank to keep the current password. Existing password is never shown.'
+                    : 'Coach uses this username and password to login to the Coach Dashboard.'}
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-ink sm:col-span-2">
+                    Username {!editingId ? '*' : ''}
+                    <input
+                      id="coach-loginUsername"
+                      value={form.loginUsername}
+                      onChange={(e) => updateField('loginUsername', e.target.value)}
+                      className={fieldClass(fieldErrors, 'loginUsername')}
+                      placeholder="e.g. coach_rahul"
+                      autoComplete="off"
+                    />
+                    {fieldErrors.loginUsername ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.loginUsername}</span>
+                    ) : null}
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Password {!editingId ? '*' : ''}
+                    <input
+                      id="coach-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={form.password}
+                      onChange={(e) => updateField('password', e.target.value)}
+                      className={fieldClass(fieldErrors, 'password')}
+                      placeholder={editingId ? 'Leave blank to keep current password' : 'Min 8 chars'}
+                    />
+                    {fieldErrors.password ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.password}</span> : null}
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Confirm Password {!editingId ? '*' : ''}
+                    <input
+                      id="coach-confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      value={form.confirmPassword}
+                      onChange={(e) => updateField('confirmPassword', e.target.value)}
+                      className={fieldClass(fieldErrors, 'confirmPassword')}
+                    />
+                    {fieldErrors.confirmPassword ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.confirmPassword}</span>
+                    ) : null}
+                  </label>
+                </div>
+                {editingId && canResetPassword ? (
+                  <button
+                    type="button"
+                    className="mt-3 text-sm font-semibold text-brand hover:underline"
+                    onClick={() =>
+                      setResetModal({
+                        open: true,
+                        coach: { id: editingId, fullName: form.fullName },
+                        password: '',
+                        confirmPassword: '',
+                        loading: false,
+                      })
+                    }
+                  >
+                    Reset Password…
+                  </button>
+                ) : null}
+              </div>
+
               <label className="block text-sm font-medium text-ink">
                 Specialization
                 <input value={form.specialization} onChange={(e) => updateField('specialization', e.target.value)} className={fieldClass(fieldErrors, 'specialization')} />
@@ -572,7 +688,7 @@ export default function EntryCoachesPanel() {
                 <ImageUploader
                   previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
                   onChange={(f) => {
-                    if (!canUpload) {
+                    if (!canAttachFiles) {
                       toast.error('You do not have permission to upload coach files');
                       return;
                     }
@@ -586,6 +702,10 @@ export default function EntryCoachesPanel() {
                       });
                     }
                   }}
+                  onClear={() => {
+                    setPhotoFile(null);
+                    setPhotoPreview('');
+                  }}
                   label="Upload coach photo (JPG/PNG/WEBP)"
                 />
                 {fieldErrors.photo ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.photo}</span> : null}
@@ -598,7 +718,7 @@ export default function EntryCoachesPanel() {
                   accept="image/*,application/pdf"
                   multiple
                   onChange={(e) => {
-                    if (!canUpload) {
+                    if (!canAttachFiles) {
                       toast.error('You do not have permission to upload coach files');
                       return;
                     }
@@ -634,6 +754,70 @@ export default function EntryCoachesPanel() {
         onConfirm={handleDelete}
         onCancel={() => setConfirm({ open: false, id: null, loading: false })}
       />
+
+      {resetModal.open ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm">
+          <form
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!canResetPassword) return;
+              if (!resetModal.password || resetModal.password !== resetModal.confirmPassword) {
+                toast.error('Password and confirm password must match');
+                return;
+              }
+              setResetModal((s) => ({ ...s, loading: true }));
+              try {
+                await entryService.coaches.resetPassword(resetModal.coach.id, {
+                  password: resetModal.password,
+                  confirmPassword: resetModal.confirmPassword,
+                });
+                toast.success('Coach password reset successfully');
+                setResetModal({ open: false, coach: null, password: '', confirmPassword: '', loading: false });
+              } catch (err) {
+                toast.error(getApiErrorMessage(err, 'Reset failed'));
+                setResetModal((s) => ({ ...s, loading: false }));
+              }
+            }}
+          >
+            <h3 className="text-lg font-bold text-ink">Reset Coach Password</h3>
+            <p className="mt-1 text-sm text-muted">Coach: {resetModal.coach?.fullName || 0}</p>
+            <p className="mt-2 text-xs text-muted">Existing password cannot be viewed. Set a new password below.</p>
+            <label className="mt-4 block text-sm font-medium">
+              New Password
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={resetModal.password}
+                onChange={(e) => setResetModal((s) => ({ ...s, password: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="mt-3 block text-sm font-medium">
+              Confirm Password
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={resetModal.confirmPassword}
+                onChange={(e) => setResetModal((s) => ({ ...s, confirmPassword: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setResetModal({ open: false, coach: null, password: '', confirmPassword: '', loading: false })}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={resetModal.loading}>
+                {resetModal.loading ? 'Saving…' : 'Reset Password'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       <ValidationPopup
         open={validationPopup.open}

@@ -79,6 +79,8 @@ const EMPTY = {
   attendanceTotal: 0,
   attendancePresent: 0,
   attendanceAbsent: 0,
+  password: '',
+  confirmPassword: '',
 };
 
 export default function EntryStudentsPanel() {
@@ -88,6 +90,7 @@ export default function EntryStudentsPanel() {
   const canCreate = can('students.create');
   const canEdit = can('students.edit');
   const canDelete = can('students.delete');
+  const canResetPassword = can('students.reset_password') || canEdit;
   const canExport = can('students.export');
   const canUpload = can('students.upload');
 
@@ -132,6 +135,7 @@ export default function EntryStudentsPanel() {
 
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [resetModal, setResetModal] = useState({ open: false, student: null, password: '', confirmPassword: '', loading: false });
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -169,6 +173,19 @@ export default function EntryStudentsPanel() {
     if (joining) errors.joiningDate = joining;
     if (!editingId && !photoFile) {
       errors.photo = 'Student photo is required';
+    }
+
+    if (!editingId) {
+      if (!form.password) errors.password = 'Password is required';
+      else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.password)) {
+        errors.password = 'Password must be 8+ chars with upper, lower and a number';
+      }
+      if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    } else if (form.password || form.confirmPassword) {
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.password)) {
+        errors.password = 'Password must be 8+ chars with upper, lower and a number';
+      }
+      if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
     }
 
     return errors;
@@ -339,6 +356,8 @@ export default function EntryStudentsPanel() {
         'aadhaarNumber',
         'panNumber',
         'joiningDate',
+        'password',
+        'confirmPassword',
         'photo',
       ]);
       setValidationPopup({ open: true, title: 'Validation required', message });
@@ -395,6 +414,9 @@ export default function EntryStudentsPanel() {
       attendanceTotal: form.attendanceTotal || 0,
       attendancePresent: form.attendancePresent || 0,
       attendanceAbsent: form.attendanceAbsent || 0,
+      ...(form.password
+        ? { password: form.password, confirmPassword: form.confirmPassword }
+        : {}),
     };
 
     setSaving(true);
@@ -477,19 +499,19 @@ export default function EntryStudentsPanel() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Students</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalStudents ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalStudents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Active Students</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.activeStudents ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.activeStudents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Inactive Students</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.inactiveStudents ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.inactiveStudents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Today Admissions</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.todayAdmissions ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.todayAdmissions ?? 0}</p>
         </div>
       </div>
 
@@ -599,7 +621,7 @@ export default function EntryStudentsPanel() {
                     <p className="font-medium text-ink">{s.fullName}</p>
                     <p className="text-xs text-muted">{s.mobileNumber}</p>
                   </td>
-                  <td className="px-4 py-3 text-muted">{s.coach?.fullName || '—'}</td>
+                  <td className="px-4 py-3 text-muted">{s.coach?.fullName || 0}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                       s.status === 'Active'
@@ -615,7 +637,7 @@ export default function EntryStudentsPanel() {
                     {s.membershipType} / {s.batch}
                   </td>
                   <td className="px-4 py-3 text-muted whitespace-nowrap">
-                    {s.joiningDate ? new Date(s.joiningDate).toLocaleDateString('en-IN') : '—'}
+                    {s.joiningDate ? new Date(s.joiningDate).toLocaleDateString('en-IN') : 0}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -635,6 +657,24 @@ export default function EntryStudentsPanel() {
                           aria-label="Edit"
                         >
                           <FaEdit />
+                        </button>
+                      ) : null}
+                      {canResetPassword ? (
+                        <button
+                          type="button"
+                          title="Reset Password"
+                          onClick={() =>
+                            setResetModal({
+                              open: true,
+                              student: s,
+                              password: '',
+                              confirmPassword: '',
+                              loading: false,
+                            })
+                          }
+                          className="rounded-lg px-2 py-1 text-xs font-semibold text-ink hover:bg-slate-100"
+                        >
+                          Reset PW
                         </button>
                       ) : null}
                       {canDelete ? (
@@ -831,6 +871,44 @@ export default function EntryStudentsPanel() {
                 {fieldErrors.joiningDate ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.joiningDate}</span> : null}
               </label>
 
+              <div className="sm:col-span-2 rounded-xl border border-brand/20 bg-brand/5 p-4">
+                <h4 className="text-sm font-bold text-ink">Login Credentials</h4>
+                <p className="mt-1 text-xs text-muted">
+                  {editingId
+                    ? 'Leave blank to keep the current password. Username is the Registration ID.'
+                    : 'Username will be the Registration ID (auto-generated). Student uses this to login.'}
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-ink">
+                    Password {!editingId ? '*' : ''}
+                    <input
+                      id="student-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={form.password}
+                      onChange={(e) => updateField('password', e.target.value)}
+                      className={fieldClass(fieldErrors, 'password')}
+                      placeholder={editingId ? 'Leave blank to keep' : 'Min 8 chars'}
+                    />
+                    {fieldErrors.password ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.password}</span> : null}
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Confirm Password {!editingId ? '*' : ''}
+                    <input
+                      id="student-confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      value={form.confirmPassword}
+                      onChange={(e) => updateField('confirmPassword', e.target.value)}
+                      className={fieldClass(fieldErrors, 'confirmPassword')}
+                    />
+                    {fieldErrors.confirmPassword ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.confirmPassword}</span>
+                    ) : null}
+                  </label>
+                </div>
+              </div>
+
               <label className="block text-sm font-medium text-ink">
                 Membership Type
                 <input value={form.membershipType} onChange={(e) => updateField('membershipType', e.target.value)} className={fieldClass(fieldErrors, 'membershipType')} />
@@ -911,6 +989,70 @@ export default function EntryStudentsPanel() {
         onConfirm={handleDelete}
         onCancel={() => setConfirm({ open: false, id: null, loading: false })}
       />
+
+      {resetModal.open ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm">
+          <form
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!canResetPassword) return;
+              if (!resetModal.password || resetModal.password !== resetModal.confirmPassword) {
+                toast.error('Password and confirm password must match');
+                return;
+              }
+              setResetModal((s) => ({ ...s, loading: true }));
+              try {
+                await entryService.students.resetPassword(resetModal.student.id, {
+                  password: resetModal.password,
+                  confirmPassword: resetModal.confirmPassword,
+                });
+                toast.success('Student password reset successfully');
+                setResetModal({ open: false, student: null, password: '', confirmPassword: '', loading: false });
+              } catch (err) {
+                toast.error(getApiErrorMessage(err, 'Reset failed'));
+                setResetModal((s) => ({ ...s, loading: false }));
+              }
+            }}
+          >
+            <h3 className="text-lg font-bold text-ink">Reset Student Password</h3>
+            <p className="mt-1 text-sm text-muted">Student: {resetModal.student?.fullName || 0}</p>
+            <p className="mt-2 text-xs text-muted">Existing password cannot be viewed. Set a new password below.</p>
+            <label className="mt-4 block text-sm font-medium">
+              New Password
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={resetModal.password}
+                onChange={(e) => setResetModal((s) => ({ ...s, password: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="mt-3 block text-sm font-medium">
+              Confirm Password
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={resetModal.confirmPassword}
+                onChange={(e) => setResetModal((s) => ({ ...s, confirmPassword: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setResetModal({ open: false, student: null, password: '', confirmPassword: '', loading: false })}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={resetModal.loading}>
+                {resetModal.loading ? 'Saving…' : 'Reset Password'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       <ValidationPopup
         open={validationPopup.open}

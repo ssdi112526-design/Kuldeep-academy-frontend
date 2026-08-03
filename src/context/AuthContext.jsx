@@ -50,8 +50,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const isStudent = Boolean(user?.isStudent || user?.role === 'student' || user?.accountType === 'student');
+  const isCoach = Boolean(user?.isCoach || user?.role === 'coach' || user?.accountType === 'coach' || user?.coachId);
+
   const canAccessAdmin = Boolean(
-    user?.canAccessAdmin || user?.isSuperAdmin || user?.role === 'admin' || (user?.permissions || []).length > 0
+    user &&
+      !isStudent &&
+      !isCoach &&
+      (user?.canAccessAdmin || user?.isSuperAdmin || user?.role === 'admin' || (user?.permissions || []).length > 0)
   );
 
   const value = useMemo(
@@ -62,9 +68,11 @@ export function AuthProvider({ children }) {
       logout,
       isAdmin: canAccessAdmin,
       canAccessAdmin,
-      isSuperAdmin: Boolean(user?.isSuperAdmin),
+      isSuperAdmin: Boolean(user?.isSuperAdmin && !isStudent && !isCoach),
+      isStudent,
+      isCoach,
     }),
-    [user, loading, canAccessAdmin]
+    [user, loading, canAccessAdmin, isStudent, isCoach]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

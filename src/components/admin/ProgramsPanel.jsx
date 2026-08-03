@@ -254,7 +254,7 @@ export default function ProgramsPanel({ onChanged }) {
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}
+                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 0}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {canEdit ? (

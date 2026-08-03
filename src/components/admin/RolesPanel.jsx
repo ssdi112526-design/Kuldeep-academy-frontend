@@ -230,7 +230,7 @@ export default function RolesPanel() {
                 roles.map((role) => (
                   <tr key={role.id} className="border-t border-slate-50 hover:bg-slate-50/70">
                     <td className="px-4 py-3 font-semibold text-ink">{role.name}</td>
-                    <td className="px-4 py-3 text-muted">{role.description || '—'}</td>
+                    <td className="px-4 py-3 text-muted">{role.description || 0}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${

@@ -5,7 +5,7 @@ function Row({ label, value }) {
   return (
     <div className="border-b border-slate-100 py-3 last:border-b-0">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-sm text-ink">{value || '—'}</p>
+      <p className="mt-1 text-sm text-ink">{value || 0}</p>
     </div>
   );
 }

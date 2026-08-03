@@ -5,7 +5,7 @@ function Row({ label, value }) {
   return (
     <div className="border-b border-slate-100 py-3 last:border-b-0">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-sm text-ink">{value || '—'}</p>
+      <p className="mt-1 text-sm text-ink">{value || 0}</p>
     </div>
   );
 }
@@ -63,20 +63,20 @@ export default function EntryCoachProfileModal({ coach, onClose }) {
               <Row label="Mobile" value={coach.mobile} />
               <Row label="Email" value={coach.email} />
               <Row label="DOB" value={coach.dateOfBirth ? new Date(coach.dateOfBirth).toLocaleDateString('en-IN') : ''} />
-              <Row label="Experience Years" value={coach.experienceYears ?? '—'} />
+              <Row label="Experience Years" value={coach.experienceYears ?? 0} />
               <Row label="Specialization" value={coach.specialization} />
               <Row label="Qualification" value={coach.qualification} />
-              <Row label="Salary" value={coach.salary ?? '—'} />
+              <Row label="Salary" value={coach.salary ?? 0} />
             </div>
 
             <div className="mt-6 rounded-xl border border-slate-100 bg-white p-4">
               <h3 className="text-sm font-bold text-ink">Achievements & Biography</h3>
               <div className="mt-2 text-sm text-muted">
                 <p>
-                  <span className="font-semibold text-ink">Achievements:</span> {coach.achievements || '—'}
+                  <span className="font-semibold text-ink">Achievements:</span> {coach.achievements || 0}
                 </p>
                 <p className="mt-2">
-                  <span className="font-semibold text-ink">Biography:</span> {coach.biography || '—'}
+                  <span className="font-semibold text-ink">Biography:</span> {coach.biography || 0}
                 </p>
               </div>
             </div>
@@ -85,7 +85,7 @@ export default function EntryCoachProfileModal({ coach, onClose }) {
               <div className="mt-6 rounded-xl border border-slate-100 bg-white p-4">
                 <h3 className="text-sm font-bold text-ink">Certificates</h3>
                 <p className="mt-2 text-sm text-muted">
-                  {Array.isArray(doc.certificates) ? doc.certificates.length : '—'} files uploaded.
+                  {Array.isArray(doc.certificates) ? doc.certificates.length : 0} files uploaded.
                 </p>
               </div>
             ) : null}

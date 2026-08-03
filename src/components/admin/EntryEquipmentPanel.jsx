@@ -339,19 +339,19 @@ export default function EntryEquipmentPanel() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Equipment</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalEquipment ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalEquipment ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Available</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.available ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.available ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Maintenance</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.maintenance ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.maintenance ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Damaged</p>
-          <p className="mt-1 text-2xl font-bold text-ink">{stats?.damaged ?? '—'}</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{stats?.damaged ?? 0}</p>
         </div>
       </div>
 
@@ -421,7 +421,7 @@ export default function EntryEquipmentPanel() {
                   <td className="px-4 py-3">
                     <p className="font-medium text-ink">{e.title}</p>
                   </td>
-                  <td className="px-4 py-3 text-muted">{e.category || '—'}</td>
+                  <td className="px-4 py-3 text-muted">{e.category || 0}</td>
                   <td className="px-4 py-3 text-muted">
                     {e.status} / {e.condition}
                   </td>

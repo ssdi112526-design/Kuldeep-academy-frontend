@@ -34,11 +34,11 @@ const EMPTY = {
 };
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return 0;
   try {
     return new Date(value).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
   } catch {
-    return '—';
+    return 0;
   }
 }
 
@@ -307,8 +307,8 @@ export default function UsersPanel() {
                     </td>
                     <td className="px-4 py-3 font-medium text-ink">{u.name}</td>
                     <td className="px-4 py-3 text-muted">{u.email}</td>
-                    <td className="px-4 py-3 text-muted">{u.mobile || '—'}</td>
-                    <td className="px-4 py-3 text-muted">{u.username || '—'}</td>
+                    <td className="px-4 py-3 text-muted">{u.mobile || 0}</td>
+                    <td className="px-4 py-3 text-muted">{u.username || 0}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
                         {u.roleName || u.roleSlug || u.role}
@@ -497,8 +497,8 @@ export default function UsersPanel() {
             </div>
             <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
               <div><dt className="text-muted">Email</dt><dd className="font-medium">{viewUser.email}</dd></div>
-              <div><dt className="text-muted">Username</dt><dd className="font-medium">{viewUser.username || '—'}</dd></div>
-              <div><dt className="text-muted">Mobile</dt><dd className="font-medium">{viewUser.mobile || '—'}</dd></div>
+              <div><dt className="text-muted">Username</dt><dd className="font-medium">{viewUser.username || 0}</dd></div>
+              <div><dt className="text-muted">Mobile</dt><dd className="font-medium">{viewUser.mobile || 0}</dd></div>
               <div><dt className="text-muted">Status</dt><dd className="font-medium">{viewUser.isActive ? 'Active' : 'Inactive'}</dd></div>
               <div><dt className="text-muted">Last Login</dt><dd className="font-medium">{formatDate(viewUser.lastLoginAt)}</dd></div>
               <div><dt className="text-muted">Created</dt><dd className="font-medium">{formatDate(viewUser.createdAt)}</dd></div>

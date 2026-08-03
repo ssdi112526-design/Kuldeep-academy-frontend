@@ -21,7 +21,7 @@ export default function Login() {
 
   const onInvalid = (formErrors) => {
     const message =
-      formErrors.email?.message || formErrors.password?.message || 'Please fill all required fields.';
+      formErrors.login?.message || formErrors.password?.message || 'Please fill all required fields.';
     setValidationPopup({
       open: true,
       title: 'Validation required',
@@ -33,8 +33,12 @@ export default function Login() {
   const onSubmit = async (data) => {
     setError('');
     try {
-      const user = await login(data);
-      if (user.canAccessAdmin || user.isSuperAdmin || user.role === 'admin' || (user.permissions || []).length) {
+      const user = await login({ login: data.login.trim(), password: data.password });
+      if (user.isStudent || user.role === 'student' || user.accountType === 'student') {
+        navigate('/student');
+      } else if (user.isCoach || user.role === 'coach' || user.accountType === 'coach' || user.coachId) {
+        navigate('/coach');
+      } else if (user.canAccessAdmin || user.isSuperAdmin || user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/');
@@ -53,32 +57,31 @@ export default function Login() {
         <div className="mb-6 flex justify-center">
           <Logo />
         </div>
-        <h1 className="text-center text-2xl font-bold text-ink">Admin Login</h1>
-        <p className="mt-1 text-center text-sm text-muted">Sign in to manage inquiries</p>
+        <h1 className="text-center text-2xl font-bold text-ink">Welcome Back</h1>
+        <p className="mt-1 text-center text-sm text-muted">Admin, Student or Coach sign in</p>
 
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="mt-6 space-y-4" noValidate>
           <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Email</span>
+            <span className="mb-1.5 block font-medium">Username</span>
             <input
-              type="email"
+              type="text"
+              autoComplete="username"
               className={`w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 ${
-                errors.email ? 'border-red-400' : 'border-slate-200'
+                errors.login ? 'border-red-400' : 'border-slate-200'
               }`}
-              {...register('email', {
-                required: 'Please enter your email.',
-                pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: 'Please enter a valid email address.',
-                },
+              placeholder="username, email or registration / coach ID"
+              {...register('login', {
+                required: 'Please enter your username.',
               })}
             />
-            {errors.email && <span className="mt-1 block text-xs text-red-500">{errors.email.message}</span>}
+            {errors.login && <span className="mt-1 block text-xs text-red-500">{errors.login.message}</span>}
           </label>
 
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium">Password</span>
             <input
               type="password"
+              autoComplete="current-password"
               className={`w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 ${
                 errors.password ? 'border-red-400' : 'border-slate-200'
               }`}
@@ -89,10 +92,16 @@ export default function Login() {
             )}
           </label>
 
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm font-medium text-brand hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
+
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
+            {isSubmitting ? 'Signing in...' : 'Login'}
           </Button>
         </form>
 

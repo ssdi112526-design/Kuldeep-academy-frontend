@@ -1,4 +1,7 @@
+import { displayZero } from '../../utils/zeroEmpty';
+
 export default function StatCard({ label, value, icon: Icon, loading }) {
+  const shown = loading ? '...' : displayZero(value);
   return (
     <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       {Icon && (
@@ -8,7 +11,7 @@ export default function StatCard({ label, value, icon: Icon, loading }) {
       )}
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-ink">{loading ? '...' : value}</p>
+        <p className="mt-1 text-2xl font-bold text-ink">{shown}</p>
       </div>
     </div>
   );

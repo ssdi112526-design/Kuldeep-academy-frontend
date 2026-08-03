@@ -25,7 +25,7 @@ export default function Navbar() {
 
   const isActive = (href) => {
     if (href === '/#home') return pathname === '/' && (!hash || hash === '#home' || hash === '');
-    if (href === '/admin') return pathname.startsWith('/admin') || pathname.startsWith('/login');
+    if (href === '/login') return pathname.startsWith('/login') || pathname.startsWith('/admin') || pathname.startsWith('/student');
     return hash && href.endsWith(hash);
   };
 
@@ -70,10 +70,10 @@ export default function Navbar() {
               {t('nav.join')}
             </Link>
             <Link
-              to="/admin"
-              className={`${navCtaClass} ${isActive('/admin') ? 'bg-[#1D4ED8]' : ''}`}
+              to="/login"
+              className={`${navCtaClass} ${isActive('/login') ? 'bg-[#1D4ED8]' : ''}`}
             >
-              {t('nav.admin')}
+              {t('nav.login')}
             </Link>
           </div>
           <button
@@ -110,11 +110,11 @@ export default function Navbar() {
                 {t('nav.join')}
               </Link>
               <Link
-                to="/admin"
+                to="/login"
                 onClick={() => setOpen(false)}
-                className={`${navCtaClass} h-11 w-full ${isActive('/admin') ? 'bg-[#1D4ED8]' : ''}`}
+                className={`${navCtaClass} h-11 w-full ${isActive('/login') ? 'bg-[#1D4ED8]' : ''}`}
               >
-                {t('nav.admin')}
+                {t('nav.login')}
               </Link>
             </div>
           </nav>
