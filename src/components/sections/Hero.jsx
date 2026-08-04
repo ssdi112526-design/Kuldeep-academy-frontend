@@ -1,3 +1,4 @@
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaArrowRight, FaHandshake } from 'react-icons/fa';
 import Button from '../ui/Button';
@@ -5,14 +6,104 @@ import { images } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 
 const CURVED_TEXT = '॥ आओ, चलें खेल की ओर। ॥';
-const ARC_PATH_ID = 'hero-guru-arc';
+/** Gentle upper arc in viewBox coordinates */
+const ARC_D = 'M 40,190 C 170,78 530,78 660,190';
+const VIEW_W = 700;
+const VIEW_H = 240;
+
+function segmentGraphemes(text) {
+  try {
+    if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+      const seg = new Intl.Segmenter('hi', { granularity: 'grapheme' });
+      return Array.from(seg.segment(text), (s) => s.segment);
+    }
+  } catch {
+    /* fall through */
+  }
+  // Fallback: keep known Devanagari syllables together where possible
+  return text.match(/॥|।|आओ|चलें|खेल|की|ओर|,|\s|./gu) || Array.from(text);
+}
 
 /**
- * Safari-safe SVG textPath arc.
- * Avoids stroke + letter-spacing on Devanagari (WebKit shaping bugs).
- * Uses Noto Sans Devanagari + dual href/xlinkHref for broad SVG support.
+ * Safari/WebKit breaks Devanagari inside SVG <textPath>.
+ * Place each grapheme cluster as its own <text> along the arc path
+ * so shaping stays intact on Chrome, Firefox, Safari, iOS.
  */
 function HeroCurvedMantra() {
+  const uid = useId().replace(/:/g, '');
+  const gradId = `hero-arc-gold-${uid}`;
+  const pathRef = useRef(null);
+  const svgRef = useRef(null);
+  const [glyphs, setGlyphs] = useState([]);
+
+  const clusters = useMemo(() => segmentGraphemes(CURVED_TEXT), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const pathEl = pathRef.current;
+    const svgEl = svgRef.current;
+    if (!pathEl || !svgEl) return undefined;
+
+    const layout = () => {
+      if (cancelled || !pathRef.current) return;
+      const path = pathRef.current;
+      const svgWidth = svgEl.clientWidth || VIEW_W;
+      const pxToVb = VIEW_W / Math.max(svgWidth, 1);
+      // Target ~26–34px on screen, convert to viewBox units for path placement
+      const fontSizeCss = Math.min(34, Math.max(20, svgWidth * 0.05));
+      const fontSizeVb = fontSizeCss * pxToVb;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.font = `700 ${fontSizeCss}px "Noto Sans Devanagari", "Noto Serif Devanagari", sans-serif`;
+
+      const widths = clusters.map((c) => {
+        if (c === ' ') return fontSizeVb * 0.28;
+        return Math.max(ctx.measureText(c).width * pxToVb, fontSizeVb * 0.35);
+      });
+      const gap = fontSizeVb * 0.06;
+      const totalWidth = widths.reduce((a, b) => a + b, 0) + gap * Math.max(0, clusters.length - 1);
+      const pathLen = path.getTotalLength();
+      let cursor = Math.max(0, (pathLen - totalWidth) / 2);
+
+      const next = clusters.map((char, i) => {
+        const w = widths[i];
+        const mid = Math.min(pathLen, Math.max(0, cursor + w / 2));
+        const pt = path.getPointAtLength(mid);
+        const delta = Math.max(1.5, fontSizeVb * 0.1);
+        const a = path.getPointAtLength(Math.max(0, mid - delta));
+        const b = path.getPointAtLength(Math.min(pathLen, mid + delta));
+        const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+        cursor += w + gap;
+        return { char, x: pt.x, y: pt.y, angle, fontSize: fontSizeVb };
+      });
+
+      setGlyphs(next);
+    };
+
+    const run = async () => {
+      try {
+        if (document.fonts?.ready) await document.fonts.ready;
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) layout();
+    };
+
+    run();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => layout()) : null;
+    ro?.observe(svgEl);
+    window.addEventListener('resize', layout);
+    return () => {
+      cancelled = true;
+      ro?.disconnect();
+      window.removeEventListener('resize', layout);
+    };
+  }, [clusters]);
+
+  const fontSize = glyphs[0]?.fontSize || 26;
+
   return (
     <div className="pointer-events-none absolute inset-0 z-[5] overflow-hidden pt-14 sm:pt-16 md:pt-20">
       <motion.div
@@ -32,17 +123,15 @@ function HeroCurvedMantra() {
           />
 
           <svg
-            viewBox="0 0 700 240"
+            ref={svgRef}
+            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
             className="hero-curved-svg h-auto w-full overflow-visible"
             role="img"
             aria-label={CURVED_TEXT}
             xmlns="http://www.w3.org/2000/svg"
-            xmlnsXlink="http://www.w3.org/1999/xlink"
           >
             <defs>
-              {/* Wide gentle upper arc — enough length for Devanagari clusters */}
-              <path id={ARC_PATH_ID} d="M 36,188 C 160,72 540,72 664,188" fill="none" />
-              <linearGradient id="hero-arc-gold" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#9A6F28" />
                 <stop offset="28%" stopColor="#E8C547" />
                 <stop offset="55%" stopColor="#D4AF37" />
@@ -50,36 +139,41 @@ function HeroCurvedMantra() {
               </linearGradient>
             </defs>
 
-            {/* Accessible plain text for screen readers / selection fallback */}
+            {/* Layout path only — not drawn; never use textPath (Safari Devanagari bug) */}
+            <path ref={pathRef} d={ARC_D} fill="none" stroke="none" aria-hidden />
+
             <title>{CURVED_TEXT}</title>
 
-            <text
-              className="hero-curved-text"
-              fill="url(#hero-arc-gold)"
-              lang="hi"
-              direction="ltr"
-              fontSize="26"
-              fontFamily="Noto Sans Devanagari, Noto Serif Devanagari, sans-serif"
-              fontWeight="700"
-              style={{
-                letterSpacing: 'normal',
-                fontKerning: 'normal',
-                fontFeatureSettings: '"kern" 1, "liga" 1',
-                textRendering: 'geometricPrecision',
-              }}
-            >
-              {/* Dual attributes: href (modern) + xlinkHref (Safari / older WebKit) */}
-              <textPath
-                href={`#${ARC_PATH_ID}`}
-                xlinkHref={`#${ARC_PATH_ID}`}
-                startOffset="50%"
-                textAnchor="middle"
-                method="align"
-                spacing="auto"
-              >
-                {CURVED_TEXT}
-              </textPath>
+            {/* Visually hidden full string for accessibility / copy semantics */}
+            <text x="-9999" y="-9999" opacity="0" aria-hidden>
+              {CURVED_TEXT}
             </text>
+
+            <g fill={`url(#${gradId})`} lang="hi">
+              {glyphs.map((g, i) =>
+                g.char === ' ' ? null : (
+                  <text
+                    key={`${i}-${g.char}`}
+                    x={g.x}
+                    y={g.y}
+                    transform={`rotate(${g.angle.toFixed(2)} ${g.x.toFixed(2)} ${g.y.toFixed(2)})`}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={fontSize}
+                    fontFamily='"Noto Sans Devanagari", "Noto Serif Devanagari", sans-serif'
+                    fontWeight="700"
+                    style={{
+                      letterSpacing: 'normal',
+                      fontKerning: 'normal',
+                      textRendering: 'geometricPrecision',
+                      userSelect: 'none',
+                    }}
+                  >
+                    {g.char}
+                  </text>
+                )
+              )}
+            </g>
           </svg>
         </motion.div>
       </motion.div>
@@ -112,10 +206,10 @@ export default function Hero() {
           height={1080}
           decoding="async"
           fetchPriority="high"
-          className="h-full w-full object-cover object-[72%_center] md:object-center"
+          className="h-full w-full object-cover object-[68%_center] md:object-[62%_center]"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-transparent md:via-white/55 lg:via-white/35 lg:to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-white/20 lg:from-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white from-[12%] via-white/88 via-[38%] to-transparent to-[72%]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/35 via-transparent to-white/15" />
       </div>
 
       <HeroCurvedMantra />
