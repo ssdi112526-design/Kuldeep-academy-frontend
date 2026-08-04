@@ -4,6 +4,7 @@ import { facilityTags } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { facilityService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
+import { cachedPublicGet } from '../../utils/publicCache';
 
 export default function Facilities() {
   const { t } = useTranslation();
@@ -17,8 +18,11 @@ export default function Facilities() {
       setLoading(true);
       setError('');
       try {
-        const res = await facilityService.listPublic();
-        if (alive) setFacilities(res.data.data.facilities || []);
+        const list = await cachedPublicGet('facilities', async () => {
+          const res = await facilityService.listPublic();
+          return res.data.data.facilities || [];
+        });
+        if (alive) setFacilities(list);
       } catch {
         if (alive) setError('Unable to load facilities right now.');
       } finally {
@@ -61,8 +65,11 @@ export default function Facilities() {
                     <img
                       src={mediaUrl(item.image)}
                       alt={item.name}
+                      width={640}
+                      height={400}
                       className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-105 md:h-[320px]"
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-5">

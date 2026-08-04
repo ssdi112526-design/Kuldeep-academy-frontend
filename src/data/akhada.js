@@ -1,10 +1,10 @@
-import heroImg from '../assets/akhada/hero-banner.png';
-import aboutImg from '../assets/akhada/about-heritage.png';
+import heroImg from '../assets/akhada/hero-banner.webp';
+import aboutImg from '../assets/akhada/about-heritage.webp';
 import coachesImg from '../assets/akhada/coaches-athletes.png';
-import coachGuru from '../assets/akhada/coaches/guru-raghunandan.png';
-import coachMahavir from '../assets/akhada/coaches/mahavir-singh.png';
-import coachVikram from '../assets/akhada/coaches/vikram-pehlwan.png';
-import coachAnita from '../assets/akhada/coaches/anita-kakar.png';
+import coachGuru from '../assets/akhada/coaches/guru-raghunandan.webp';
+import coachMahavir from '../assets/akhada/coaches/mahavir-singh.webp';
+import coachVikram from '../assets/akhada/coaches/vikram-pehlwan.webp';
+import coachAnita from '../assets/akhada/coaches/anita-kakar.webp';
 
 export const images = {
   hero: heroImg,

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FaExclamationTriangle, FaSignInAlt, FaUserSlash } from 'react-icons/fa';
-import logoImg from '../assets/logo.png';
+import logoImg from '../assets/logo.webp';
 import Button from '../components/ui/Button';
 import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../context/AuthContext';
@@ -118,9 +118,7 @@ export default function AttendanceQrLanding() {
           </div>
           <h1 className="mt-4 text-lg font-bold text-ink">You are not registered</h1>
           <p className="mt-2 text-sm text-muted">Raghunandan Akhada</p>
-          <p className="mt-3 text-sm leading-relaxed text-slate-600">
-            Attendance ke liye pehle website par login karein. Agar aapka account nahi hai to registration / admin se contact karein.
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">To mark attendance, first log in to the website. If you do not have an account, please register or contact the administrator.</p>
 
           <button
             type="button"

@@ -5,6 +5,11 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), basicSsl()],
+  build: {
+    target: 'es2020',
+    cssCodeSplit: true,
+    sourcemap: false,
+  },
   server: {
     host: true,
     port: 5173,

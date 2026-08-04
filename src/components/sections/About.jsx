@@ -42,6 +42,10 @@ export default function About() {
             <img
               src={images.about}
               alt={t('about.imageAlt')}
+              width={960}
+              height={720}
+              loading="lazy"
+              decoding="async"
               className="img-card h-full min-h-[280px] object-cover shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
             />
           </Reveal>

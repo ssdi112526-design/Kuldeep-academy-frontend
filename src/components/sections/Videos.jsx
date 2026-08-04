@@ -6,6 +6,7 @@ import VideoHoverCard from './VideoHoverCard';
 import useTranslation from '../../hooks/useTranslation';
 import { videoService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
+import { cachedPublicGet } from '../../utils/publicCache';
 
 export default function Videos() {
   const { t } = useTranslation();
@@ -21,10 +22,16 @@ export default function Videos() {
       setLoading(true);
       setError('');
       try {
-        const res = await videoService.listPublic();
+        const data = await cachedPublicGet('videos', async () => {
+          const res = await videoService.listPublic();
+          return {
+            videos: res.data.data.videos || [],
+            featured: res.data.data.featured || null,
+          };
+        });
         if (!alive) return;
-        setVideos(res.data.data.videos || []);
-        setFeatured(res.data.data.featured || null);
+        setVideos(data.videos);
+        setFeatured(data.featured);
       } catch {
         if (alive) setError(t('videos.loadError'));
       } finally {
@@ -111,8 +118,11 @@ export default function Videos() {
                     <img
                       src={mediaUrl(featured.thumbnail)}
                       alt={featured.title}
+                      width={1280}
+                      height={720}
                       className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-[#1A120B]/85 via-[#1A120B]/55 to-[#1A120B]/25" />
                     <div className="relative z-10 flex h-full min-h-[280px] flex-col justify-end p-6 md:min-h-[420px] md:p-10">
@@ -131,7 +141,7 @@ export default function Videos() {
                       </span>
                     </div>
                     <span className="absolute left-1/2 top-1/2 z-20 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#B8860B] shadow-xl md:h-20 md:w-20">
-                      <span className="absolute inset-0 animate-ping rounded-full bg-[#D4AF37]/30" />
+                      <span className="absolute inset-0 rounded-full bg-[#D4AF37]/30 motion-safe:animate-ping" />
                       <FaPlay className="relative ml-1" />
                     </span>
                   </div>

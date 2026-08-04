@@ -18,6 +18,7 @@ import Reveal from '../ui/Reveal';
 import Button from '../ui/Button';
 import useTranslation from '../../hooks/useTranslation';
 import { scheduleService } from '../../services';
+import { cachedPublicGet } from '../../utils/publicCache';
 
 const SESSION_META = {
   morning: { Icon: Sunrise, accent: 'from-[#FF9933]/25 to-transparent' },
@@ -150,11 +151,14 @@ export default function TrainingSchedule() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await scheduleService.listPublic();
-        const { sessions = [], days = [] } = res.data?.data || {};
+        const data = await cachedPublicGet('schedule', async () => {
+          const res = await scheduleService.listPublic();
+          const { sessions = [], days = [] } = res.data?.data || {};
+          return { sessions, days };
+        });
         if (!cancelled) {
-          setApiSessions(sessions.length ? sessions : null);
-          setApiDays(days.length ? days : null);
+          setApiSessions(data.sessions.length ? data.sessions : null);
+          setApiDays(data.days.length ? data.days : null);
         }
       } catch {
         if (!cancelled) {

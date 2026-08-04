@@ -4,6 +4,7 @@ import { programTags } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { programService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
+import { cachedPublicGet } from '../../utils/publicCache';
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -17,8 +18,11 @@ export default function Programs() {
       setLoading(true);
       setError('');
       try {
-        const res = await programService.listPublic();
-        if (alive) setPrograms(res.data.data.programs || []);
+        const programsList = await cachedPublicGet('programs', async () => {
+          const res = await programService.listPublic();
+          return res.data.data.programs || [];
+        });
+        if (alive) setPrograms(programsList);
       } catch {
         if (alive) setError('Unable to load programs right now.');
       } finally {
@@ -61,8 +65,11 @@ export default function Programs() {
                     <img
                       src={mediaUrl(item.image)}
                       alt={item.title}
+                      width={640}
+                      height={400}
                       className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-105 md:h-[320px]"
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-5">

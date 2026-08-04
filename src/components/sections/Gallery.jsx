@@ -4,6 +4,7 @@ import Reveal, { SectionHeading } from '../ui/Reveal';
 import useTranslation from '../../hooks/useTranslation';
 import { galleryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
+import { cachedPublicGet } from '../../utils/publicCache';
 
 export default function Gallery() {
   const { t } = useTranslation();
@@ -18,8 +19,11 @@ export default function Gallery() {
       setLoading(true);
       setError('');
       try {
-        const res = await galleryService.listPublic();
-        if (alive) setItems(res.data.data.gallery || []);
+        const gallery = await cachedPublicGet('gallery', async () => {
+          const res = await galleryService.listPublic();
+          return res.data.data.gallery || [];
+        });
+        if (alive) setItems(gallery);
       } catch {
         if (alive) setError('Unable to load gallery right now.');
       } finally {
@@ -67,8 +71,11 @@ export default function Gallery() {
                     <img
                       src={mediaUrl(item.image)}
                       alt={caption}
+                      width={640}
+                      height={400}
                       className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-105 md:h-[320px]"
                       loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/55 via-transparent to-transparent opacity-80" />
                     <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur">

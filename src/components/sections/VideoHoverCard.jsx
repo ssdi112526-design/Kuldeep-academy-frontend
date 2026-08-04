@@ -148,7 +148,7 @@ export default function VideoHoverCard({ video, onPlay }) {
             muted
             loop
             playsInline
-            preload="metadata"
+            preload="none"
             className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-all duration-[350ms] ${
               previewing ? 'scale-[1.03] opacity-100' : 'scale-100 opacity-0'
             }`}

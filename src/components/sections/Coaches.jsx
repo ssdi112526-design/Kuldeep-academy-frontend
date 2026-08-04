@@ -62,8 +62,11 @@ export default function Coaches() {
                       <img
                         src={coach.image}
                         alt={t(`coaches.items.${coach.key}.name`)}
-                        className="h-full w-full object-cover object-top transition duration-[400ms] ease-out group-hover:scale-110"
+                        width={360}
+                        height={360}
                         loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover object-top transition duration-[400ms] ease-out group-hover:scale-110"
                       />
                     </div>
                   </div>

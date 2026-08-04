@@ -1,4 +1,4 @@
-import logoImg from '../../assets/logo.png';
+import logoImg from '../../assets/logo.webp';
 
 /**
  * Full-page branded loader — used on refresh / route load.

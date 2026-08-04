@@ -3,6 +3,7 @@ import Reveal, { SectionHeading } from '../ui/Reveal';
 import { achievements as fallbackAchievements } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { achievementService } from '../../services';
+import { cachedPublicGet } from '../../utils/publicCache';
 
 function useCountUp(target, active, duration = 1400) {
   const [value, setValue] = useState(0);
@@ -44,8 +45,10 @@ export default function Achievements() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await achievementService.listPublic();
-        const list = res.data?.data?.achievements || [];
+        const list = await cachedPublicGet('achievements', async () => {
+          const res = await achievementService.listPublic();
+          return res.data?.data?.achievements || [];
+        });
         if (!cancelled && list.length) {
           setItems(
             list.map((a) => ({

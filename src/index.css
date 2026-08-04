@@ -17,13 +17,67 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
   color: #111827;
   background: #ffffff;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
+}
+
+/* Hero curved Devanagari — SVG font-size scales with viewport; no stroke */
+.hero-curved-text {
+  font-size: 22px;
+  font-weight: 700;
+  /* Stroke breaks Devanagari shaping in Safari/WebKit — never stroke this text */
+  stroke: none;
+  paint-order: normal;
+}
+
+@media (min-width: 640px) {
+  .hero-curved-text {
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero-curved-text {
+    font-size: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-curved-text {
+    font-size: 32px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero-curved-text {
+    font-size: 34px;
+  }
+}
+
+.hero-curved-svg {
+  overflow: visible;
+  -webkit-font-smoothing: antialiased;
 }
 
 body.lang-hi,
