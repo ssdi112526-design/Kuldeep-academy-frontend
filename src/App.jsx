@@ -16,6 +16,7 @@ const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const CoachDashboard = lazy(() => import('./pages/CoachDashboard'));
 const Terms = lazy(() => import('./pages/Terms'));
 const VideoDetail = lazy(() => import('./pages/VideoDetail'));
+const AttendanceQrLanding = lazy(() => import('./pages/AttendanceQrLanding'));
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/attendance/scan" element={<AttendanceQrLanding />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/student" element={<StudentDashboard />} />
                   <Route path="/student/*" element={<StudentDashboard />} />

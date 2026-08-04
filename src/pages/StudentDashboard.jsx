@@ -11,6 +11,7 @@ import { attendanceService, authService } from '../services';
 import { mediaUrl } from '../utils/mediaUrl';
 import { getApiErrorMessage } from '../utils/apiError';
 import { getCurrentGpsPosition, formatAttendanceScanSuccess } from '../utils/geolocation';
+import { parseAttendanceQrText } from '../utils/attendanceQr';
 
 const SCANNER_ID = 'student-attendance-qr-reader';
 
@@ -112,10 +113,8 @@ export default function StudentDashboard() {
       handlingRef.current = true;
       setScanBusy(true);
       try {
-        let payload;
-        try {
-          payload = JSON.parse(decodedText);
-        } catch {
+        const payload = parseAttendanceQrText(decodedText);
+        if (!payload?.sessionId || !payload?.token) {
           throw new Error('Invalid Attendance QR.\nPlease scan the current QR displayed by the admin.');
         }
 

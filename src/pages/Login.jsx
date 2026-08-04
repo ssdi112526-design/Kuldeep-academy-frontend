@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Logo from '../components/ui/Logo';
 import Button from '../components/ui/Button';
 import ValidationPopup from '../components/ui/ValidationPopup';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
+function safeRedirectPath(value) {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
+  if (value.startsWith('/attendance/scan')) return value;
+  return null;
+}
+
 export default function Login() {
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [error, setError] = useState('');
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
   const {
@@ -34,6 +41,11 @@ export default function Login() {
     setError('');
     try {
       const user = await login({ login: data.login.trim(), password: data.password });
+      const redirect = safeRedirectPath(searchParams.get('redirect'));
+      if (redirect) {
+        navigate(redirect, { replace: true });
+        return;
+      }
       if (user.isStudent || user.role === 'student' || user.accountType === 'student') {
         navigate('/student');
       } else if (user.isCoach || user.role === 'coach' || user.accountType === 'coach' || user.coachId) {

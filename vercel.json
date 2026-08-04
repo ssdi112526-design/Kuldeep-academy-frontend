@@ -5,6 +5,10 @@
       "destination": "https://raghunandan-akhada-backend.onrender.com/uploads/:path*"
     },
     {
+      "source": "/api/:path*",
+      "destination": "https://raghunandan-akhada-backend.onrender.com/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
