@@ -334,3 +334,32 @@ export const roleAdminService = {
   clone: (id, payload) => api.post(`/admin/roles/${id}/clone`, payload || {}),
   permissionsCatalog: () => api.get('/admin/permissions'),
 };
+
+export const financeService = {
+  dashboard: () => api.get('/admin/finance/dashboard'),
+  report: (params) => api.get('/admin/finance/report', { params }),
+  listStudents: (params) => api.get('/admin/finance/students', { params }),
+  updateStudentDefaults: (studentId, payload) =>
+    api.patch(`/admin/finance/students/${studentId}/defaults`, payload),
+  searchStudents: (q) => api.get('/admin/finance/students/search', { params: { q } }),
+  collectPreview: (params) => api.get('/admin/finance/collect/preview', { params }),
+  collect: (payload) => api.post('/admin/finance/collect', payload),
+  generateMonthly: (payload) => api.post('/admin/finance/generate-monthly', payload),
+  listPending: (params) => api.get('/admin/finance/pending', { params }),
+  studentHistory: (studentId, params) =>
+    api.get(`/admin/finance/students/${studentId}/history`, { params }),
+  listPayments: (params) => api.get('/admin/finance/payments', { params }),
+  getReceipt: (id) => api.get(`/admin/finance/payments/${id}`),
+  updatePayment: (id, payload) => api.put(`/admin/finance/payments/${id}`, payload),
+  deletePayment: (id) => api.delete(`/admin/finance/payments/${id}`),
+  listCoachPayments: (params) => api.get('/admin/finance/coach-payments', { params }),
+  makeCoachPayment: (payload) => api.post('/admin/finance/coach-payments', payload),
+  updateCoachPayment: (id, payload) => api.put(`/admin/finance/coach-payments/${id}`, payload),
+  deleteCoachPayment: (id) => api.delete(`/admin/finance/coach-payments/${id}`),
+  exportPayments: (payload) =>
+    api.post('/admin/finance/export/payments', payload, { responseType: 'blob' }),
+  exportCoachPayments: (payload) =>
+    api.post('/admin/finance/export/coach-payments', payload, { responseType: 'blob' }),
+  exportPending: (payload) =>
+    api.post('/admin/finance/export/pending', payload, { responseType: 'blob' }),
+};

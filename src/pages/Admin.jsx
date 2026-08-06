@@ -18,6 +18,12 @@ import {
   FaCalendarCheck,
   FaFingerprint,
   FaCog,
+  FaFileInvoiceDollar,
+  FaChartPie,
+  FaHistory,
+  FaReceipt,
+  FaMoneyCheckAlt,
+  FaExclamationCircle,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -42,6 +48,14 @@ import AttendancePanel from '../components/admin/AttendancePanel';
 import CoachAttendancePanel from '../components/admin/CoachAttendancePanel';
 import BiometricDevicesPanel from '../components/admin/BiometricDevicesPanel';
 import AttendanceSettingsPanel from '../components/admin/AttendanceSettingsPanel';
+import FinanceDashboardPanel from '../components/admin/FinanceDashboardPanel';
+import StudentFeesPanel from '../components/admin/StudentFeesPanel';
+import CollectFeesPanel from '../components/admin/CollectFeesPanel';
+import PendingFeesPanel from '../components/admin/PendingFeesPanel';
+import CoachPaymentsPanel from '../components/admin/CoachPaymentsPanel';
+import PaymentHistoryPanel from '../components/admin/PaymentHistoryPanel';
+import ReceiptsPanel from '../components/admin/ReceiptsPanel';
+import FinanceReportsPanel from '../components/admin/FinanceReportsPanel';
 import AccessDenied from '../components/admin/AccessDenied';
 import { formatBytes } from '../utils/videoUtils';
 
@@ -80,6 +94,20 @@ const NAV = [
     ],
   },
   {
+    id: 'finance-menu',
+    label: 'Finance',
+    children: [
+      { id: 'finance-dashboard', label: 'Finance Dashboard', icon: FaChartPie, module: 'finance', permission: 'finance.view' },
+      { id: 'student-fees', label: 'Student Fees', icon: FaUsers, module: 'finance', permission: 'finance.view' },
+      { id: 'collect-fees', label: 'Collect Fees', icon: FaMoneyCheckAlt, module: 'finance', permission: 'finance.create' },
+      { id: 'pending-fees', label: 'Pending Fees', icon: FaExclamationCircle, module: 'finance', permission: 'finance.view' },
+      { id: 'coach-payments', label: 'Coach Payments', icon: FaUserTie, module: 'finance', permission: 'finance.view' },
+      { id: 'payment-history', label: 'Payment History', icon: FaHistory, module: 'finance', permission: 'finance.view' },
+      { id: 'receipts', label: 'Receipts', icon: FaReceipt, module: 'finance', permission: 'finance.view' },
+      { id: 'finance-reports', label: 'Reports', icon: FaFileInvoiceDollar, module: 'finance', permission: 'finance.view' },
+    ],
+  },
+  {
     id: 'user-mgmt',
     label: 'User Management',
     superAdminOnly: true,
@@ -106,6 +134,14 @@ const SECTION_MODULE = {
   'coach-attendance': 'attendance',
   'biometric-devices': 'attendance',
   'attendance-settings': 'attendance',
+  'finance-dashboard': 'finance',
+  'student-fees': 'finance',
+  'collect-fees': 'finance',
+  'pending-fees': 'finance',
+  'coach-payments': 'finance',
+  'payment-history': 'finance',
+  receipts: 'finance',
+  'finance-reports': 'finance',
   users: 'users',
   roles: 'roles',
 };
@@ -255,6 +291,38 @@ export default function Admin() {
       title: 'Attendance Settings',
       subtitle: 'Configure Akhada GPS location and 500m QR geofence radius.',
     },
+    'finance-dashboard': {
+      title: 'Finance Dashboard',
+      subtitle: 'Student fee collection, coach payments and net balance overview.',
+    },
+    'student-fees': {
+      title: 'Student Fees',
+      subtitle: 'Monthly fee defaults, dues and student-wise fee status.',
+    },
+    'collect-fees': {
+      title: 'Collect Fees',
+      subtitle: 'Manually record cash, UPI or bank payments and generate receipts.',
+    },
+    'pending-fees': {
+      title: 'Pending Fees',
+      subtitle: 'Students with outstanding or partial fee balances.',
+    },
+    'coach-payments': {
+      title: 'Coach Payments',
+      subtitle: 'Record coach salary, bonus and deduction payments manually.',
+    },
+    'payment-history': {
+      title: 'Payment History',
+      subtitle: 'All student fee payment transactions and receipts.',
+    },
+    receipts: {
+      title: 'Receipts',
+      subtitle: 'View and print student fee receipts.',
+    },
+    'finance-reports': {
+      title: 'Finance Reports',
+      subtitle: 'Collection reports, pending fees and Excel/CSV exports.',
+    },
     users: { title: 'Users', subtitle: 'Create accounts and manage staff access.' },
     roles: { title: 'Roles & Permissions', subtitle: 'Configure role-based access across the admin panel.' },
   };
@@ -368,6 +436,14 @@ export default function Admin() {
                 {section === 'coach-attendance' && <CoachAttendancePanel />}
                 {section === 'biometric-devices' && <BiometricDevicesPanel />}
                 {section === 'attendance-settings' && <AttendanceSettingsPanel />}
+                {section === 'finance-dashboard' && <FinanceDashboardPanel />}
+                {section === 'student-fees' && <StudentFeesPanel />}
+                {section === 'collect-fees' && <CollectFeesPanel />}
+                {section === 'pending-fees' && <PendingFeesPanel />}
+                {section === 'coach-payments' && <CoachPaymentsPanel />}
+                {section === 'payment-history' && <PaymentHistoryPanel />}
+                {section === 'receipts' && <ReceiptsPanel />}
+                {section === 'finance-reports' && <FinanceReportsPanel />}
                 {section === 'users' && <UsersPanel />}
                 {section === 'roles' && <RolesPanel />}
               </>
