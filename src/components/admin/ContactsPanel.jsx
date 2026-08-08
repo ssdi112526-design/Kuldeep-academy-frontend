@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaClipboardList, FaCalendarDay, FaEnvelopeOpenText } from 'react-icons/fa';
+import { FaClipboardList, FaCalendarDay } from 'react-icons/fa';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
@@ -15,7 +15,7 @@ import Pagination from './Pagination';
 import ViewModal from './ViewModal';
 import AccessDenied from './AccessDenied';
 
-const EMPTY_FILTERS = { dateFilter: '', startDate: '', endDate: '', status: '' };
+const EMPTY_FILTERS = { dateFilter: '', startDate: '', endDate: '' };
 const MIME_TYPES = {
   csv: 'text/csv',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -48,7 +48,6 @@ export default function ContactsPanel() {
     page,
     limit: pagination.limit,
     ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
-    ...(filters.status && { status: filters.status }),
     ...(filters.dateFilter && { dateFilter: filters.dateFilter }),
     ...(filters.dateFilter === 'custom' && filters.startDate && { startDate: filters.startDate }),
     ...(filters.dateFilter === 'custom' && filters.endDate && { endDate: filters.endDate }),
@@ -179,15 +178,9 @@ export default function ContactsPanel() {
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard label="Total Records" value={stats.totalContacts} icon={FaClipboardList} loading={statsLoading} />
         <StatCard label="Today's Records" value={stats.todayContacts} icon={FaCalendarDay} loading={statsLoading} />
-        <StatCard
-          label="New / Unresolved"
-          value={stats.statusBreakdown?.new ?? 0}
-          icon={FaEnvelopeOpenText}
-          loading={statsLoading}
-        />
       </div>
 
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">

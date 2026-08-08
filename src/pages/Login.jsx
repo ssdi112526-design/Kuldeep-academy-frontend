@@ -50,13 +50,24 @@ export default function Login() {
         navigate('/student');
       } else if (user.isCoach || user.role === 'coach' || user.accountType === 'coach' || user.coachId) {
         navigate('/coach');
-      } else if (user.canAccessAdmin || user.isSuperAdmin || user.role === 'admin') {
+      } else if (
+        user.canAccessAdmin ||
+        user.isSuperAdmin ||
+        user.role === 'admin' ||
+        user.roleSlug === 'super_admin'
+      ) {
         navigate('/admin');
       } else {
         navigate('/');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Login failed';
+      const network =
+        err?.code === 'ERR_NETWORK' ||
+        err?.message === 'Network Error' ||
+        !err?.response;
+      const msg = network
+        ? 'Cannot reach API server. Make sure the backend is running on port 5000 (and only one server is using that port).'
+        : err.response?.data?.message || 'Login failed';
       setError(msg);
       setValidationPopup({ open: true, title: 'Login failed', message: msg });
       toast.error(msg);

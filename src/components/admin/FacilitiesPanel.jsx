@@ -13,6 +13,7 @@ import ImageUploader from './ImageUploader';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { clearPublicCache } from '../../utils/publicCache';
 
 const EMPTY = { name: '', description: '', icon: '', displayOrder: 0, isActive: true };
 
@@ -135,6 +136,7 @@ export default function FacilitiesPanel({ onChanged }) {
       };
       if (editing) await facilityService.update(editing._id, payload, file);
       else await facilityService.create(payload, file);
+      clearPublicCache('facilities');
       toast.success(editing ? 'Facility updated' : 'Facility created');
       setModalOpen(false);
       fetchList(pagination.page);
@@ -161,6 +163,7 @@ export default function FacilitiesPanel({ onChanged }) {
         displayOrder: item.displayOrder,
         isActive: !item.isActive,
       });
+      clearPublicCache('facilities');
       fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
@@ -176,6 +179,7 @@ export default function FacilitiesPanel({ onChanged }) {
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await facilityService.remove(confirm.id);
+      clearPublicCache('facilities');
       toast.success('Facility deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);

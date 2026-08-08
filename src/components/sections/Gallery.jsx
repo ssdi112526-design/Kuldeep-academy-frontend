@@ -4,7 +4,7 @@ import Reveal, { SectionHeading } from '../ui/Reveal';
 import useTranslation from '../../hooks/useTranslation';
 import { galleryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { cachedPublicGet } from '../../utils/publicCache';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 export default function Gallery() {
   const { t } = useTranslation();
@@ -15,8 +15,8 @@ export default function Gallery() {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      setLoading(true);
+    const load = async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       setError('');
       try {
         const gallery = await cachedPublicGet('gallery', async () => {
@@ -29,9 +29,12 @@ export default function Gallery() {
       } finally {
         if (alive) setLoading(false);
       }
-    })();
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load({ silent: true }));
     return () => {
       alive = false;
+      unsub();
     };
   }, []);
 

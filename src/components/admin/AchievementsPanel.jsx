@@ -11,6 +11,7 @@ import Pagination from './Pagination';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { clearPublicCache } from '../../utils/publicCache';
 
 const EMPTY = { labelEn: '', labelHi: '', value: 0, suffix: '+', displayOrder: 0, isActive: true };
 
@@ -118,6 +119,7 @@ export default function AchievementsPanel() {
       };
       if (editing) await achievementService.update(editing._id, payload);
       else await achievementService.create(payload);
+      clearPublicCache('achievements');
       toast.success(editing ? 'Achievement updated' : 'Achievement created');
       setModalOpen(false);
       fetchList(pagination.page);
@@ -137,6 +139,7 @@ export default function AchievementsPanel() {
     }
     try {
       await achievementService.update(item._id, { isActive: !item.isActive });
+      clearPublicCache('achievements');
       fetchList(pagination.page);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Toggle failed');
@@ -151,6 +154,7 @@ export default function AchievementsPanel() {
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await achievementService.remove(confirm.id);
+      clearPublicCache('achievements');
       toast.success('Achievement deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);

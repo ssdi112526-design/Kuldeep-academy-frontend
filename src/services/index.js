@@ -256,6 +256,7 @@ export const attendanceSettingsService = {
   update: (payload) => api.put('/admin/attendance/settings', payload),
   test: (payload) => api.post('/admin/attendance/settings/test', payload),
   distance: (params) => api.get('/admin/attendance/settings/distance', { params }),
+  getPublicLocation: () => api.get('/public/akhada-location'),
 };
 
 export const biometricService = {

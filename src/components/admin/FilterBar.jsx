@@ -7,14 +7,6 @@ const DATE_FILTERS = [
   { value: 'custom', label: 'Custom Date' },
 ];
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'All Status' },
-  { value: 'new', label: 'New' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'closed', label: 'Closed' },
-];
-
 export default function FilterBar({ filters, onChange }) {
   const update = (patch) => onChange({ ...filters, ...patch });
 
@@ -24,6 +16,7 @@ export default function FilterBar({ filters, onChange }) {
         value={filters.dateFilter}
         onChange={(e) => update({ dateFilter: e.target.value, startDate: '', endDate: '' })}
         className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+        aria-label="Date filter"
       >
         {DATE_FILTERS.map((f) => (
           <option key={f.value} value={f.value}>
@@ -39,6 +32,7 @@ export default function FilterBar({ filters, onChange }) {
             value={filters.startDate}
             onChange={(e) => update({ startDate: e.target.value })}
             className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+            aria-label="Start date"
           />
           <span className="text-sm text-muted">to</span>
           <input
@@ -46,21 +40,10 @@ export default function FilterBar({ filters, onChange }) {
             value={filters.endDate}
             onChange={(e) => update({ endDate: e.target.value })}
             className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+            aria-label="End date"
           />
         </>
       )}
-
-      <select
-        value={filters.status}
-        onChange={(e) => update({ status: e.target.value })}
-        className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-      >
-        {STATUS_OPTIONS.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

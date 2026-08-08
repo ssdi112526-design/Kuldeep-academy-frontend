@@ -4,7 +4,7 @@ import { programTags } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { programService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { cachedPublicGet } from '../../utils/publicCache';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -14,8 +14,8 @@ export default function Programs() {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      setLoading(true);
+    const load = async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       setError('');
       try {
         const programsList = await cachedPublicGet('programs', async () => {
@@ -28,9 +28,12 @@ export default function Programs() {
       } finally {
         if (alive) setLoading(false);
       }
-    })();
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load({ silent: true }));
     return () => {
       alive = false;
+      unsub();
     };
   }, []);
 
@@ -70,6 +73,13 @@ export default function Programs() {
                       className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-105 md:h-[320px]"
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          'data:image/svg+xml,' +
+                          encodeURIComponent(
+                            '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400"><rect fill="#E5E7EB" width="100%" height="100%"/></svg>'
+                          );
+                      }}
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-5">

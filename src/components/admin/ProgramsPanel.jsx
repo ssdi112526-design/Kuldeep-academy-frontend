@@ -7,6 +7,7 @@ import { usePermissions } from '../../context/PermissionContext';
 import { programService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
+import { clearPublicCache } from '../../utils/publicCache';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import ImageUploader from './ImageUploader';
@@ -134,6 +135,7 @@ export default function ProgramsPanel({ onChanged }) {
       };
       if (editing) await programService.update(editing._id, payload, file);
       else await programService.create(payload, file);
+      clearPublicCache('programs');
       toast.success(editing ? 'Program updated' : 'Program created');
       setModalOpen(false);
       fetchList(pagination.page);
@@ -159,6 +161,7 @@ export default function ProgramsPanel({ onChanged }) {
         displayOrder: item.displayOrder,
         isActive: !item.isActive,
       });
+      clearPublicCache('programs');
       fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
@@ -170,6 +173,7 @@ export default function ProgramsPanel({ onChanged }) {
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await programService.remove(confirm.id);
+      clearPublicCache('programs');
       toast.success('Program deleted');
       setConfirm({ open: false, id: null, loading: false });
       const page = pagination.page;

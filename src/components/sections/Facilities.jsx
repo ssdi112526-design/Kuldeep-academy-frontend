@@ -4,7 +4,7 @@ import { facilityTags } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { facilityService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { cachedPublicGet } from '../../utils/publicCache';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 export default function Facilities() {
   const { t } = useTranslation();
@@ -14,8 +14,8 @@ export default function Facilities() {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      setLoading(true);
+    const load = async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       setError('');
       try {
         const list = await cachedPublicGet('facilities', async () => {
@@ -28,9 +28,12 @@ export default function Facilities() {
       } finally {
         if (alive) setLoading(false);
       }
-    })();
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load({ silent: true }));
     return () => {
       alive = false;
+      unsub();
     };
   }, []);
 

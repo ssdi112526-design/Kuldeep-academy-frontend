@@ -57,7 +57,11 @@ export function AuthProvider({ children }) {
     user &&
       !isStudent &&
       !isCoach &&
-      (user?.canAccessAdmin || user?.isSuperAdmin || user?.role === 'admin' || (user?.permissions || []).length > 0)
+      (user?.canAccessAdmin ||
+        user?.isSuperAdmin ||
+        user?.role === 'admin' ||
+        user?.roleSlug === 'super_admin' ||
+        (user?.permissions || []).length > 0)
   );
 
   const value = useMemo(

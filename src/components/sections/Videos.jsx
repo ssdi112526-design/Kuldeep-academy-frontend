@@ -6,7 +6,7 @@ import VideoHoverCard from './VideoHoverCard';
 import useTranslation from '../../hooks/useTranslation';
 import { videoService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { cachedPublicGet } from '../../utils/publicCache';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 export default function Videos() {
   const { t } = useTranslation();
@@ -18,8 +18,8 @@ export default function Videos() {
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      setLoading(true);
+    const load = async ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
       setError('');
       try {
         const data = await cachedPublicGet('videos', async () => {
@@ -37,9 +37,12 @@ export default function Videos() {
       } finally {
         if (alive) setLoading(false);
       }
-    })();
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load({ silent: true }));
     return () => {
       alive = false;
+      unsub();
     };
   }, [t]);
 

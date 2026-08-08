@@ -15,6 +15,7 @@ import VideoPlayerModal from '../ui/VideoPlayerModal';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { clearPublicCache } from '../../utils/publicCache';
 
 const CATEGORIES = [
   'Dangal Highlights',
@@ -188,6 +189,7 @@ export default function VideosPanel({ onChanged }) {
       };
       if (editing) await videoService.update(editing._id, payload, { video: videoFile });
       else await videoService.create(payload, { video: videoFile });
+      clearPublicCache('videos');
       toast.success(editing ? 'Video updated' : 'Video created — thumbnail generated automatically');
       setModalOpen(false);
       fetchList(pagination.page);
@@ -216,6 +218,7 @@ export default function VideosPanel({ onChanged }) {
         isFeatured: item.isFeatured,
         displayOrder: item.displayOrder,
       });
+      clearPublicCache('videos');
       fetchList(pagination.page);
       fetchStats();
       onChanged?.();
@@ -232,6 +235,7 @@ export default function VideosPanel({ onChanged }) {
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await videoService.remove(confirm.id);
+      clearPublicCache('videos');
       toast.success('Video deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);

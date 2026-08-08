@@ -3,7 +3,7 @@ import Reveal, { SectionHeading } from '../ui/Reveal';
 import { achievements as fallbackAchievements } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { achievementService } from '../../services';
-import { cachedPublicGet } from '../../utils/publicCache';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 function useCountUp(target, active, duration = 1400) {
   const [value, setValue] = useState(0);
@@ -43,7 +43,7 @@ export default function Achievements() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const list = await cachedPublicGet('achievements', async () => {
           const res = await achievementService.listPublic();
@@ -73,9 +73,12 @@ export default function Achievements() {
           })),
         );
       }
-    })();
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load());
     return () => {
       cancelled = true;
+      unsub();
     };
   }, [language, t]);
 

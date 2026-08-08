@@ -8,6 +8,7 @@ import { scheduleService } from '../../services';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { clearPublicCache } from '../../utils/publicCache';
 
 const EMPTY_SESSION = {
   key: '',
@@ -186,6 +187,7 @@ export default function SchedulePanel() {
         else await scheduleService.createDay({ ...payload, dayKey: form.dayKey.trim().toLowerCase() });
       }
       toast.success(editing ? 'Updated' : 'Created');
+      clearPublicCache('schedule');
       setModalOpen(false);
       fetchAll();
     } catch (err) {
@@ -205,6 +207,7 @@ export default function SchedulePanel() {
     try {
       if (tab === 'sessions') await scheduleService.updateSession(item._id, { isActive: !item.isActive });
       else await scheduleService.updateDay(item._id, { isActive: !item.isActive });
+      clearPublicCache('schedule');
       fetchAll();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Toggle failed');
@@ -220,6 +223,7 @@ export default function SchedulePanel() {
     try {
       if (tab === 'sessions') await scheduleService.removeSession(confirm.id);
       else await scheduleService.removeDay(confirm.id);
+      clearPublicCache('schedule');
       toast.success('Deleted');
       setConfirm({ open: false, id: null, loading: false });
       fetchAll();

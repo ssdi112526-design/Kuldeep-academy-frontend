@@ -8,6 +8,7 @@ import { galleryService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { clearPublicCache } from '../../utils/publicCache';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import ImageUploader from './ImageUploader';
@@ -134,6 +135,7 @@ export default function GalleryPanel({ onChanged }) {
       };
       if (editing) await galleryService.update(editing._id, payload, file);
       else await galleryService.create(payload, files);
+      clearPublicCache('gallery');
       toast.success(editing ? 'Gallery item updated' : 'Images uploaded');
       setModalOpen(false);
       setFormError('');
@@ -154,6 +156,7 @@ export default function GalleryPanel({ onChanged }) {
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await galleryService.remove(confirm.id);
+      clearPublicCache('gallery');
       toast.success('Image deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);

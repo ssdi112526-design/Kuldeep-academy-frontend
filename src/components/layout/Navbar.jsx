@@ -23,6 +23,23 @@ export default function Navbar() {
     setOpen(false);
   }, [pathname, hash]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.matchMedia('(min-width: 1280px)').matches) setOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const isActive = (href) => {
     if (href === '/#home') return pathname === '/' && (!hash || hash === '#home' || hash === '');
     if (href === '/login') return pathname.startsWith('/login') || pathname.startsWith('/admin') || pathname.startsWith('/student');
@@ -40,17 +57,22 @@ export default function Navbar() {
           : 'border-b border-transparent bg-white/95 md:bg-white/90 md:backdrop-blur-md'
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Logo />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:px-8">
+        <div className="min-w-0 shrink">
+          <Logo />
+        </div>
 
-        <nav className="hidden items-center gap-4 xl:flex xl:gap-5" aria-label="Primary">
+        <nav
+          className="hidden min-w-0 flex-1 items-center justify-center gap-x-3 xl:flex 2xl:gap-x-5"
+          aria-label="Primary"
+        >
           {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
               <Link
                 key={link.href}
                 to={link.href}
-                className={`relative whitespace-nowrap text-[12px] font-medium transition xl:text-[13px] ${
+                className={`relative shrink-0 whitespace-nowrap text-[12px] font-medium transition 2xl:text-[13px] ${
                   active ? 'text-[#111827]' : 'text-[#6B7280] hover:text-[#111827]'
                 }`}
               >
@@ -63,9 +85,10 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <LanguageSwitcher />
-          <div className="hidden lg:inline-grid lg:grid-cols-2 lg:gap-2">
+          {/* Match desktop nav breakpoint (xl) so CTAs never show without the link row */}
+          <div className="hidden xl:inline-grid xl:grid-cols-2 xl:gap-2">
             <Link to="/#contact" className={navCtaClass}>
               {t('nav.join')}
             </Link>
@@ -79,8 +102,9 @@ export default function Navbar() {
           <button
             type="button"
             className="rounded-lg p-2 text-[#111827] xl:hidden"
-            aria-label="Toggle menu"
+            aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
+            aria-controls="mobile-nav-panel"
             onClick={() => setOpen((v) => !v)}
           >
             {open ? <HiX size={22} /> : <HiMenuAlt3 size={22} />}
@@ -89,8 +113,11 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <div className="border-t border-[#E5E7EB] bg-white px-4 py-4 xl:hidden">
-          <nav className="flex max-h-[70vh] flex-col gap-1 overflow-y-auto" aria-label="Mobile">
+        <div
+          id="mobile-nav-panel"
+          className="max-h-[min(80vh,calc(100dvh-4.5rem))] overflow-y-auto border-t border-[#E5E7EB] bg-white px-4 py-4 xl:hidden"
+        >
+          <nav className="flex flex-col gap-1" aria-label="Mobile">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FaCheckCircle,
   FaEnvelope,
@@ -16,7 +16,8 @@ import ValidationPopup from '../ui/ValidationPopup';
 import { companyInfo, socialLinks } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { useToast } from '../../context/ToastContext';
-import { contactService } from '../../services';
+import { attendanceSettingsService, contactService } from '../../services';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 const socialIconMap = {
   FaFacebookF,
@@ -35,6 +36,8 @@ const EMPTY = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+\d][\d\s-]{7,18}$/;
+const FALLBACK_MAP =
+  'https://maps.google.com/maps?q=Karawal%20Nagar%20Delhi&t=&z=15&ie=UTF8&iwloc=&output=embed';
 
 const inputBase =
   'mt-1.5 w-full rounded-xl border bg-white px-4 py-3 text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#2563EB]';
@@ -49,7 +52,41 @@ export default function Contact() {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
+  const [location, setLocation] = useState(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await cachedPublicGet(
+          'akhada-location',
+          async () => {
+            const res = await attendanceSettingsService.getPublicLocation();
+            return res.data?.data || null;
+          },
+          15_000
+        );
+        if (!cancelled) setLocation(data);
+      } catch {
+        if (!cancelled) setLocation(null);
+      }
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load());
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, []);
+
+  const mapSrc = useMemo(() => {
+    const lat = Number(location?.latitude);
+    const lng = Number(location?.longitude);
+    if (location?.configured && Number.isFinite(lat) && Number.isFinite(lng)) {
+      return `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+    }
+    return FALLBACK_MAP;
+  }, [location]);
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (fieldErrors[key]) {
@@ -265,7 +302,7 @@ export default function Contact() {
               <div className="min-h-[240px] flex-1 overflow-hidden rounded-[24px] border border-[#E5E7EB] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
                 <iframe
                   title={t('contact.mapTitle')}
-                  src="https://maps.google.com/maps?q=Karawal%20Nagar%20Delhi&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                  src={mapSrc}
                   className="h-full min-h-[240px] w-full"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"

@@ -18,7 +18,7 @@ import Reveal from '../ui/Reveal';
 import Button from '../ui/Button';
 import useTranslation from '../../hooks/useTranslation';
 import { scheduleService } from '../../services';
-import { cachedPublicGet } from '../../utils/publicCache';
+import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 const SESSION_META = {
   morning: { Icon: Sunrise, accent: 'from-[#FF9933]/25 to-transparent' },
@@ -149,7 +149,7 @@ export default function TrainingSchedule() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const data = await cachedPublicGet('schedule', async () => {
           const res = await scheduleService.listPublic();
@@ -166,9 +166,12 @@ export default function TrainingSchedule() {
           setApiDays(null);
         }
       }
-    })();
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load());
     return () => {
       cancelled = true;
+      unsub();
     };
   }, []);
 

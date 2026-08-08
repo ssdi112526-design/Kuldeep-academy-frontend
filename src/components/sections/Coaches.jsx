@@ -1,5 +1,3 @@
-import { FaInstagram, FaYoutube } from 'react-icons/fa';
-import { FaXTwitter } from 'react-icons/fa6';
 import Reveal from '../ui/Reveal';
 import useTranslation from '../../hooks/useTranslation';
 import { championCoaches } from '../../data/akhada';
@@ -53,7 +51,7 @@ export default function Coaches() {
         <div className="grid grid-cols-1 gap-x-6 gap-y-16 sm:grid-cols-2 xl:grid-cols-4">
           {championCoaches.map((coach, index) => (
             <Reveal key={coach.key} delay={index * 0.08}>
-              <article className="group relative pt-16">
+              <article className="group relative pt-20 sm:pt-[5.25rem]">
                 {/* Overlapping circular portrait */}
                 <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2">
                   <div className="relative">
@@ -72,45 +70,33 @@ export default function Coaches() {
                   </div>
                 </div>
 
-                {/* Glass card */}
-                <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/55 px-5 pb-6 pt-[100px] shadow-[0_14px_40px_rgba(26,18,11,0.08)] backdrop-blur-xl transition duration-[400ms] ease-out group-hover:-translate-y-2 group-hover:border-[#D4AF37]/40 group-hover:shadow-[0_22px_50px_rgba(212,175,55,0.22)] md:pt-[110px]">
+                {/* Glass card — padding keeps Hindi matras clear of the photo */}
+                <div className="relative overflow-visible rounded-[28px] border border-white/70 bg-white/55 px-5 pb-6 pt-[6.5rem] shadow-[0_14px_40px_rgba(26,18,11,0.08)] backdrop-blur-xl transition duration-[400ms] ease-out group-hover:-translate-y-2 group-hover:border-[#D4AF37]/40 group-hover:shadow-[0_22px_50px_rgba(212,175,55,0.22)] md:pt-[7.25rem]">
                   <div
-                    className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4AF37]/10 to-transparent opacity-0 transition duration-[400ms] group-hover:opacity-100"
+                    className="pointer-events-none absolute inset-x-0 top-0 h-24 rounded-t-[28px] bg-gradient-to-b from-[#D4AF37]/10 to-transparent opacity-0 transition duration-[400ms] group-hover:opacity-100"
                     aria-hidden
                   />
 
                   <div className="relative text-center">
-                    <h3 className="font-display text-lg font-bold tracking-tight text-[#1A120B]">
+                    <h3 className="font-hindi mx-auto max-w-[15rem] px-1 pt-1 text-[1.05rem] font-bold leading-[1.5] tracking-normal text-[#1A120B] sm:text-lg sm:leading-[1.55]">
                       {t(`coaches.items.${coach.key}.name`)}
                     </h3>
-                    <p className="mt-1 text-sm font-semibold text-[#B8860B]">
+                    <p className="font-hindi mt-2 text-sm font-semibold leading-snug text-[#B8860B]">
                       {t(`coaches.items.${coach.key}.role`)}
                     </p>
 
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                      <span className="rounded-full border border-[#D4AF37]/30 bg-[#FFF9E8] px-3 py-1 text-[11px] font-semibold text-[#8B5E3C]">
+                      <span className="font-hindi rounded-full border border-[#D4AF37]/30 bg-[#FFF9E8] px-3 py-1 text-[11px] font-semibold text-[#8B5E3C]">
                         {t(`coaches.items.${coach.key}.experience`)}
                       </span>
-                      <span className="rounded-full border border-[#E8DFD0] bg-white/80 px-3 py-1 text-[11px] font-semibold text-[#5C4A3A]">
+                      <span className="font-hindi rounded-full border border-[#E8DFD0] bg-white/80 px-3 py-1 text-[11px] font-semibold text-[#5C4A3A]">
                         {t(`coaches.items.${coach.key}.specialty`)}
                       </span>
                     </div>
 
-                    <p className="mt-4 text-[13px] leading-relaxed text-[#6B5E52]">
+                    <p className="font-hindi mt-4 text-[13px] leading-relaxed text-[#6B5E52]">
                       {t(`coaches.items.${coach.key}.bio`)}
                     </p>
-
-                    <div className="mt-5 flex items-center justify-center gap-2">
-                      {[FaInstagram, FaYoutube, FaXTwitter].map((Icon, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#E8DFD0] bg-white/70 text-[#8B5E3C] transition duration-[400ms] hover:border-[#D4AF37] hover:text-[#B8860B]"
-                          aria-hidden
-                        >
-                          <Icon size={13} />
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </article>

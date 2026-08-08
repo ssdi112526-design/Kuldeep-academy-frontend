@@ -289,7 +289,7 @@ export default function Admin() {
     },
     'attendance-settings': {
       title: 'Attendance Settings',
-      subtitle: 'Configure Akhada GPS location and 500m QR geofence radius.',
+      subtitle: 'Set Akhada latitude/longitude for QR geofence and the website Contact map.',
     },
     'finance-dashboard': {
       title: 'Finance Dashboard',

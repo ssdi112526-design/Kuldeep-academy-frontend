@@ -121,6 +121,12 @@ export default function EntryCoachesPanel() {
     if (dob) errors.dateOfBirth = dob;
     if (aadhaar) errors.aadhaarNumber = aadhaar;
     if (pan) errors.panNumber = pan;
+    if (form.salary !== '' && form.salary != null) {
+      const salaryNum = Number(form.salary);
+      if (!Number.isFinite(salaryNum) || salaryNum < 0) {
+        errors.salary = 'Salary must be a valid number (0 or more)';
+      }
+    }
     if (!editingId && !photoFile) errors.photo = 'Coach photo is required';
     if (!editingId) {
       if (!form.loginUsername?.trim()) errors.loginUsername = 'Username is required';
@@ -282,7 +288,7 @@ export default function EntryCoachesPanel() {
       experienceYears: form.experienceYears || undefined,
       specialization: form.specialization || undefined,
       qualification: form.qualification || undefined,
-      salary: form.salary || undefined,
+      salary: form.salary === '' || form.salary == null ? undefined : Number(form.salary),
       joiningDate: form.joiningDate || undefined,
       status: form.status,
       aadhaarNumber: normalizeAadhaar(form.aadhaarNumber),
@@ -698,6 +704,21 @@ export default function EntryCoachesPanel() {
               <label className="block text-sm font-medium text-ink">
                 Specialization
                 <input value={form.specialization} onChange={(e) => updateField('specialization', e.target.value)} className={fieldClass(fieldErrors, 'specialization')} />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Salary (₹)
+                <input
+                  id="coach-salary"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.salary}
+                  onChange={(e) => updateField('salary', e.target.value)}
+                  className={fieldClass(fieldErrors, 'salary')}
+                  placeholder="e.g. 15000"
+                />
+                {fieldErrors.salary ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.salary}</span> : null}
               </label>
 
               <label className="block text-sm font-medium text-ink sm:col-span-2">

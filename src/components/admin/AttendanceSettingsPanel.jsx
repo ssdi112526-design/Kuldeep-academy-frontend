@@ -8,6 +8,7 @@ import { usePermissions } from '../../context/PermissionContext';
 import { attendanceSettingsService } from '../../services';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { getCurrentGpsPosition } from '../../utils/geolocation';
+import { clearPublicCache } from '../../utils/publicCache';
 
 const RADIUS_PRESETS = [100, 250, 500, 750, 1000];
 
@@ -88,6 +89,7 @@ export default function AttendanceSettingsPanel() {
         isEnabled: Boolean(form.isEnabled),
       };
       const res = await attendanceSettingsService.update(payload);
+      clearPublicCache('akhada-location');
       toast.success(res.data?.message || 'Settings saved');
       setPendingCapture(null);
       await load();

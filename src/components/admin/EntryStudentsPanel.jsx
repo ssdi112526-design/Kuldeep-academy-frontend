@@ -9,6 +9,7 @@ import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
 import { entryService, biometricService } from '../../services';
+import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -101,6 +102,7 @@ export default function EntryStudentsPanel() {
   const [error, setError] = useState('');
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [status, setStatus] = useState('all');
   const [coachId, setCoachId] = useState('');
   const [batch, setBatch] = useState('');
@@ -110,10 +112,16 @@ export default function EntryStudentsPanel() {
 
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
 
-  const searchRef = useRef(search);
-  useEffect(() => {
-    searchRef.current = search;
-  }, [search]);
+  const filtersKey = JSON.stringify({
+    debouncedSearch,
+    status,
+    coachId,
+    batch,
+    membershipType,
+    joiningFrom,
+    joiningTo,
+  });
+  const prevFiltersKeyRef = useRef(filtersKey);
 
   const [coachOptions, setCoachOptions] = useState([]);
 
@@ -217,7 +225,7 @@ export default function EntryStudentsPanel() {
       const res = await entryService.students.list({
         page,
         limit: pagination.limit,
-        search: searchRef.current.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
         status: status !== 'all' ? status : undefined,
         coachId: coachId || undefined,
         batch: batch || undefined,
@@ -242,14 +250,15 @@ export default function EntryStudentsPanel() {
   }, []);
 
   useEffect(() => {
-    fetchList(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, coachId, batch, membershipType, joiningFrom, joiningTo]);
-
-  useEffect(() => {
+    const filtersChanged = prevFiltersKeyRef.current !== filtersKey;
+    prevFiltersKeyRef.current = filtersKey;
+    if (filtersChanged && pagination.page !== 1) {
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      return;
+    }
     fetchList(pagination.page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.limit]);
+  }, [pagination.page, pagination.limit, filtersKey]);
 
   if (!canView) return <AccessDenied />;
 
