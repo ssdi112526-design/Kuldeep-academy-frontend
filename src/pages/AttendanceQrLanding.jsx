@@ -47,7 +47,7 @@ export default function AttendanceQrLanding() {
       startedRef.current = true;
       setErrorPopup({
         title: 'Invalid QR',
-        message: 'This attendance QR is invalid or incomplete. Please scan the current QR at Raghunandan Akhada.',
+        message: 'This attendance QR is invalid or incomplete. Please scan the current QR at Raghunandan wrestling academy.',
       });
       return;
     }
@@ -117,7 +117,7 @@ export default function AttendanceQrLanding() {
             <FaUserSlash className="text-3xl" aria-hidden />
           </div>
           <h1 className="mt-4 text-lg font-bold text-ink">You are not registered</h1>
-          <p className="mt-2 text-sm text-muted">Raghunandan Akhada</p>
+          <p className="mt-2 text-sm text-muted">Raghunandan wrestling academy</p>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">To mark attendance, first log in to the website. If you do not have an account, please register or contact the administrator.</p>
 
           <button
@@ -172,7 +172,7 @@ export default function AttendanceQrLanding() {
     <div className="fixed inset-0 z-[50] flex items-center justify-center bg-[#071A35]/80 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl">
         <img src={logoImg} alt="" className="mx-auto h-14 w-14 rounded-full object-contain" />
-        <h1 className="mt-3 text-xl font-bold text-ink">Raghunandan Akhada</h1>
+        <h1 className="mt-3 text-xl font-bold text-ink">Raghunandan wrestling academy</h1>
         <p className="mt-1 text-sm text-muted">Attendance</p>
 
         {busy ? <p className="mt-6 text-sm text-muted">Marking attendance… Please wait.</p> : null}

@@ -270,17 +270,17 @@ export default function Admin() {
   if (!canAccessAdmin && !isSuperAdmin) return <Navigate to="/" replace />;
 
   const titles = {
-    dashboard: { title: 'Dashboard', subtitle: 'Content overview for Raghunandan Akhada.' },
+    dashboard: { title: 'Dashboard', subtitle: 'Content overview for Raghunandan wrestling academy.' },
     inquiries: { title: 'Inquiries', subtitle: 'Manage contact form submissions.' },
     programs: { title: 'Programs', subtitle: 'Create and manage training programs.' },
     schedule: { title: 'Schedule', subtitle: 'Update training sessions and weekly timetable.' },
     achievements: { title: 'Achievements', subtitle: 'Update homepage achievement counters.' },
     gallery: { title: 'Gallery', subtitle: 'Upload and organize gallery images.' },
-    facilities: { title: 'Facilities', subtitle: 'Manage akhada facilities.' },
-    videos: { title: 'Videos', subtitle: 'Upload and manage Akhada training & championship videos.' },
+    facilities: { title: 'Facilities', subtitle: 'Manage academy facilities.' },
+    videos: { title: 'Videos', subtitle: 'Upload and manage Academy training & championship videos.' },
     students: { title: 'Students', subtitle: 'Manage student entries, documents and profiles.' },
     coaches: { title: 'Coaches', subtitle: 'Manage coach entries, documents and profiles.' },
-    equipment: { title: 'Equipment & Tools', subtitle: 'Manage akhada equipment, QR codes and history.' },
+    equipment: { title: 'Equipment & Tools', subtitle: 'Manage academy equipment, QR codes and history.' },
     attendance: { title: 'Student Attendance', subtitle: 'Mark daily student attendance, track history, and export reports.' },
     'coach-attendance': { title: 'Coach Attendance', subtitle: 'Mark daily coach attendance, track history, and export reports.' },
     'biometric-devices': {
@@ -289,7 +289,7 @@ export default function Admin() {
     },
     'attendance-settings': {
       title: 'Attendance Settings',
-      subtitle: 'Set Akhada latitude/longitude for QR geofence and the website Contact map.',
+      subtitle: 'Set Academy latitude/longitude for QR geofence and the website Contact map.',
     },
     'finance-dashboard': {
       title: 'Finance Dashboard',

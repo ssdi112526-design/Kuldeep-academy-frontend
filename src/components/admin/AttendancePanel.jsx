@@ -339,7 +339,7 @@ export default function AttendancePanel() {
 
   const qrBlock = (
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Raghunandan Akhada</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Raghunandan wrestling academy</p>
       <h3 className="mt-2 text-2xl font-bold text-ink">Attendance</h3>
       {qrLoading ? (
         <p className="mt-8 text-sm text-muted">Loading QRâ€¦</p>
@@ -557,7 +557,7 @@ export default function AttendancePanel() {
             <div className="border-b border-slate-100 px-4 py-3">
               <h4 className="text-sm font-bold text-ink">Student Attendance Summary</h4>
               <p className="text-xs text-muted">
-                Based on scheduled Akhada training days (joining date respected; future days excluded)
+                Based on scheduled Academy training days (joining date respected; future days excluded)
               </p>
             </div>
             <table className="min-w-full text-left text-sm">
@@ -789,7 +789,7 @@ export default function AttendancePanel() {
           >
             Exit Fullscreen
           </button>
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand">Raghunandan Akhada</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand">Raghunandan wrestling academy</p>
           <h2 className="mt-2 text-3xl font-bold text-ink sm:text-4xl">Attendance</h2>
           <img src={session.qrDataUrl} alt="Attendance QR" className="mt-8 w-[min(70vw,420px)]" />
           <p className="mt-6 text-lg font-medium text-ink">Scan to Mark Attendance</p>

@@ -1,8 +1,8 @@
 export const companyInfo = {
-  name: 'Raghunandan Akhada Academy',
+  name: 'Raghunandan wrestling academy',
   tagline:
-    'Empowering traditional Indian Akhadas with modern digital management, athlete records, memberships, tournaments, payments, attendance, and performance tracking.',
-  badge: "India's Smart Akhada Management Platform",
+    'Empowering traditional Indian Academies with modern digital management, athlete records, memberships, tournaments, payments, attendance, and performance tracking.',
+  badge: "India's Smart Academy Management Platform",
   address: 'P-155, Plot No. 52, Gali No. 5, Phase-4, Shiv Vihar, Karawal Nagar, North East Delhi – 110094',
   phones: ['+91 96540 08400', '+91 96540 08500'],
   email: 'kartikashwanikumar@gmail.com',

@@ -21,13 +21,13 @@ export default function PageLoader({ message = 'Loading...' }) {
           <span className="absolute inset-0 animate-spin rounded-full border-2 border-[#2563EB]/15 border-t-[#2563EB]" />
           <img
             src={logoImg}
-            alt="Raghunandan Akhada"
+            alt="Raghunandan wrestling academy"
             className="relative h-14 w-14 rounded-full object-contain shadow-[0_8px_24px_rgba(37,99,235,0.2)]"
           />
         </div>
 
         <p className="mt-6 font-display text-base font-bold tracking-tight text-[#071A35]">
-          Raghunandan <span className="text-[#2563EB]">Akhada</span>
+          Raghunandan <span className="text-[#2563EB]">wrestling academy</span>
         </p>
         <p className="mt-2 text-sm text-[#6B7280]">{message}</p>
 

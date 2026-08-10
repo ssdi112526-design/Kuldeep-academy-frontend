@@ -5,6 +5,7 @@ import useTranslation from '../../hooks/useTranslation';
 import { galleryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
+import { wrestlingCardImgClass, wrestlingFallbacks } from '../../utils/wrestlingImages';
 
 export default function Gallery() {
   const { t } = useTranslation();
@@ -76,9 +77,13 @@ export default function Gallery() {
                       alt={caption}
                       width={640}
                       height={400}
-                      className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-105 md:h-[320px]"
+                      className={wrestlingCardImgClass}
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = wrestlingFallbacks.gallery;
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/55 via-transparent to-transparent opacity-80" />
                     <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur">

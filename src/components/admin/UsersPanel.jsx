@@ -371,7 +371,7 @@ export default function UsersPanel() {
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
           <form onSubmit={saveUser} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="font-display text-xl font-bold text-ink">{editing ? 'Edit User' : 'Create Account'}</h3>
-            <p className="mt-1 text-sm text-muted">Manage staff access for Raghunandan Akhada admin.</p>
+            <p className="mt-1 text-sm text-muted">Manage staff access for Raghunandan wrestling academy admin.</p>
             <FormErrorBanner message={formError} />
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">

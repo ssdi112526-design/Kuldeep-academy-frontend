@@ -1,7 +1,7 @@
 {
   "brand": {
     "name": "Raghunandan",
-    "akhada": "Akhada"
+    "akhada": "Wrestling Academy"
   },
   "nav": {
     "home": "Home",
@@ -14,8 +14,8 @@
     "achievements": "Achievements",
     "coaches": "Coaches",
     "contact": "Contact",
-    "join": "Join Akhada",
-    "akhada": "Akhada",
+    "join": "Join Academy",
+    "akhada": "Academy",
     "admin": "Admin",
     "login": "Login"
   },
@@ -26,14 +26,14 @@
     "switch": "Switch language"
   },
   "hero": {
-    "badge": "India's Smart Digital Akhada Platform",
+    "badge": "India's Smart Digital Academy Platform",
     "titleLine1": "Build Champions",
     "titleLine2": "Preserve Tradition",
-    "subtitle": "Manage athletes, memberships, training, tournaments, attendance, and payments — all in one intelligent platform built for Indian Akhadas.",
-    "ctaPrimary": "Join Akhada",
+    "subtitle": "Manage athletes, memberships, training, tournaments, attendance, and payments — all in one intelligent platform built for Indian Academies.",
+    "ctaPrimary": "Join Academy",
     "ctaSecondary": "Explore Heritage",
     "ctaAdmin": "Admin",
-    "imageAlt": "Premium Indian Akhada — pehlwans training at dawn"
+    "imageAlt": "Premium Indian Academy — pehlwans training at dawn"
   },
   "programs": {
     "eyebrow": "Programs",
@@ -112,16 +112,16 @@
     "legendTitle": "Activity Legend",
     "cta": {
       "title": "Ready to Begin Your Wrestling Journey?",
-      "text": "Join Raghunandan Akhada and train under experienced coaches in a disciplined environment where tradition meets modern athletic excellence.",
-      "join": "Join Akhada",
+      "text": "Join Raghunandan wrestling academy and train under experienced coaches in a disciplined environment where tradition meets modern athletic excellence.",
+      "join": "Join Academy",
       "contact": "Contact Us"
     }
   },
   "videos": {
-    "badge": "🎥 Akhada Media",
+    "badge": "🎥 Academy Media",
     "titleLine1": "Watch Our Training &",
     "titleLine2": "Championship Videos",
-    "subtitle": "Experience authentic Akhada training, Dab Pach techniques, championship bouts, coaching sessions, and inspiring moments from our wrestlers.",
+    "subtitle": "Experience authentic Academy training, Dab Pach techniques, championship bouts, coaching sessions, and inspiring moments from our wrestlers.",
     "featured": "Featured Video",
     "watchNow": "Watch Now",
     "empty": "Videos coming soon. Check back for training and championship highlights.",
@@ -133,7 +133,7 @@
   "gallery": {
     "eyebrow": "Gallery",
     "title": "Life inside the",
-    "highlight": "Akhada.",
+    "highlight": "Academy.",
     "subtitle": "Authentic moments of training, recovery, and competition — captured in equal, aligned frames.",
     "captions": {
       "technique": "Technique under pressure",
@@ -173,7 +173,7 @@
   },
   "features": {
     "eyebrow": "Features",
-    "title": "Everything your Akhada needs",
+    "title": "Everything your Academy needs",
     "highlight": "to run better.",
     "subtitle": "A focused toolkit for athletes, coaches, and administrators — clear, fast, and reliable.",
     "items": {
@@ -215,10 +215,10 @@
     "eyebrow": "About",
     "title": "Tradition meets",
     "highlight": "modern excellence.",
-    "subtitle": "Raghunandan Akhada unites centuries of pehlwani discipline with a clean digital operating system for every academy.",
+    "subtitle": "Raghunandan wrestling academy unites centuries of pehlwani discipline with a clean digital operating system for every academy.",
     "mantra": "ॐ भूर्भुवः स्वः, तत्सवितुर्वरेण्यं, भर्गो देवस्य धीमहि, धियो यो नः प्रचोदयात्",
     "mantraLabel": "Gayatri Mantra",
-    "imageAlt": "Heritage Akhada grounds",
+    "imageAlt": "Heritage Academy grounds",
     "pillars": {
       "heritage": {
         "title": "Heritage",
@@ -230,17 +230,17 @@
       },
       "technology": {
         "title": "Technology",
-        "text": "Digital records, attendance, payments, and analytics that keep the Akhada running smoothly."
+        "text": "Digital records, attendance, payments, and analytics that keep the Academy running smoothly."
       }
     },
-    "disciplineQuotesTitle": "Akhada Discipline",
+    "disciplineQuotesTitle": "Academy Discipline",
     "disciplineQuotes": [
       "Practice brahmacharya — make not only the body, but also the mind, invincible.",
       "Those who bathe in water only change their clothes; those who bathe in sweat change history.",
       "Parents are the first gurus; honouring them is true education.",
       "Discipline is the power that turns an ordinary youth into a great pehlwan.",
       "Where there is restraint in life, success follows in every step.",
-      "The Akhada teaches not only wrestling, but also how to live life.",
+      "The Academy teaches not only wrestling, but also how to live life.",
       "Before becoming a champion, first become the master of yourself.",
       "Work so silently that victory itself becomes your introduction.",
       "Strength of the body comes from practice; strength of the mind comes from brahmacharya."
@@ -262,11 +262,11 @@
     "badge": "Expert Team",
     "titleLine1": "Meet Our",
     "titleLine2": " Coaches / Trainers",
-    "subtitle": "Learn traditional wrestling and modern strength training under experienced Akhada Gurus dedicated to building discipline, strength, and champions.",
+    "subtitle": "Learn traditional wrestling and modern strength training under experienced Academy Gurus dedicated to building discipline, strength, and champions.",
     "eyebrow": "Coaches",
     "title": "Gurus who shape",
     "highlight": "leaders.",
-    "imageAlt": "Pehlwans of Raghunandan Akhada",
+    "imageAlt": "Pehlwans of Raghunandan wrestling academy",
     "specialization": "Specialization",
     "achievementsLabel": "Achievements",
     "items": {
@@ -275,7 +275,7 @@
         "role": "Founder",
         "experience": "20+ Years",
         "specialty": "Traditional Kushti",
-        "bio": "Master of mitti kushti who shapes champions through discipline, technique, and timeless Akhada values.",
+        "bio": "Master of mitti kushti who shapes champions through discipline, technique, and timeless Academy values.",
         "specialization": "Classical Kushti",
         "achievements": "40+ state-level pehlwans mentored"
       },
@@ -307,7 +307,7 @@
   "testimonials": {
     "eyebrow": "Testimonials",
     "title": "Trusted by the",
-    "highlight": "Akhada family.",
+    "highlight": "Academy family.",
     "subtitle": "Athletes, coaches, and parents who rely on clarity, discipline, and care.",
     "prev": "Previous testimonial",
     "next": "Next testimonial",
@@ -332,7 +332,7 @@
   "contact": {
     "eyebrow": "Contact",
     "title": "Start your",
-    "highlight": "Akhada journey.",
+    "highlight": "Academy journey.",
     "subtitle": "Talk to us about academy onboarding, training, or a live platform demo.",
     "name": "Name",
     "namePlaceholder": "Your full name",
@@ -345,13 +345,13 @@
     "aadhaar": "Aadhaar Number",
     "aadhaarPlaceholder": "12-digit Aadhaar",
     "message": "Message",
-    "messagePlaceholder": "Tell us about your Akhada or goals...",
+    "messagePlaceholder": "Tell us about your Academy or goals...",
     "send": "Send Message",
     "sent": "Message sent successfully!",
     "successTitle": "Message Sent Successfully!",
-    "successBody": "Thank you for contacting Raghunandan Akhada. We'll get back to you shortly.",
+    "successBody": "Thank you for contacting Raghunandan wrestling academy. We'll get back to you shortly.",
     "successClose": "OK",
-    "mapTitle": "Raghunandan Akhada location",
+    "mapTitle": "Raghunandan wrestling academy location",
     "errors": {
       "title": "Please complete the form",
       "generic": "Please fill all required fields correctly.",
@@ -371,7 +371,7 @@
     }
   },
   "footer": {
-    "tagline": "Modern software for traditional Indian Akhadas — athletes, training, and excellence in one place.",
+    "tagline": "Modern software for traditional Indian Academies — athletes, training, and excellence in one place.",
     "quickLinks": "Quick Links",
     "programs": "Programs",
     "contact": "Contact",

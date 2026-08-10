@@ -5,6 +5,7 @@ import useTranslation from '../../hooks/useTranslation';
 import { facilityService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
+import { wrestlingCardImgClass, wrestlingFallbacks } from '../../utils/wrestlingImages';
 
 export default function Facilities() {
   const { t } = useTranslation();
@@ -60,7 +61,7 @@ export default function Facilities() {
         ) : facilities.length === 0 ? (
           <p className="text-center text-sm text-[#6B7280]">Facilities will appear here soon.</p>
         ) : (
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {facilities.map((item, i) => (
               <Reveal key={item._id || item.id} delay={i * 0.06}>
                 <article className="card group flex h-full flex-col overflow-hidden p-0">
@@ -70,9 +71,13 @@ export default function Facilities() {
                       alt={item.name}
                       width={640}
                       height={400}
-                      className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-105 md:h-[320px]"
+                      className={wrestlingCardImgClass}
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = wrestlingFallbacks.facilities;
+                      }}
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-5">

@@ -1,6 +1,10 @@
 import heroImg from '../assets/akhada/hero-banner.webp';
 import aboutImg from '../assets/akhada/about-heritage.webp';
 import coachesImg from '../assets/akhada/coaches-athletes.png';
+import achievementsTrophy from '../assets/akhada/achievements-trophy.webp';
+import achievementsMedals from '../assets/akhada/achievements-medals.webp';
+import achievementsCelebration from '../assets/akhada/achievements-celebration.webp';
+import achievementsPodium from '../assets/akhada/achievements-podium.webp';
 import coachGuru from '../assets/akhada/coaches/guru-raghunandan.webp';
 import coachMahavir from '../assets/akhada/coaches/mahavir-singh.webp';
 import coachVikram from '../assets/akhada/coaches/vikram-pehlwan.webp';
@@ -10,10 +14,22 @@ export const images = {
   hero: heroImg,
   about: aboutImg,
   coaches: coachesImg,
+  achievementsTrophy,
+  achievementsMedals,
+  achievementsCelebration,
+  achievementsPodium,
 };
 
+/** Achievement section showcase images (AI) */
+export const achievementVisuals = [
+  { key: 'champions', image: achievementsTrophy, position: 'object-[center_18%]' },
+  { key: 'medals', image: achievementsMedals, position: 'object-center' },
+  { key: 'national', image: achievementsPodium, position: 'object-[center_15%]' },
+  { key: 'years', image: achievementsCelebration, position: 'object-[center_22%]' },
+];
+
 export const companyInfo = {
-  name: 'Raghunandan Akhada',
+  name: 'Raghunandan wrestling academy',
   address: 'P-155, Plot No. 52, Gali No. 5, Phase-4, Shiv Vihar, Karawal Nagar, North East Delhi – 110094',
   phones: ['+91 96540 08400', '+91 96540 08500'],
   email: 'hello@raghunandanakhada.com',

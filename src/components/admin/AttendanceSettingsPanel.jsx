@@ -22,7 +22,7 @@ export default function AttendanceSettingsPanel() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    name: 'Raghunandan Akhada',
+    name: 'Raghunandan wrestling academy',
     latitude: '',
     longitude: '',
     allowedRadiusMeters: 500,
@@ -38,7 +38,7 @@ export default function AttendanceSettingsPanel() {
       const res = await attendanceSettingsService.get();
       const s = res.data?.data?.settings || {};
       setForm({
-        name: s.name || 'Raghunandan Akhada',
+        name: s.name || 'Raghunandan wrestling academy',
         latitude: s.latitude != null ? String(s.latitude) : '',
         longitude: s.longitude != null ? String(s.longitude) : '',
         allowedRadiusMeters: s.allowedRadiusMeters ?? 500,
@@ -81,7 +81,7 @@ export default function AttendanceSettingsPanel() {
     setSaving(true);
     try {
       const payload = {
-        name: form.name.trim() || 'Raghunandan Akhada',
+        name: form.name.trim() || 'Raghunandan wrestling academy',
         latitude: form.latitude === '' ? null : Number(form.latitude),
         longitude: form.longitude === '' ? null : Number(form.longitude),
         allowedRadiusMeters: Number(form.allowedRadiusMeters) || 500,
@@ -144,7 +144,7 @@ export default function AttendanceSettingsPanel() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
         <p className="font-semibold">Important</p>
         <p className="mt-1 text-xs leading-relaxed">
-          Do not guess coordinates. Stand at Raghunandan Akhada and tap <strong>Use Current Location</strong>, or paste
+          Do not guess coordinates. Stand at Raghunandan wrestling academy and tap <strong>Use Current Location</strong>, or paste
           verified Google Maps coordinates. QR attendance stays blocked until latitude/longitude are saved.
         </p>
       </div>
@@ -153,7 +153,7 @@ export default function AttendanceSettingsPanel() {
         <div className="mb-4 flex items-center gap-2">
           <FaMapMarkerAlt className="text-brand" />
           <div>
-            <h3 className="text-sm font-bold text-ink">Akhada Location</h3>
+            <h3 className="text-sm font-bold text-ink">Academy Location</h3>
             <p className="text-xs text-muted">Geofence for QR attendance (default radius 500 m)</p>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function AttendanceSettingsPanel() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm sm:col-span-2">
-              Akhada Name
+              Academy Name
               <input
                 value={form.name}
                 disabled={!canEdit}
@@ -289,11 +289,11 @@ export default function AttendanceSettingsPanel() {
         <div className="border-b border-slate-100 px-4 py-3">
           <h4 className="text-sm font-bold text-ink">Map Preview</h4>
           <p className="text-xs text-muted">
-            Marker = Akhada center · Allowed radius = {form.allowedRadiusMeters || 500} m (configure above)
+            Marker = Academy center · Allowed radius = {form.allowedRadiusMeters || 500} m (configure above)
           </p>
         </div>
         {mapUrl ? (
-          <iframe title="Akhada geofence map" src={mapUrl} className="h-72 w-full border-0" loading="lazy" />
+          <iframe title="Academy geofence map" src={mapUrl} className="h-72 w-full border-0" loading="lazy" />
         ) : (
           <div className="flex h-48 items-center justify-center bg-surface text-sm text-muted">
             Save latitude/longitude to preview the map.

@@ -49,8 +49,8 @@ export function LanguageProvider({ children }) {
 
     const title =
       language === 'hi'
-        ? 'रघुनंदन अखाड़ा | स्मार्ट डिजिटल अखाड़ा प्लेटफ़ॉर्म'
-        : 'Raghunandan Akhada | Smart Digital Akhada Platform';
+        ? 'रघुनांदन रेसलिंग अकादमी | स्मार्ट डिजिटल अकादमी प्लेटफ़ॉर्म'
+        : 'Raghunandan wrestling academy | Smart Digital Academy Platform';
     document.title = title;
   }, [language]);
 

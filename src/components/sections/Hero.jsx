@@ -20,16 +20,14 @@ function segmentGraphemes(text) {
   } catch {
     /* fall through */
   }
-  // Fallback: keep known Devanagari syllables together where possible
   return text.match(/॥|।|आओ|चलें|खेल|की|ओर|,|\s|./gu) || Array.from(text);
 }
 
 /**
  * Safari/WebKit breaks Devanagari inside SVG <textPath>.
- * Place each grapheme cluster as its own <text> along the arc path
- * so shaping stays intact on Chrome, Firefox, Safari, iOS.
+ * Place each grapheme cluster as its own <text> along the arc path.
  */
-function HeroCurvedMantra() {
+function HeroCurvedMantra({ className = '' }) {
   const uid = useId().replace(/:/g, '');
   const gradId = `hero-arc-gold-${uid}`;
   const pathRef = useRef(null);
@@ -49,8 +47,7 @@ function HeroCurvedMantra() {
       const path = pathRef.current;
       const svgWidth = svgEl.clientWidth || VIEW_W;
       const pxToVb = VIEW_W / Math.max(svgWidth, 1);
-      // Target ~26–34px on screen, convert to viewBox units for path placement
-      const fontSizeCss = Math.min(34, Math.max(20, svgWidth * 0.05));
+      const fontSizeCss = Math.min(34, Math.max(18, svgWidth * 0.048));
       const fontSizeVb = fontSizeCss * pxToVb;
 
       const canvas = document.createElement('canvas');
@@ -105,20 +102,20 @@ function HeroCurvedMantra() {
   const fontSize = glyphs[0]?.fontSize || 26;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[5] overflow-hidden pt-14 sm:pt-16 md:pt-20">
+    <div className={`pointer-events-none absolute inset-x-0 top-0 z-[2] overflow-visible px-2 pt-1 ${className}`}>
       <motion.div
-        className="pointer-events-auto absolute right-0 top-[12%] w-[min(92%,560px)] origin-center cursor-default sm:right-[2%] sm:top-[14%] sm:w-[min(70%,600px)] md:right-[4%] md:top-[13%] md:w-[min(58%,640px)] lg:right-[5%] lg:top-[12%] lg:w-[min(52%,680px)] xl:right-[6%] xl:w-[min(48%,700px)]"
-        initial={{ opacity: 0, y: 16 }}
+        className="pointer-events-auto mx-auto w-full max-w-[340px] origin-center cursor-default opacity-95 sm:max-w-[420px] md:max-w-[480px] lg:max-w-[520px]"
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
       >
         <motion.div
-          animate={{ y: [0, -5, 0] }}
+          animate={{ y: [0, -4, 0] }}
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
           className="hero-curved-wrap relative will-change-transform"
         >
           <div
-            className="pointer-events-none absolute left-1/2 top-[42%] h-14 w-4/5 -translate-x-1/2 rounded-full bg-[#C79A3B]/18 blur-2xl"
+            className="pointer-events-none absolute left-1/2 top-[42%] h-12 w-4/5 -translate-x-1/2 rounded-full bg-[#C79A3B]/16 blur-2xl"
             aria-hidden
           />
 
@@ -139,12 +136,8 @@ function HeroCurvedMantra() {
               </linearGradient>
             </defs>
 
-            {/* Layout path only — not drawn; never use textPath (Safari Devanagari bug) */}
             <path ref={pathRef} d={ARC_D} fill="none" stroke="none" aria-hidden />
-
             <title>{CURVED_TEXT}</title>
-
-            {/* Visually hidden full string for accessibility / copy semantics */}
             <text x="-9999" y="-9999" opacity="0" aria-hidden>
               {CURVED_TEXT}
             </text>
@@ -181,72 +174,123 @@ function HeroCurvedMantra() {
   );
 }
 
+function HeroCopy() {
+  const { t } = useTranslation();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-[#BFDBFE] bg-[#EFF6FF]/95 px-3 py-1.5 text-[11px] font-semibold text-[#2563EB] shadow-[0_4px_14px_rgba(37,99,235,0.08)] backdrop-blur-sm sm:mb-5 sm:px-3.5 sm:text-[12px]">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2563EB]" />
+        <span className="truncate">{t('hero.badge')}</span>
+      </div>
+
+      <h1 className="font-display text-[clamp(1.85rem,6.2vw,3.4rem)] font-bold leading-[1.12] tracking-[-0.03em] text-[#071A35]">
+        {t('hero.titleLine1')}
+        <br />
+        <span className="text-[#2563EB]">{t('hero.titleLine2')}</span>
+      </h1>
+
+      <p className="mt-3 max-w-md text-[14px] leading-relaxed text-[#6B7280] sm:mt-4 sm:text-[15px] md:text-base">
+        {t('hero.subtitle')}
+      </p>
+
+      <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+        <Button href="#contact" className="w-full rounded-full px-7 py-3.5 text-[15px] sm:w-auto">
+          {t('hero.ctaPrimary')}
+          <FaArrowRight className="text-xs" />
+        </Button>
+        <Button
+          href="#about"
+          variant="secondary"
+          className="w-full rounded-full px-7 py-3.5 text-[15px] sm:w-auto"
+        >
+          <FaHandshake className="text-[#2563EB]" />
+          {t('hero.ctaSecondary')}
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Hero() {
   const { t } = useTranslation();
 
   return (
     <section
       id="home"
-      className="relative flex min-h-[560px] items-center overflow-hidden bg-gradient-to-br from-white via-[#F8FAFC] to-[#EFF6FF] pt-20 md:min-h-[640px] lg:min-h-[720px]"
+      className="relative overflow-x-hidden bg-gradient-to-br from-white via-[#F8FAFC] to-[#EFF6FF] pt-20"
     >
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#DBEAFE]/50 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#DBEAFE]/40 to-transparent md:h-40"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -right-24 -top-32 h-[420px] w-[420px] rounded-full bg-gradient-to-br from-[#2563EB]/25 via-[#38BDF8]/15 to-transparent blur-2xl md:h-[520px] md:w-[520px]"
+        className="pointer-events-none absolute -right-24 -top-32 hidden h-[420px] w-[420px] rounded-full bg-gradient-to-br from-[#2563EB]/25 via-[#38BDF8]/15 to-transparent blur-2xl md:block md:h-[520px] md:w-[520px]"
         aria-hidden
       />
 
-      <div className="absolute inset-0 z-0">
+      {/* ========== Desktop / large tablet: full-bleed image ========== */}
+      <div className="absolute inset-0 z-0 hidden lg:block">
         <img
           src={images.hero}
-          alt={t('hero.imageAlt')}
+          alt=""
           width={1920}
           height={1080}
           decoding="async"
           fetchPriority="high"
-          className="h-full w-full object-cover object-[68%_center] md:object-[62%_center]"
+          aria-hidden
+          className="h-full w-full object-cover object-[70%_center] xl:object-[66%_center] 2xl:object-[62%_center]"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-white from-[12%] via-white/88 via-[38%] to-transparent to-[72%]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-white/35 via-transparent to-white/15" />
+        <div
+          className="absolute inset-y-0 left-0 w-[min(100%,580px)] bg-gradient-to-r from-white from-[50%] via-white/92 via-[82%] to-transparent"
+          aria-hidden
+        />
       </div>
 
-      <HeroCurvedMantra />
+      {/* Desktop mantra — over right image area only */}
+      <div className="pointer-events-none absolute inset-0 z-[5] hidden overflow-hidden lg:block">
+        <div className="absolute right-[3%] top-[12%] w-[min(46%,620px)] xl:right-[5%] xl:w-[min(44%,660px)]">
+          <HeroCurvedMantra className="!static !inset-auto !px-0 !pt-0" />
+        </div>
+      </div>
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xl py-16 md:py-20 lg:max-w-[520px] lg:py-24">
+        <div className="grid items-center gap-6 py-8 sm:gap-8 sm:py-10 md:py-12 lg:min-h-[600px] lg:grid-cols-2 lg:gap-10 lg:py-16 xl:min-h-[640px]">
+          {/* Copy */}
+          <div className="relative z-20 max-w-xl lg:max-w-[520px]">
+            <HeroCopy />
+          </div>
+
+          {/* ========== Mobile / tablet image (clear, no wash) ========== */}
           <motion.div
-            initial={{ opacity: 0, y: 22 }}
+            className="relative z-10 w-full min-w-0 lg:hidden"
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.65, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-[#EFF6FF]/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#2563EB] shadow-[0_4px_14px_rgba(37,99,235,0.08)] backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
-              {t('hero.badge')}
-            </div>
-
-            <h1 className="font-display text-[clamp(2.1rem,4.8vw,3.4rem)] font-bold leading-[1.12] tracking-[-0.03em] text-[#071A35]">
-              {t('hero.titleLine1')}
-              <br />
-              <span className="text-[#2563EB]">{t('hero.titleLine2')}</span>
-            </h1>
-
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#6B7280] md:text-base">
-              {t('hero.subtitle')}
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button href="#contact" className="rounded-full px-7 py-3.5 text-[15px]">
-                {t('hero.ctaPrimary')}
-                <FaArrowRight className="text-xs" />
-              </Button>
-              <Button href="#about" variant="secondary" className="rounded-full px-7 py-3.5 text-[15px]">
-                <FaHandshake className="text-[#2563EB]" />
-                {t('hero.ctaSecondary')}
-              </Button>
+            <div className="relative overflow-hidden rounded-[22px] bg-[#F8FAFC] shadow-[0_12px_32px_rgba(0,0,0,0.08)] sm:rounded-[28px]">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-[2]">
+                <HeroCurvedMantra />
+              </div>
+              <div className="relative aspect-[16/11] w-full sm:aspect-[16/10]">
+                <img
+                  src={images.hero}
+                  alt={t('hero.imageAlt')}
+                  width={1200}
+                  height={750}
+                  decoding="async"
+                  fetchPriority="high"
+                  className="h-full w-full object-cover object-[62%_center] sm:object-[58%_center]"
+                />
+              </div>
             </div>
           </motion.div>
+
+          {/* Desktop spacer so grid balances with absolute bg image */}
+          <div className="hidden lg:block" aria-hidden />
         </div>
       </div>
     </section>

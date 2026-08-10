@@ -405,7 +405,7 @@ export default function StudentDashboard() {
                   </p>
                   {scanResult.distanceFromAkhada != null || scanResult.distanceMeters != null ? (
                     <p>
-                      Distance from Akhada:{' '}
+                      Distance from Academy:{' '}
                       {Math.round(scanResult.distanceFromAkhada ?? scanResult.distanceMeters)} meters
                     </p>
                   ) : null}

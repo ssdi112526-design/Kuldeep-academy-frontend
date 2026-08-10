@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Reveal, { SectionHeading } from '../ui/Reveal';
-import { achievements as fallbackAchievements } from '../../data/akhada';
+import { achievements as fallbackAchievements, achievementVisuals } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { achievementService } from '../../services';
 import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
@@ -106,6 +106,33 @@ export default function Achievements() {
             subtitle={t('achievements.subtitle')}
           />
         </Reveal>
+
+        <Reveal delay={0.05}>
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {achievementVisuals.map((visual) => (
+              <div
+                key={visual.key}
+                className="group relative overflow-hidden rounded-[24px] shadow-[0_12px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/5"
+              >
+                <img
+                  src={visual.image}
+                  alt={t(`achievements.items.${visual.key}`)}
+                  width={700}
+                  height={525}
+                  loading="lazy"
+                  decoding="async"
+                  className={`h-[220px] w-full object-cover transition duration-500 group-hover:scale-105 sm:h-[240px] md:h-[260px] ${visual.position}`}
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#111827]/75 via-[#111827]/30 to-transparent px-3.5 pb-3.5 pt-12">
+                  <p className="text-sm font-semibold tracking-wide text-white">
+                    {t(`achievements.items.${visual.key}`)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
         <div ref={ref} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((item, i) => (
             <Reveal key={item.id} delay={i * 0.05}>

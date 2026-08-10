@@ -46,7 +46,7 @@ export default function About() {
               height={720}
               loading="lazy"
               decoding="async"
-              className="img-card h-full min-h-[280px] object-cover shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+              className="img-card h-full min-h-[320px] object-cover object-[center_18%] shadow-[0_12px_32px_rgba(0,0,0,0.08)] sm:min-h-[380px] sm:object-[center_15%] md:object-[center_12%]"
             />
           </Reveal>
           <div className="grid gap-4">

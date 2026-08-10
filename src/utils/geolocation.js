@@ -56,7 +56,7 @@ export function formatAttendanceScanSuccess(attendance = {}) {
     attendance.type || '',
     `Present · ${attendance.time || ''}`,
   ].filter(Boolean);
-  if (dist != null) lines.push(`Distance from Akhada: ${dist} meters`);
+  if (dist != null) lines.push(`Distance from Academy: ${dist} meters`);
   if (attendance.locationVerified) lines.push('Location Verified ✓');
   return lines.join('\n');
 }
