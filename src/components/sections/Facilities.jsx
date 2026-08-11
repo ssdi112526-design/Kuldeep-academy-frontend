@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import Reveal, { SectionHeading } from '../ui/Reveal';
 import { facilityTags } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
@@ -39,7 +39,7 @@ export default function Facilities() {
   }, []);
 
   return (
-    <section id="facilities" className="section bg-[#F8FAFC]">
+    <section id="facilities" className="section bg-[#F8F7F2]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Reveal>
           <SectionHeading
@@ -53,13 +53,13 @@ export default function Facilities() {
         {loading ? (
           <div className="grid gap-5 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-[380px] animate-pulse rounded-[24px] bg-slate-200/70" />
+              <div key={i} className="h-[380px] animate-pulse rounded-md bg-slate-200/70" />
             ))}
           </div>
         ) : error ? (
           <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
         ) : facilities.length === 0 ? (
-          <p className="text-center text-sm text-[#6B7280]">Facilities will appear here soon.</p>
+          <p className="text-center text-sm text-[#64748B]">Facilities will appear here soon.</p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {facilities.map((item, i) => (
@@ -81,8 +81,8 @@ export default function Facilities() {
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-5">
-                    <h3 className="font-display text-lg font-semibold text-[#111827]">{item.name}</h3>
-                    <p className="mt-1.5 text-sm text-[#6B7280]">{item.description}</p>
+                    <h3 className="font-display text-lg font-semibold text-[#172033]">{item.name}</h3>
+                    <p className="mt-1.5 text-sm text-[#64748B]">{item.description}</p>
                   </div>
                 </article>
               </Reveal>
@@ -95,7 +95,7 @@ export default function Facilities() {
             {facilityTags.map((key) => (
               <span
                 key={key}
-                className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-xs font-semibold text-[#6B7280]"
+                className="border border-[#E9E7DE] bg-white px-4 py-2 text-xs font-semibold text-[#64748B]"
               >
                 {t(`facilities.tags.${key}`)}
               </span>

@@ -339,7 +339,7 @@ export default function CoachAttendancePanel() {
 
   const qrBlock = (
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Raghunandan wrestling academy</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Kuldeep Malik Sports Academy</p>
       <h3 className="mt-2 text-2xl font-bold text-ink">Coach Attendance</h3>
       {qrLoading ? (
         <p className="mt-8 text-sm text-muted">Loading QR…</p>
@@ -701,6 +701,7 @@ export default function CoachAttendancePanel() {
         title="Close attendance QR?"
         message="Coaches will no longer be able to use this QR. You can generate a new one anytime."
         confirmLabel="Close QR"
+        danger={false}
         onConfirm={handleClose}
         onCancel={() => setCloseConfirm({ open: false, loading: false })}
       />
@@ -794,7 +795,7 @@ export default function CoachAttendancePanel() {
           >
             Exit Fullscreen
           </button>
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand">Raghunandan wrestling academy</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand">Kuldeep Malik Sports Academy</p>
           <h2 className="mt-2 text-3xl font-bold text-ink sm:text-4xl">Coach Attendance</h2>
           <img src={session.qrDataUrl} alt="Coach Attendance QR" className="mt-8 w-[min(70vw,420px)]" />
           <p className="mt-6 text-lg font-medium text-ink">Scan to Mark Attendance</p>

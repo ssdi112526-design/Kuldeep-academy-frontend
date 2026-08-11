@@ -1,12 +1,14 @@
 export const companyInfo = {
-  name: 'Raghunandan wrestling academy',
+  name: 'Kuldeep Malik Sports Academy',
   tagline:
     'Empowering traditional Indian Academies with modern digital management, athlete records, memberships, tournaments, payments, attendance, and performance tracking.',
   badge: "India's Smart Academy Management Platform",
-  address: 'P-155, Plot No. 52, Gali No. 5, Phase-4, Shiv Vihar, Karawal Nagar, North East Delhi – 110094',
-  phones: ['+91 96540 08400', '+91 96540 08500'],
-  email: 'kartikashwanikumar@gmail.com',
+  address: '1554/31, Chhotu Ram Colony, Gohana Road, Sonipat',
+  phones: [],
+  email: '',
   hours: 'Monday – Saturday: 8:30 AM – 6:00 PM',
+  registrationNo: 'HR/008/2023/01608',
+  registrationDate: '10-01-2023',
 };
 
 export const navLinks = [

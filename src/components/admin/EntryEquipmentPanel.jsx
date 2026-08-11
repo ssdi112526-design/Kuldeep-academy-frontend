@@ -298,9 +298,11 @@ export default function EntryEquipmentPanel() {
       toast.error('You do not have permission to delete equipment');
       return;
     }
+    const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await entryService.equipment.remove(confirm.id);
+      await entryService.equipment.remove(deleteId);
+      setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
       toast.success('Equipment deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchStats();
@@ -308,6 +310,7 @@ export default function EntryEquipmentPanel() {
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -593,7 +596,7 @@ export default function EntryEquipmentPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete this equipment?"
+        title="Are you sure you want to delete this?"
         message="This will permanently delete the record."
         confirmLabel="Delete"
         danger

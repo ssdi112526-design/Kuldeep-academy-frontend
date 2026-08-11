@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { FaPlay } from 'react-icons/fa';
 import { mediaUrl } from '../../utils/mediaUrl';
 
@@ -115,7 +115,7 @@ export default function VideoHoverCard({ video, onPlay }) {
 
   return (
     <article
-      className="group cursor-pointer overflow-hidden rounded-[24px] border border-[#E8DFD0]/80 bg-white/55 shadow-[0_12px_36px_rgba(26,18,11,0.08)] backdrop-blur-md transition-all duration-[350ms] ease-out hover:-translate-y-2 hover:border-[#D4AF37]/70 hover:shadow-[0_20px_48px_rgba(212,175,55,0.28)]"
+      className="group cursor-pointer overflow-hidden rounded-md border border-[#E8DFD0]/80 bg-white/55 shadow-[0_12px_36px_rgba(26,18,11,0.08)] backdrop-blur-md transition-all duration-[350ms] ease-out hover:-translate-y-2 hover:border-[#D4AF37]/70 hover:shadow-[0_20px_48px_rgba(212,175,55,0.28)]"
       onMouseEnter={startPreview}
       onMouseLeave={stopPreview}
       onClick={() => onPlay(video)}

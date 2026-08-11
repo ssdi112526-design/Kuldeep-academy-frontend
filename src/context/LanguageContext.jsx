@@ -49,8 +49,8 @@ export function LanguageProvider({ children }) {
 
     const title =
       language === 'hi'
-        ? 'रघुनांदन रेसलिंग अकादमी | स्मार्ट डिजिटल अकादमी प्लेटफ़ॉर्म'
-        : 'Raghunandan wrestling academy | Smart Digital Academy Platform';
+        ? 'कुलदीप मलिक स्पोर्ट्स अकादमी | सोनीपत'
+        : 'Kuldeep Malik Sports Academy | Sonipat';
     document.title = title;
   }, [language]);
 

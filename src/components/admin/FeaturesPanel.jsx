@@ -1,10 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaEdit, FaPlus, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import {
+  FaEdit,
+  FaPlus,
+  FaTrash,
+  FaToggleOn,
+  FaToggleOff,
+  FaUsers,
+  FaIdCard,
+  FaClipboardCheck,
+  FaDumbbell,
+  FaChartLine,
+  FaTrophy,
+  FaChalkboardTeacher,
+  FaCreditCard,
+} from 'react-icons/fa';
 import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { facilityService } from '../../services';
+import { featureService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import SearchBar from './SearchBar';
@@ -15,16 +29,46 @@ import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
 
-const EMPTY = { name: '', description: '', icon: '', displayOrder: 0, isActive: true };
+const ICON_OPTIONS = [
+  'FaUsers',
+  'FaIdCard',
+  'FaClipboardCheck',
+  'FaDumbbell',
+  'FaChartLine',
+  'FaTrophy',
+  'FaChalkboardTeacher',
+  'FaCreditCard',
+];
 
-export default function FacilitiesPanel({ onChanged }) {
+const ICON_PREVIEW = {
+  FaUsers,
+  FaIdCard,
+  FaClipboardCheck,
+  FaDumbbell,
+  FaChartLine,
+  FaTrophy,
+  FaChalkboardTeacher,
+  FaCreditCard,
+};
+
+const EMPTY = {
+  titleEn: '',
+  titleHi: '',
+  descriptionEn: '',
+  descriptionHi: '',
+  icon: 'FaUsers',
+  displayOrder: 0,
+  isActive: true,
+};
+
+export default function FeaturesPanel({ onChanged }) {
   const toast = useToast();
   const { can, canModule } = usePermissions();
-  const canView = canModule('facilities');
-  const canCreate = can('facilities.create');
-  const canEdit = can('facilities.edit');
-  const canDelete = can('facilities.delete');
-  const canUpload = can('facilities.upload');
+  const canView = canModule('features');
+  const canCreate = can('features.create');
+  const canEdit = can('features.edit');
+  const canDelete = can('features.delete');
+  const canUpload = can('features.upload');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,16 +89,16 @@ export default function FacilitiesPanel({ onChanged }) {
     setLoading(true);
     setError('');
     try {
-      const res = await facilityService.list({
+      const res = await featureService.list({
         page,
         limit: pagination.limit,
         ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
       });
-      const { facilities, pagination: p } = res.data.data;
-      setItems(facilities);
+      const { features, pagination: p } = res.data.data;
+      setItems(features);
       setPagination((prev) => ({ ...prev, ...p }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load facilities');
+      setError(err.response?.data?.message || 'Failed to load features');
     } finally {
       setLoading(false);
     }
@@ -87,9 +131,11 @@ export default function FacilitiesPanel({ onChanged }) {
     if (!canEdit) return;
     setEditing(item);
     setForm({
-      name: item.name,
-      description: item.description,
-      icon: item.icon || '',
+      titleEn: item.titleEn || '',
+      titleHi: item.titleHi || '',
+      descriptionEn: item.descriptionEn || '',
+      descriptionHi: item.descriptionHi || '',
+      icon: item.icon || 'FaUsers',
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive,
     });
@@ -102,25 +148,24 @@ export default function FacilitiesPanel({ onChanged }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (editing && !canEdit) {
-      toast.error('You do not have permission to edit facilities');
+      toast.error('You do not have permission to edit features');
       return;
     }
     if (!editing && !canCreate) {
-      toast.error('You do not have permission to create facilities');
+      toast.error('You do not have permission to create features');
       return;
     }
     if (file && !canUpload) {
       toast.error('You do not have permission to upload images');
       return;
     }
-    if (!form.name.trim() || !form.description.trim()) {
-      const message = 'Name and description are required';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    if (!editing && !file) {
-      const message = 'Please upload an image';
+    if (
+      !form.titleEn.trim() ||
+      !form.titleHi.trim() ||
+      !form.descriptionEn.trim() ||
+      !form.descriptionHi.trim()
+    ) {
+      const message = 'English and Hindi titles and descriptions are required';
       setFormError(message);
       toast.error(message);
       return;
@@ -128,16 +173,18 @@ export default function FacilitiesPanel({ onChanged }) {
     setSaving(true);
     try {
       const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
+        titleEn: form.titleEn.trim(),
+        titleHi: form.titleHi.trim(),
+        descriptionEn: form.descriptionEn.trim(),
+        descriptionHi: form.descriptionHi.trim(),
         icon: form.icon.trim(),
         displayOrder: form.displayOrder,
         isActive: form.isActive,
       };
-      if (editing) await facilityService.update(editing._id, payload, file);
-      else await facilityService.create(payload, file);
-      clearPublicCache('facilities');
-      toast.success(editing ? 'Facility updated' : 'Facility created');
+      if (editing) await featureService.update(editing._id || editing.id, payload, file);
+      else await featureService.create(payload, file);
+      clearPublicCache('features');
+      toast.success(editing ? 'Feature updated' : 'Feature created');
       setModalOpen(false);
       fetchList(pagination.page);
       onChanged?.();
@@ -152,18 +199,20 @@ export default function FacilitiesPanel({ onChanged }) {
 
   const handleToggle = async (item) => {
     if (!canEdit) {
-      toast.error('You do not have permission to edit facilities');
+      toast.error('You do not have permission to edit features');
       return;
     }
     try {
-      await facilityService.update(item._id, {
-        name: item.name,
-        description: item.description,
+      await featureService.update(item._id || item.id, {
+        titleEn: item.titleEn,
+        titleHi: item.titleHi,
+        descriptionEn: item.descriptionEn,
+        descriptionHi: item.descriptionHi,
         icon: item.icon || '',
         displayOrder: item.displayOrder,
         isActive: !item.isActive,
       });
-      clearPublicCache('facilities');
+      clearPublicCache('features');
       fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
@@ -173,16 +222,16 @@ export default function FacilitiesPanel({ onChanged }) {
 
   const handleDelete = async () => {
     if (!canDelete) {
-      toast.error('You do not have permission to delete facilities');
+      toast.error('You do not have permission to delete features');
       return;
     }
     const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await facilityService.remove(deleteId);
+      await featureService.remove(deleteId);
       setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
-      clearPublicCache('facilities');
-      toast.success('Facility deleted');
+      clearPublicCache('features');
+      toast.success('Feature deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);
       onChanged?.();
@@ -196,10 +245,10 @@ export default function FacilitiesPanel({ onChanged }) {
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search facilities..." />
+        <SearchBar value={search} onChange={setSearch} placeholder="Search features..." />
         {canCreate ? (
           <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-            <FaPlus /> Add Facility
+            <FaPlus /> Add Feature
           </Button>
         ) : null}
       </div>
@@ -214,78 +263,91 @@ export default function FacilitiesPanel({ onChanged }) {
         ) : error ? (
           <p className="p-6 text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted">No facilities yet.</p>
+          <p className="p-8 text-center text-sm text-muted">No features yet.</p>
         ) : (
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Image</th>
-                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Icon / Image</th>
+                <th className="px-4 py-3">Title</th>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item._id} className="border-t border-slate-50">
-                  <td className="px-4 py-3">
-                    <img
-                      src={mediaUrl(item.image)}
-                      alt=""
-                      className="h-12 w-16 rounded-md object-cover"
-                      loading="lazy"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{item.name}</p>
-                    <p className="line-clamp-1 text-xs text-muted">{item.description}</p>
-                  </td>
-                  <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
-                  <td className="px-4 py-3">
-                    {canEdit ? (
-                      <button
-                        type="button"
-                        onClick={() => handleToggle(item)}
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
-                        {item.isActive ? 'Active' : 'Inactive'}
-                      </button>
-                    ) : (
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {item.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {canEdit ? (
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
-                        aria-label="Edit"
-                      >
-                        <FaEdit />
-                      </button>
-                    ) : null}
-                    {canDelete ? (
-                      <button
-                        type="button"
-                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
-                        className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                        aria-label="Delete"
-                      >
-                        <FaTrash />
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
+              {items.map((item) => {
+                const Icon = ICON_PREVIEW[item.icon] || FaUsers;
+                return (
+                  <tr key={item._id || item.id} className="border-t border-slate-50">
+                    <td className="px-4 py-3">
+                      {item.image ? (
+                        <img
+                          src={mediaUrl(item.image)}
+                          alt=""
+                          className="h-12 w-16 rounded-md object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                          <Icon size={16} />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-ink">{item.titleEn}</p>
+                      <p className="line-clamp-1 text-xs text-muted">{item.descriptionEn}</p>
+                    </td>
+                    <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
+                    <td className="px-4 py-3">
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          onClick={() => handleToggle(item)}
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {item.isActive ? <FaToggleOn /> : <FaToggleOff />}
+                          {item.isActive ? 'Active' : 'Inactive'}
+                        </button>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {item.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(item)}
+                          className="mr-2 rounded-lg p-2 text-brand hover:bg-brand/10"
+                          aria-label="Edit"
+                        >
+                          <FaEdit />
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setConfirm({ open: true, id: item._id || item.id, loading: false })
+                          }
+                          className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                          aria-label="Delete"
+                        >
+                          <FaTrash />
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -305,36 +367,60 @@ export default function FacilitiesPanel({ onChanged }) {
             onSubmit={handleSave}
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
-            <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Facility' : 'Add Facility'}</h3>
+            <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Feature' : 'Add Feature'}</h3>
             <FormErrorBanner message={formError} />
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-medium text-ink">
-                Facility Name
+                Title (English)
                 <input
                   required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  value={form.titleEn}
+                  onChange={(e) => setForm({ ...form, titleEn: e.target.value })}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
-                Description
+                Title (Hindi)
+                <input
+                  required
+                  value={form.titleHi}
+                  onChange={(e) => setForm({ ...form, titleHi: e.target.value })}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                Description (English)
                 <textarea
                   required
                   rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  value={form.descriptionEn}
+                  onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
-                Icon (optional)
-                <input
-                  value={form.icon}
-                  onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                  placeholder="e.g. FaDumbbell"
+                Description (Hindi)
+                <textarea
+                  required
+                  rows={3}
+                  value={form.descriptionHi}
+                  onChange={(e) => setForm({ ...form, descriptionHi: e.target.value })}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                Icon
+                <select
+                  value={form.icon}
+                  onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                >
+                  {ICON_OPTIONS.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block text-sm font-medium text-ink">
                 Display Order
@@ -363,6 +449,11 @@ export default function FacilitiesPanel({ onChanged }) {
                   setFile(f);
                   setPreview(URL.createObjectURL(f));
                 }}
+                onClear={() => {
+                  setFile(null);
+                  setPreview('');
+                }}
+                label="Optional image"
               />
             </div>
             <div className="mt-6 flex justify-end gap-2">
@@ -380,7 +471,7 @@ export default function FacilitiesPanel({ onChanged }) {
       <ConfirmDialog
         open={confirm.open}
         title="Are you sure you want to delete this?"
-        message="This will also remove the uploaded image."
+        message="This will also remove any uploaded image."
         confirmLabel="Delete"
         danger
         loading={confirm.loading}

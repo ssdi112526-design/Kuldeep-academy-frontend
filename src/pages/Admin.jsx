@@ -15,7 +15,6 @@ import {
   FaTrophy,
   FaBars,
   FaTimes,
-  FaCalendarCheck,
   FaFingerprint,
   FaCog,
   FaFileInvoiceDollar,
@@ -24,6 +23,9 @@ import {
   FaReceipt,
   FaMoneyCheckAlt,
   FaExclamationCircle,
+  FaStar,
+  FaIdCard,
+  FaGlobe,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -36,6 +38,9 @@ import ContactsPanel from '../components/admin/ContactsPanel';
 import ProgramsPanel from '../components/admin/ProgramsPanel';
 import GalleryPanel from '../components/admin/GalleryPanel';
 import FacilitiesPanel from '../components/admin/FacilitiesPanel';
+import FeaturesPanel from '../components/admin/FeaturesPanel';
+import MembershipPanel from '../components/admin/MembershipPanel';
+import WebsiteContentPanel from '../components/admin/WebsiteContentPanel';
 import VideosPanel from '../components/admin/VideosPanel';
 import EntryStudentsPanel from '../components/admin/EntryStudentsPanel';
 import EntryCoachesPanel from '../components/admin/EntryCoachesPanel';
@@ -71,6 +76,9 @@ const NAV = [
       { id: 'achievements', label: 'Achievements', icon: FaTrophy, module: 'achievements', permission: 'achievements.view' },
       { id: 'gallery', label: 'Gallery', icon: FaImages, module: 'gallery', permission: 'gallery.view' },
       { id: 'facilities', label: 'Facilities', icon: FaBuilding, module: 'facilities', permission: 'facilities.view' },
+      { id: 'features', label: 'Features', icon: FaStar, module: 'features', permission: 'features.view' },
+      { id: 'membership', label: 'Membership', icon: FaIdCard, module: 'membership', permission: 'membership.view' },
+      { id: 'website-content', label: 'Website Content', icon: FaGlobe, module: 'website_content', permission: 'website_content.view' },
       { id: 'videos', label: 'Videos', icon: FaVideo, module: 'videos', permission: 'videos.view' },
     ],
   },
@@ -126,6 +134,9 @@ const SECTION_MODULE = {
   achievements: 'achievements',
   gallery: 'gallery',
   facilities: 'facilities',
+  features: 'features',
+  membership: 'membership',
+  'website-content': 'website_content',
   videos: 'videos',
   students: 'students',
   coaches: 'coaches',
@@ -199,6 +210,13 @@ export default function Admin() {
     draftVideos: 0,
     featuredVideos: 0,
     totalStorageBytes: 0,
+    totalStudents: 0,
+    totalCoaches: 0,
+    totalFeatures: 0,
+    totalMembershipPlans: 0,
+    totalInquiries: 0,
+    recentInquiries: [],
+    recentStudents: [],
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -270,13 +288,19 @@ export default function Admin() {
   if (!canAccessAdmin && !isSuperAdmin) return <Navigate to="/" replace />;
 
   const titles = {
-    dashboard: { title: 'Dashboard', subtitle: 'Content overview for Raghunandan wrestling academy.' },
+    dashboard: { title: 'Dashboard', subtitle: 'Content overview for Kuldeep Malik Sports Academy.' },
     inquiries: { title: 'Inquiries', subtitle: 'Manage contact form submissions.' },
     programs: { title: 'Programs', subtitle: 'Create and manage training programs.' },
     schedule: { title: 'Schedule', subtitle: 'Update training sessions and weekly timetable.' },
     achievements: { title: 'Achievements', subtitle: 'Update homepage achievement counters.' },
     gallery: { title: 'Gallery', subtitle: 'Upload and organize gallery images.' },
     facilities: { title: 'Facilities', subtitle: 'Manage academy facilities.' },
+    features: { title: 'Features', subtitle: 'Manage homepage feature cards (bilingual).' },
+    membership: { title: 'Membership', subtitle: 'Manage public membership plans and pricing.' },
+    'website-content': {
+      title: 'Website Content',
+      subtitle: 'Edit company info, social links, hero and about content.',
+    },
     videos: { title: 'Videos', subtitle: 'Upload and manage Academy training & championship videos.' },
     students: { title: 'Students', subtitle: 'Manage student entries, documents and profiles.' },
     coaches: { title: 'Coaches', subtitle: 'Manage coach entries, documents and profiles.' },
@@ -364,7 +388,11 @@ export default function Admin() {
             <Link to="/" className="hidden text-sm font-medium text-brand hover:underline sm:inline">
               Website
             </Link>
-            <Button variant="secondary" onClick={logout} className="rounded-lg px-3 py-2 text-sm sm:px-4">
+            <Button
+              variant="secondary"
+              onClick={logout}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm hover:border-[#D97706]/40 hover:bg-[#F8F7F2] sm:px-4"
+            >
               Logout
             </Button>
           </div>
@@ -412,13 +440,55 @@ export default function Admin() {
             ) : (
               <>
                 {section === 'dashboard' && (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    <StatCard label="Total Programs" value={cmsStats.totalPrograms} icon={FaDumbbell} loading={statsLoading} />
-                    <StatCard label="Total Gallery Images" value={cmsStats.totalGallery} icon={FaImages} loading={statsLoading} />
-                    <StatCard label="Total Facilities" value={cmsStats.totalFacilities} icon={FaBuilding} loading={statsLoading} />
-                    <StatCard label="Total Videos" value={cmsStats.totalVideos} icon={FaVideo} loading={statsLoading} />
-                    <StatCard label="Published Videos" value={cmsStats.publishedVideos} icon={FaVideo} loading={statsLoading} />
-                    <StatCard label="Video Storage" value={formatBytes(cmsStats.totalStorageBytes || 0)} icon={FaVideo} loading={statsLoading} />
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      <StatCard label="Total Students" value={cmsStats.totalStudents} icon={FaUsers} loading={statsLoading} />
+                      <StatCard label="Total Coaches" value={cmsStats.totalCoaches} icon={FaUserTie} loading={statsLoading} />
+                      <StatCard label="Total Programs" value={cmsStats.totalPrograms} icon={FaDumbbell} loading={statsLoading} />
+                      <StatCard label="Total Gallery" value={cmsStats.totalGallery} icon={FaImages} loading={statsLoading} />
+                      <StatCard label="Total Videos" value={cmsStats.totalVideos} icon={FaVideo} loading={statsLoading} />
+                      <StatCard label="Total Facilities" value={cmsStats.totalFacilities} icon={FaBuilding} loading={statsLoading} />
+                      <StatCard label="Total Features" value={cmsStats.totalFeatures} icon={FaStar} loading={statsLoading} />
+                      <StatCard label="Total Membership Plans" value={cmsStats.totalMembershipPlans} icon={FaIdCard} loading={statsLoading} />
+                      <StatCard label="Total Inquiries" value={cmsStats.totalInquiries} icon={FaInbox} loading={statsLoading} />
+                      <StatCard label="Published Videos" value={cmsStats.publishedVideos} icon={FaVideo} loading={statsLoading} />
+                      <StatCard label="Video Storage" value={formatBytes(cmsStats.totalStorageBytes || 0)} icon={FaVideo} loading={statsLoading} />
+                    </div>
+
+                    {(cmsStats.recentInquiries?.length || cmsStats.recentStudents?.length) ? (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {cmsStats.recentInquiries?.length ? (
+                          <div className="rounded-xl border border-slate-100 bg-white p-4">
+                            <h3 className="text-sm font-bold text-ink">Recent Inquiries</h3>
+                            <ul className="mt-3 space-y-2">
+                              {cmsStats.recentInquiries.map((item) => (
+                                <li key={item._id || item.id} className="flex items-center justify-between gap-2 text-sm">
+                                  <span className="truncate font-medium text-ink">{item.fullName}</span>
+                                  <span className="shrink-0 text-xs text-muted">
+                                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {cmsStats.recentStudents?.length ? (
+                          <div className="rounded-xl border border-slate-100 bg-white p-4">
+                            <h3 className="text-sm font-bold text-ink">Recent Students</h3>
+                            <ul className="mt-3 space-y-2">
+                              {cmsStats.recentStudents.map((item) => (
+                                <li key={item._id || item.id} className="flex items-center justify-between gap-2 text-sm">
+                                  <span className="truncate font-medium text-ink">{item.fullName}</span>
+                                  <span className="shrink-0 text-xs text-muted">
+                                    {item.studentCode || item.registrationNumber || ''}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
@@ -428,6 +498,9 @@ export default function Admin() {
                 {section === 'achievements' && <AchievementsPanel />}
                 {section === 'gallery' && <GalleryPanel onChanged={refreshCmsStats} />}
                 {section === 'facilities' && <FacilitiesPanel onChanged={refreshCmsStats} />}
+                {section === 'features' && <FeaturesPanel onChanged={refreshCmsStats} />}
+                {section === 'membership' && <MembershipPanel onChanged={refreshCmsStats} />}
+                {section === 'website-content' && <WebsiteContentPanel onChanged={refreshCmsStats} />}
                 {section === 'videos' && <VideosPanel onChanged={refreshCmsStats} />}
                 {section === 'students' && <EntryStudentsPanel />}
                 {section === 'coaches' && <EntryCoachesPanel />}

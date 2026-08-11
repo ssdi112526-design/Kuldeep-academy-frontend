@@ -4,24 +4,53 @@ import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { achievementService } from '../../services';
+import { membershipService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
+import { mediaUrl } from '../../utils/mediaUrl';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
+import ImageUploader from './ImageUploader';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
 
-const EMPTY = { labelEn: '', labelHi: '', value: 0, suffix: '+', displayOrder: 0, isActive: true };
+const EMPTY = {
+  name: '',
+  description: '',
+  priceLabel: '',
+  benefits: '',
+  displayOrder: 0,
+  isActive: true,
+};
 
-export default function AchievementsPanel() {
+function benefitsToTextarea(value) {
+  if (!value) return '';
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.join('\n');
+  } catch {
+    /* plain text */
+  }
+  return String(value);
+}
+
+function benefitsFromTextarea(value) {
+  const lines = String(value || '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return lines.length ? JSON.stringify(lines) : '';
+}
+
+export default function MembershipPanel({ onChanged }) {
   const toast = useToast();
   const { can, canModule } = usePermissions();
-  const canView = canModule('achievements');
-  const canCreate = can('achievements.create');
-  const canEdit = can('achievements.edit');
-  const canDelete = can('achievements.delete');
+  const canView = canModule('membership');
+  const canCreate = can('membership.create');
+  const canEdit = can('membership.edit');
+  const canDelete = can('membership.delete');
+  const canUpload = can('membership.upload');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,6 +60,8 @@ export default function AchievementsPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
@@ -40,16 +71,16 @@ export default function AchievementsPanel() {
     setLoading(true);
     setError('');
     try {
-      const res = await achievementService.list({
+      const res = await membershipService.list({
         page,
         limit: pagination.limit,
         ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
       });
-      const { achievements, pagination: p } = res.data.data;
-      setItems(achievements);
+      const { membershipPlans, pagination: p } = res.data.data;
+      setItems(membershipPlans);
       setPagination((prev) => ({ ...prev, ...p }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load achievements');
+      setError(err.response?.data?.message || 'Failed to load membership plans');
     } finally {
       setLoading(false);
     }
@@ -72,6 +103,8 @@ export default function AchievementsPanel() {
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFile(null);
+    setPreview('');
     setFormError('');
     setModalOpen(true);
   };
@@ -80,13 +113,15 @@ export default function AchievementsPanel() {
     if (!canEdit) return;
     setEditing(item);
     setForm({
-      labelEn: item.labelEn || '',
-      labelHi: item.labelHi || '',
-      value: item.value ?? 0,
-      suffix: item.suffix || '+',
+      name: item.name || '',
+      description: item.description || '',
+      priceLabel: item.priceLabel || '',
+      benefits: benefitsToTextarea(item.benefits),
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive,
     });
+    setFile(null);
+    setPreview(item.image ? mediaUrl(item.image) : '');
     setFormError('');
     setModalOpen(true);
   };
@@ -94,15 +129,19 @@ export default function AchievementsPanel() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (editing && !canEdit) {
-      toast.error('You do not have permission to edit achievements');
+      toast.error('You do not have permission to edit membership plans');
       return;
     }
     if (!editing && !canCreate) {
-      toast.error('You do not have permission to create achievements');
+      toast.error('You do not have permission to create membership plans');
       return;
     }
-    if (!form.labelEn.trim() || !form.labelHi.trim()) {
-      const message = 'English and Hindi labels are required';
+    if (file && !canUpload) {
+      toast.error('You do not have permission to upload images');
+      return;
+    }
+    if (!form.name.trim() || !form.description.trim()) {
+      const message = 'Name and description are required';
       setFormError(message);
       toast.error(message);
       return;
@@ -110,19 +149,20 @@ export default function AchievementsPanel() {
     setSaving(true);
     try {
       const payload = {
-        labelEn: form.labelEn.trim(),
-        labelHi: form.labelHi.trim(),
-        value: Number(form.value) || 0,
-        suffix: form.suffix || '+',
-        displayOrder: Number(form.displayOrder) || 0,
+        name: form.name.trim(),
+        description: form.description.trim(),
+        priceLabel: form.priceLabel.trim(),
+        benefits: benefitsFromTextarea(form.benefits),
+        displayOrder: form.displayOrder,
         isActive: form.isActive,
       };
-      if (editing) await achievementService.update(editing._id, payload);
-      else await achievementService.create(payload);
-      clearPublicCache('achievements');
-      toast.success(editing ? 'Achievement updated' : 'Achievement created');
+      if (editing) await membershipService.update(editing._id || editing.id, payload, file);
+      else await membershipService.create(payload, file);
+      clearPublicCache('membership-plans');
+      toast.success(editing ? 'Membership plan updated' : 'Membership plan created');
       setModalOpen(false);
       fetchList(pagination.page);
+      onChanged?.();
     } catch (err) {
       const message = getApiErrorMessage(err, 'Save failed');
       setFormError(message);
@@ -134,13 +174,21 @@ export default function AchievementsPanel() {
 
   const handleToggle = async (item) => {
     if (!canEdit) {
-      toast.error('You do not have permission to edit achievements');
+      toast.error('You do not have permission to edit membership plans');
       return;
     }
     try {
-      await achievementService.update(item._id, { isActive: !item.isActive });
-      clearPublicCache('achievements');
+      await membershipService.update(item._id || item.id, {
+        name: item.name,
+        description: item.description,
+        priceLabel: item.priceLabel || '',
+        benefits: item.benefits || '',
+        displayOrder: item.displayOrder,
+        isActive: !item.isActive,
+      });
+      clearPublicCache('membership-plans');
       fetchList(pagination.page);
+      onChanged?.();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Toggle failed');
     }
@@ -148,18 +196,19 @@ export default function AchievementsPanel() {
 
   const handleDelete = async () => {
     if (!canDelete) {
-      toast.error('You do not have permission to delete achievements');
+      toast.error('You do not have permission to delete membership plans');
       return;
     }
     const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await achievementService.remove(deleteId);
+      await membershipService.remove(deleteId);
       setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
-      clearPublicCache('achievements');
-      toast.success('Achievement deleted');
+      clearPublicCache('membership-plans');
+      toast.success('Membership plan deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchList(pagination.page);
+      onChanged?.();
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
@@ -170,10 +219,10 @@ export default function AchievementsPanel() {
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search achievements..." />
+        <SearchBar value={search} onChange={setSearch} placeholder="Search membership plans..." />
         {canCreate ? (
           <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-            <FaPlus /> Add Achievement
+            <FaPlus /> Add Plan
           </Button>
         ) : null}
       </div>
@@ -188,13 +237,14 @@ export default function AchievementsPanel() {
         ) : error ? (
           <p className="p-6 text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted">No achievements yet. Add your first stat.</p>
+          <p className="p-8 text-center text-sm text-muted">No membership plans yet.</p>
         ) : (
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Label (EN / HI)</th>
-                <th className="px-4 py-3">Value</th>
+                <th className="px-4 py-3">Image</th>
+                <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -202,15 +252,26 @@ export default function AchievementsPanel() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item._id} className="border-t border-slate-50">
+                <tr key={item._id || item.id} className="border-t border-slate-50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{item.labelEn}</p>
-                    <p className="text-xs text-muted">{item.labelHi}</p>
+                    {item.image ? (
+                      <img
+                        src={mediaUrl(item.image)}
+                        alt=""
+                        className="h-12 w-16 rounded-md object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-16 items-center justify-center rounded-md bg-slate-100 text-xs text-muted">
+                        —
+                      </div>
+                    )}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-ink">
-                    {item.value}
-                    {item.suffix}
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-ink">{item.name}</p>
+                    <p className="line-clamp-1 text-xs text-muted">{item.description}</p>
                   </td>
+                  <td className="px-4 py-3 text-muted">{item.priceLabel || '—'}</td>
                   <td className="px-4 py-3 text-muted">{item.displayOrder}</td>
                   <td className="px-4 py-3">
                     {canEdit ? (
@@ -225,9 +286,11 @@ export default function AchievementsPanel() {
                         {item.isActive ? 'Active' : 'Inactive'}
                       </button>
                     ) : (
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
                         {item.isActive ? 'Active' : 'Inactive'}
                       </span>
                     )}
@@ -246,7 +309,9 @@ export default function AchievementsPanel() {
                     {canDelete ? (
                       <button
                         type="button"
-                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        onClick={() =>
+                          setConfirm({ open: true, id: item._id || item.id, loading: false })
+                        }
                         className="rounded-lg p-2 text-red-500 hover:bg-red-50"
                         aria-label="Delete"
                       >
@@ -275,47 +340,48 @@ export default function AchievementsPanel() {
             onSubmit={handleSave}
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
-            <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Achievement' : 'Add Achievement'}</h3>
+            <h3 className="text-lg font-bold text-ink">
+              {editing ? 'Edit Membership Plan' : 'Add Membership Plan'}
+            </h3>
             <FormErrorBanner message={formError} />
             <div className="mt-4 space-y-4">
               <label className="block text-sm font-medium text-ink">
-                Label (English)
+                Plan Name
                 <input
                   required
-                  value={form.labelEn}
-                  onChange={(e) => setForm({ ...form, labelEn: e.target.value })}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
-                Label (Hindi)
-                <input
+                Description
+                <textarea
                   required
-                  value={form.labelHi}
-                  onChange={(e) => setForm({ ...form, labelHi: e.target.value })}
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm font-medium text-ink">
-                  Value
-                  <input
-                    type="number"
-                    value={form.value}
-                    onChange={(e) => setForm({ ...form, value: Number(e.target.value) || 0 })}
-                    className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-ink">
-                  Suffix
-                  <input
-                    value={form.suffix}
-                    onChange={(e) => setForm({ ...form, suffix: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
-                    placeholder="+"
-                  />
-                </label>
-              </div>
+              <label className="block text-sm font-medium text-ink">
+                Price Label
+                <input
+                  value={form.priceLabel}
+                  onChange={(e) => setForm({ ...form, priceLabel: e.target.value })}
+                  placeholder="e.g. ₹2,000 / month"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                Benefits (one per line)
+                <textarea
+                  rows={4}
+                  value={form.benefits}
+                  onChange={(e) => setForm({ ...form, benefits: e.target.value })}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                />
+              </label>
               <label className="block text-sm font-medium text-ink">
                 Display Order
                 <input
@@ -330,17 +396,32 @@ export default function AchievementsPanel() {
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="rounded border-slate-300"
                 />
-                Active (visible on website)
+                Active
               </label>
+              <ImageUploader
+                previewUrl={file ? URL.createObjectURL(file) : preview}
+                onChange={(f) => {
+                  if (!canUpload) {
+                    toast.error('You do not have permission to upload images');
+                    return;
+                  }
+                  setFile(f);
+                  setPreview(URL.createObjectURL(f));
+                }}
+                onClear={() => {
+                  setFile(null);
+                  setPreview('');
+                }}
+                label="Optional image"
+              />
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} className="rounded-lg px-4 py-2 text-sm">
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} className="rounded-lg px-4 py-2 text-sm">
-                {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
               </Button>
             </div>
           </form>
@@ -350,8 +431,9 @@ export default function AchievementsPanel() {
       <ConfirmDialog
         open={confirm.open}
         title="Are you sure you want to delete this?"
-        message="This will remove the achievement from the website."
+        message="This will also remove any uploaded image."
         confirmLabel="Delete"
+        danger
         loading={confirm.loading}
         onConfirm={handleDelete}
         onCancel={() => setConfirm({ open: false, id: null, loading: false })}

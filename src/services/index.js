@@ -8,6 +8,14 @@ export const authService = {
   forgotPassword: (payload) => api.post('/auth/forgot-password', payload),
   resetPassword: (payload) => api.post('/auth/reset-password', payload),
   changePassword: (payload) => api.post('/auth/change-password', payload),
+  verifyPassword: (payload) => api.post('/auth/controller-password/verify', payload),
+  controllerPassword: {
+    status: () => api.get('/auth/controller-password/status'),
+    setup: (payload) => api.post('/auth/controller-password/setup', payload),
+    verify: (payload) => api.post('/auth/controller-password/verify', payload),
+    forgot: () => api.post('/auth/controller-password/forgot', {}),
+    reset: (payload) => api.post('/auth/controller-password/reset', payload),
+  },
 };
 
 export const contactService = {
@@ -69,28 +77,68 @@ export const facilityService = {
   remove: (id) => api.delete(`/admin/facilities/${id}`),
 };
 
+export const featureService = {
+  listPublic: () => api.get('/features'),
+  list: (params) => api.get('/admin/features', { params }),
+  create: (data, file) => api.post('/admin/features', asForm(data, 'image', file)),
+  update: (id, data, file) => api.put(`/admin/features/${id}`, asForm(data, 'image', file)),
+  remove: (id) => api.delete(`/admin/features/${id}`),
+};
+
+export const membershipService = {
+  listPublic: () => api.get('/membership-plans'),
+  list: (params) => api.get('/admin/membership-plans', { params }),
+  create: (data, file) => api.post('/admin/membership-plans', asForm(data, 'image', file)),
+  update: (id, data, file) => api.put(`/admin/membership-plans/${id}`, asForm(data, 'image', file)),
+  remove: (id) => api.delete(`/admin/membership-plans/${id}`),
+};
+
+export const siteSettingsService = {
+  getPublic: () => api.get('/site-settings'),
+  getAdmin: () => api.get('/admin/site-settings'),
+  update: (data, { heroImage, aboutImage } = {}) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      form.append(key, typeof value === 'string' ? value : JSON.stringify(value));
+    });
+    if (heroImage) form.append('heroImage', heroImage);
+    if (aboutImage) form.append('aboutImage', aboutImage);
+    return api.put('/admin/site-settings', form);
+  },
+};
+
 export const videoService = {
   listPublic: (params) => api.get('/videos', { params }),
   getBySlug: (slug) => api.get(`/videos/${slug}`),
   list: (params) => api.get('/admin/videos', { params }),
   stats: () => api.get('/admin/videos/stats'),
-  create: (data, { video } = {}) => {
+  create: (data, { video, onUploadProgress } = {}) => {
     const form = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
+      // File-upload only flow — never send URL fields from admin
+      if (key === 'youtubeUrl' || key === 'vimeoUrl') return;
       form.append(key, String(value));
     });
     if (video) form.append('video', video);
-    return api.post('/admin/videos', form);
+    return api.post('/admin/videos', form, {
+      onUploadProgress,
+      timeout: 10 * 60 * 1000,
+    });
   },
-  update: (id, data, { video } = {}) => {
+  update: (id, data, { video, onUploadProgress } = {}) => {
     const form = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
+      if (key === 'youtubeUrl' || key === 'vimeoUrl') return;
       form.append(key, String(value));
     });
     if (video) form.append('video', video);
-    return api.put(`/admin/videos/${id}`, form);
+    return api.put(`/admin/videos/${id}`, form, {
+      onUploadProgress,
+      timeout: 10 * 60 * 1000,
+    });
   },
   remove: (id) => api.delete(`/admin/videos/${id}`),
 };
@@ -138,6 +186,7 @@ export const entryService = {
     resetPassword: (id, payload) => api.post(`/admin/students/${id}/reset-password`, payload),
   },
   coaches: {
+    listPublic: () => api.get('/coaches'),
     list: (params) => api.get('/admin/coaches', { params }),
     stats: () => api.get('/admin/coaches/stats'),
     getOne: (id) => api.get(`/admin/coaches/${id}`),

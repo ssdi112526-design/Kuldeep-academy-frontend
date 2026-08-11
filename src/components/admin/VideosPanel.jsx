@@ -63,11 +63,13 @@ export default function VideosPanel({ onChanged }) {
   const [form, setForm] = useState(EMPTY);
   const [videoFile, setVideoFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [formError, setFormError] = useState('');
-  const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
+  const [confirm, setConfirm] = useState({ open: false, id: null, title: '', loading: false });
   const [preview, setPreview] = useState(null);
   const [stats, setStats] = useState(null);
   const searchRef = useRef(debouncedSearch);
+  const savingLock = useRef(false);
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -121,6 +123,7 @@ export default function VideosPanel({ onChanged }) {
     setForm({ ...EMPTY, status: canPublish ? 'published' : 'draft' });
     setVideoFile(null);
     setFormError('');
+    setUploadProgress(null);
     setModalOpen(true);
   };
 
@@ -140,11 +143,13 @@ export default function VideosPanel({ onChanged }) {
     });
     setVideoFile(null);
     setFormError('');
+    setUploadProgress(null);
     setModalOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (savingLock.current || saving) return;
     if (editing && !canEdit) {
       toast.error('You do not have permission to edit videos');
       return;
@@ -168,39 +173,59 @@ export default function VideosPanel({ onChanged }) {
       return;
     }
     if (!editing && !videoFile) {
-      const message = 'Please upload an MP4 or WebM video';
+      const message = 'Please upload an MP4 or WebM video file';
       setFormError(message);
       toast.error(message);
       return;
     }
     if (editing && !videoFile && !editing.videoFile) {
-      const message = 'Please upload an MP4 or WebM video';
+      const message = 'Please upload an MP4 or WebM video file';
       setFormError(message);
       toast.error(message);
       return;
     }
+    savingLock.current = true;
     setSaving(true);
+    setUploadProgress(videoFile ? 0 : null);
     try {
       const payload = {
-        ...form,
         title: form.title.trim(),
+        subtitle: form.subtitle.trim(),
         description: form.description.trim(),
+        category: form.category,
+        coachName: form.coachName.trim(),
+        duration: form.duration.trim(),
+        displayOrder: form.displayOrder,
         isFeatured: form.isFeatured,
+        status: form.status,
       };
-      if (editing) await videoService.update(editing._id, payload, { video: videoFile });
-      else await videoService.create(payload, { video: videoFile });
+      const progressOpts = {
+        video: videoFile,
+        onUploadProgress: videoFile
+          ? (evt) => {
+              if (!evt.total) return;
+              setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+            }
+          : undefined,
+      };
+      if (editing) await videoService.update(editing._id || editing.id, payload, progressOpts);
+      else await videoService.create(payload, progressOpts);
       clearPublicCache('videos');
-      toast.success(editing ? 'Video updated' : 'Video created — thumbnail generated automatically');
+      toast.success(editing ? 'Video updated successfully' : 'Video uploaded successfully');
       setModalOpen(false);
+      setVideoFile(null);
+      setUploadProgress(null);
       fetchList(pagination.page);
       fetchStats();
       onChanged?.();
     } catch (err) {
-      const message = getApiErrorMessage(err, 'Save failed');
+      const message = getApiErrorMessage(err, 'Upload failed');
       setFormError(message);
       toast.error(message);
+      setUploadProgress(null);
     } finally {
       setSaving(false);
+      savingLock.current = false;
     }
   };
 
@@ -210,7 +235,7 @@ export default function VideosPanel({ onChanged }) {
       return;
     }
     try {
-      await videoService.update(item._id, {
+      await videoService.update(item._id || item.id, {
         title: item.title,
         description: item.description,
         category: item.category,
@@ -232,18 +257,23 @@ export default function VideosPanel({ onChanged }) {
       toast.error('You do not have permission to delete videos');
       return;
     }
+    const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await videoService.remove(confirm.id);
+      await videoService.remove(deleteId);
+      // Remove from UI immediately; keep list if API failed (catch below)
+      setItems((prev) => prev.filter((v) => (v._id || v.id) !== deleteId));
       clearPublicCache('videos');
       toast.success('Video deleted');
-      setConfirm({ open: false, id: null, loading: false });
+      setConfirm({ open: false, id: null, title: '', loading: false });
       await fetchList(pagination.page);
       fetchStats();
       onChanged?.();
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      // Restore list from server — do not leave UI out of sync on failure
+      fetchList(pagination.page);
     }
   };
 
@@ -403,7 +433,14 @@ export default function VideosPanel({ onChanged }) {
                     {canDelete ? (
                       <button
                         type="button"
-                        onClick={() => setConfirm({ open: true, id: item._id, loading: false })}
+                        onClick={() =>
+                          setConfirm({
+                            open: true,
+                            id: item._id || item.id,
+                            title: item.title || 'this video',
+                            loading: false,
+                          })
+                        }
                         className="rounded-lg p-2 text-red-500 hover:bg-red-50"
                         aria-label="Delete"
                       >
@@ -524,31 +561,52 @@ export default function VideosPanel({ onChanged }) {
                 </label>
               ) : null}
               <div className="sm:col-span-2">
-                <p className="mb-2 text-sm font-medium text-ink">Video file (MP4 / WebM)</p>
+                <p className="mb-2 text-sm font-medium text-ink">Video file (required)</p>
                 <VideoUploader
                   file={videoFile}
                   currentPath={editing?.videoFile || ''}
+                  progress={uploadProgress}
+                  disabled={saving}
                   onChange={(file) => {
                     if (!canUpload) {
                       toast.error('You do not have permission to upload videos');
                       return;
                     }
                     setVideoFile(file);
+                    setFormError('');
                   }}
-                  onClear={() => setVideoFile(null)}
-                  label="Click to upload MP4 / WebM video"
+                  onClear={() => {
+                    if (saving) return;
+                    setVideoFile(null);
+                    setUploadProgress(null);
+                  }}
+                  label="Upload Video"
                 />
                 <p className="mt-2 text-xs text-muted">
-                  Thumbnail is generated automatically from the video (around 1–2 seconds).
+                  Direct file upload only (no URL). Thumbnail is generated automatically from the video.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => {
+                  if (saving) return;
+                  setModalOpen(false);
+                }}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save'}
+                {saving
+                  ? uploadProgress != null && uploadProgress < 100
+                    ? `Uploading ${uploadProgress}%…`
+                    : 'Saving…'
+                  : editing
+                    ? 'Save changes'
+                    : 'Upload & Save'}
               </Button>
             </div>
           </form>
@@ -557,13 +615,21 @@ export default function VideosPanel({ onChanged }) {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete this video?"
-        message="The video file and auto-generated thumbnail will be removed permanently."
+        title="Are you sure you want to delete this?"
+        message={
+          confirm.title
+            ? `"${confirm.title}" will be permanently removed from storage and the website.`
+            : 'The video file and thumbnail will be removed permanently.'
+        }
         confirmLabel="Delete"
+        cancelLabel="Cancel"
         danger
         loading={confirm.loading}
         onConfirm={handleDelete}
-        onCancel={() => setConfirm({ open: false, id: null, loading: false })}
+        onCancel={() => {
+          if (confirm.loading) return;
+          setConfirm({ open: false, id: null, title: '', loading: false });
+        }}
       />
 
       <VideoPlayerModal video={preview} onClose={() => setPreview(null)} />

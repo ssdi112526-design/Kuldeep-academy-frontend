@@ -219,10 +219,17 @@ export default function SchedulePanel() {
       toast.error('You do not have permission to delete schedule items');
       return;
     }
+    const deleteId = confirm.id;
+    const deleteTab = tab;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      if (tab === 'sessions') await scheduleService.removeSession(confirm.id);
-      else await scheduleService.removeDay(confirm.id);
+      if (deleteTab === 'sessions') await scheduleService.removeSession(deleteId);
+      else await scheduleService.removeDay(deleteId);
+      if (deleteTab === 'sessions') {
+        setSessions((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
+      } else {
+        setDays((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
+      }
       clearPublicCache('schedule');
       toast.success('Deleted');
       setConfirm({ open: false, id: null, loading: false });
@@ -230,6 +237,7 @@ export default function SchedulePanel() {
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      fetchAll();
     }
   };
 
@@ -533,7 +541,7 @@ export default function SchedulePanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete item?"
+        title="Are you sure you want to delete this?"
         message="This will remove it from the website schedule."
         confirmLabel="Delete"
         loading={confirm.loading}

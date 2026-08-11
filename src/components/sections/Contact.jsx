@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   FaCheckCircle,
   FaEnvelope,
@@ -13,10 +13,10 @@ import { FaXTwitter } from 'react-icons/fa6';
 import Button from '../ui/Button';
 import Reveal, { SectionHeading } from '../ui/Reveal';
 import ValidationPopup from '../ui/ValidationPopup';
-import { companyInfo, socialLinks } from '../../data/akhada';
+import { companyInfo as fallbackCompany, socialLinks as fallbackSocial } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 import { useToast } from '../../context/ToastContext';
-import { attendanceSettingsService, contactService } from '../../services';
+import { attendanceSettingsService, contactService, siteSettingsService } from '../../services';
 import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 const socialIconMap = {
@@ -37,11 +37,11 @@ const EMPTY = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+\d][\d\s-]{7,18}$/;
 const FALLBACK_MAP =
-  'https://maps.google.com/maps?q=Karawal%20Nagar%20Delhi&t=&z=15&ie=UTF8&iwloc=&output=embed';
+  'https://maps.google.com/maps?q=Chhotu%20Ram%20Colony%20Gohana%20Road%20Sonipat&t=&z=15&ie=UTF8&iwloc=&output=embed';
 
 const inputBase =
-  'mt-1.5 w-full rounded-xl border bg-white px-4 py-3 text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#2563EB]';
-const inputOk = 'border-[#E5E7EB]';
+  'mt-1.5 w-full rounded-[12px] border bg-white px-4 py-3 text-[#102033] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20';
+const inputOk = 'border-[#E9E7DE]';
 const inputErr = 'border-red-400 focus:border-red-500';
 
 export default function Contact() {
@@ -53,6 +53,8 @@ export default function Contact() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
   const [location, setLocation] = useState(null);
+  const [companyInfo, setCompanyInfo] = useState(fallbackCompany);
+  const [socialLinks, setSocialLinks] = useState(fallbackSocial);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +71,47 @@ export default function Contact() {
         if (!cancelled) setLocation(data);
       } catch {
         if (!cancelled) setLocation(null);
+      }
+    };
+    load();
+    const unsub = onPublicCacheBust(() => load());
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const value = await cachedPublicGet('site-settings', async () => {
+          const res = await siteSettingsService.getPublic();
+          return res.data?.data?.siteSettings?.value || null;
+        });
+        if (cancelled || !value) return;
+        if (value.company) {
+          const cmsName = String(value.company.name || '');
+          const cmsAddress = String(value.company.address || '');
+          const stale =
+            /raghunandan/i.test(cmsName) ||
+            /karawal\s*nagar/i.test(cmsAddress) ||
+            /raghunandanakhada/i.test(String(value.company.email || ''));
+          setCompanyInfo({
+            name: stale ? fallbackCompany.name : value.company.name || fallbackCompany.name,
+            address: stale ? fallbackCompany.address : value.company.address || fallbackCompany.address,
+            phones:
+              !stale && Array.isArray(value.company.phones) && value.company.phones.length
+                ? value.company.phones
+                : fallbackCompany.phones,
+            email: stale ? fallbackCompany.email : value.company.email || fallbackCompany.email,
+          });
+        }
+        if (Array.isArray(value.social) && value.social.length) {
+          setSocialLinks(value.social);
+        }
+      } catch {
+        /* keep fallbacks */
       }
     };
     load();
@@ -261,37 +304,40 @@ export default function Contact() {
           <Reveal delay={0.08}>
             <div className="flex h-full flex-col gap-5">
               <div className="card p-6">
-                <ul className="space-y-4 text-sm text-[#6B7280]">
+                <ul className="space-y-4 text-sm text-[#64748B]">
                   <li className="flex gap-3">
-                    <FaMapMarkerAlt className="mt-1 shrink-0 text-[#F59E0B]" />
+                    <FaMapMarkerAlt className="mt-1 shrink-0 text-[#D97706]" />
                     <span>{companyInfo.address}</span>
                   </li>
-                  {companyInfo.phones.map((phone) => (
+                  {(companyInfo.phones || []).map((phone) => (
                     <li key={phone} className="flex items-center gap-3">
-                      <FaPhoneAlt className="shrink-0 text-[#F59E0B]" />
-                      <a href={`tel:${phone.replace(/\s/g, '')}`} className="hover:text-[#111827]">
+                      <FaPhoneAlt className="shrink-0 text-[#D97706]" />
+                      <a href={`tel:${phone.replace(/\s/g, '')}`} className="hover:text-[#172033]">
                         {phone}
                       </a>
                     </li>
                   ))}
-                  <li className="flex items-center gap-3">
-                    <FaEnvelope className="shrink-0 text-[#F59E0B]" />
-                    <a href={`mailto:${companyInfo.email}`} className="hover:text-[#111827]">
-                      {companyInfo.email}
-                    </a>
-                  </li>
+                  {companyInfo.email ? (
+                    <li className="flex items-center gap-3">
+                      <FaEnvelope className="shrink-0 text-[#D97706]" />
+                      <a href={`mailto:${companyInfo.email}`} className="hover:text-[#172033]">
+                        {companyInfo.email}
+                      </a>
+                    </li>
+                  ) : null}
                 </ul>
                 <div className="mt-5 flex gap-2">
                   {socialLinks.map((social) => {
                     const Icon = socialIconMap[social.icon];
+                    if (!Icon) return null;
                     return (
                       <a
-                        key={social.label}
+                        key={social.label || social.href}
                         href={social.href}
                         target="_blank"
                         rel="noreferrer"
                         aria-label={social.label}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:border-[#2563EB]/40 hover:text-[#2563EB]"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E9E7DE] bg-white text-[#64748B] transition hover:border-[#0B3D2E]/40 hover:text-[#0B3D2E]"
                       >
                         <Icon size={14} />
                       </a>
@@ -299,7 +345,7 @@ export default function Contact() {
                   })}
                 </div>
               </div>
-              <div className="min-h-[240px] flex-1 overflow-hidden rounded-[24px] border border-[#E5E7EB] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
+              <div className="min-h-[240px] flex-1 overflow-hidden rounded-md border border-[#E9E7DE] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
                 <iframe
                   title={t('contact.mapTitle')}
                   src={mapSrc}
@@ -322,23 +368,23 @@ export default function Contact() {
 
       {showSuccess ? (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#111827]/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#172033]/55 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="contact-success-title"
           onClick={() => setShowSuccess(false)}
         >
           <div
-            className="w-full max-w-md rounded-[24px] bg-white p-8 text-center shadow-2xl"
+            className="w-full max-w-md rounded-md bg-white p-8 text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
               <FaCheckCircle size={36} />
             </div>
-            <h3 id="contact-success-title" className="mt-5 font-display text-xl font-bold text-[#111827]">
+            <h3 id="contact-success-title" className="mt-5 font-display text-xl font-bold text-[#172033]">
               {t('contact.successTitle')}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">{t('contact.successBody')}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{t('contact.successBody')}</p>
             <Button type="button" className="mt-6 w-full sm:w-auto" onClick={() => setShowSuccess(false)}>
               {t('contact.successClose')}
             </Button>

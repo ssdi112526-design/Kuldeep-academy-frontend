@@ -201,15 +201,18 @@ export default function UsersPanel() {
   };
 
   const confirmDelete = async () => {
+    const deleteId = confirm.id;
     setConfirm((c) => ({ ...c, loading: true }));
     try {
-      await userAdminService.remove(confirm.id);
+      await userAdminService.remove(deleteId);
+      setItems((prev) => prev.filter((u) => u.id !== deleteId));
       toast.success('User deleted');
       setConfirm({ open: false, id: null, loading: false });
       fetchList(pagination.page);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((c) => ({ ...c, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -341,7 +344,7 @@ export default function UsersPanel() {
                           </button>
                         )}
                         {canDelete && (
-                          <button type="button" title="Delete" onClick={() => setConfirm({ open: true, id: u.id, loading: false })} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
+                          <button type="button" title="Are you sure you want to delete this?" onClick={() => setConfirm({ open: true, id: u.id, loading: false })} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
                             <FaTrash size={13} />
                           </button>
                         )}
@@ -371,7 +374,7 @@ export default function UsersPanel() {
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
           <form onSubmit={saveUser} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="font-display text-xl font-bold text-ink">{editing ? 'Edit User' : 'Create Account'}</h3>
-            <p className="mt-1 text-sm text-muted">Manage staff access for Raghunandan wrestling academy admin.</p>
+            <p className="mt-1 text-sm text-muted">Manage staff access for Kuldeep Malik Sports Academy admin.</p>
             <FormErrorBanner message={formError} />
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -533,7 +536,7 @@ export default function UsersPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete user?"
+        title="Are you sure you want to delete this?"
         message="This permanently removes the account."
         confirmLabel="Delete"
         loading={confirm.loading}

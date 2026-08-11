@@ -153,9 +153,11 @@ export default function GalleryPanel({ onChanged }) {
       toast.error('You do not have permission to delete gallery items');
       return;
     }
+    const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await galleryService.remove(confirm.id);
+      await galleryService.remove(deleteId);
+      setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
       clearPublicCache('gallery');
       toast.success('Image deleted');
       setConfirm({ open: false, id: null, loading: false });
@@ -164,6 +166,7 @@ export default function GalleryPanel({ onChanged }) {
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -317,7 +320,7 @@ export default function GalleryPanel({ onChanged }) {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete this image?"
+        title="Are you sure you want to delete this?"
         message="The image will be removed from storage permanently."
         confirmLabel="Delete"
         danger

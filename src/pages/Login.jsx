@@ -75,22 +75,22 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8F7F2] px-4">
+      <div className="w-full max-w-md border border-[#E9E7DE] bg-white p-8 shadow-[0_16px_40px_rgba(7,26,43,0.08)]">
         <div className="mb-6 flex justify-center">
           <Logo />
         </div>
-        <h1 className="text-center text-2xl font-bold text-ink">Welcome Back</h1>
-        <p className="mt-1 text-center text-sm text-muted">Admin, Student or Coach sign in</p>
+        <h1 className="mb-1 text-center font-display text-2xl font-extrabold text-[#071A2B]">Welcome back</h1>
+        <p className="mb-6 text-center text-sm text-[#64748B]">Sign in to continue to your academy dashboard.</p>
 
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="mt-6 space-y-4" noValidate>
           <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Username</span>
+            <span className="mb-1.5 block font-medium text-[#172033]">Username</span>
             <input
               type="text"
               autoComplete="username"
-              className={`w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 ${
-                errors.login ? 'border-red-400' : 'border-slate-200'
+              className={`w-full rounded-[12px] border px-3.5 py-2.5 text-sm outline-none focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/25 ${
+                errors.login ? 'border-red-400' : 'border-[#E9E7DE]'
               }`}
               placeholder="username, email or registration / coach ID"
               {...register('login', {
@@ -101,12 +101,12 @@ export default function Login() {
           </label>
 
           <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Password</span>
+            <span className="mb-1.5 block font-medium text-[#172033]">Password</span>
             <input
               type="password"
               autoComplete="current-password"
-              className={`w-full rounded-lg border px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 ${
-                errors.password ? 'border-red-400' : 'border-slate-200'
+              className={`w-full rounded-[12px] border px-3.5 py-2.5 text-sm outline-none focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/25 ${
+                errors.password ? 'border-red-400' : 'border-[#E9E7DE]'
               }`}
               {...register('password', { required: 'Please enter your password.' })}
             />
@@ -116,20 +116,20 @@ export default function Login() {
           </label>
 
           <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-sm font-medium text-brand hover:underline">
+            <Link to="/forgot-password" className="text-sm font-medium text-[#071A33] hover:text-[#C89B3C]">
               Forgot Password?
             </Link>
           </div>
 
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Signing in...' : 'Login'}
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-muted">
-          <Link to="/" className="text-brand hover:underline">
+        <p className="mt-4 text-center text-sm text-[#667085]">
+          <Link to="/" className="font-medium text-[#071A33] hover:text-[#C89B3C]">
             Back to website
           </Link>
         </p>

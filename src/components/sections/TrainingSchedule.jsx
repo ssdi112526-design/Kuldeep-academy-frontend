@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sunrise,
@@ -296,7 +296,7 @@ export default function TrainingSchedule() {
           <div className="mt-10 hidden overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] shadow-[0_16px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl md:block">
             <div className="max-h-[560px] overflow-auto">
               <table className="min-w-full border-collapse text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-[#111827]/95 backdrop-blur-md">
+                <thead className="sticky top-0 z-10 bg-[#172033]/95 backdrop-blur-md">
                   <tr className="border-b border-white/10 text-xs uppercase tracking-[0.14em] text-[#D4AF37]">
                     <th className="px-5 py-4 font-semibold">{t('schedule.table.day')}</th>
                     <th className="px-5 py-4 font-semibold">{t('schedule.table.morning')}</th>
@@ -383,7 +383,7 @@ export default function TrainingSchedule() {
         )}
 
         <Reveal delay={0.1}>
-          <div className="relative mt-12 overflow-hidden rounded-[24px] border border-[#D4AF37]/25 bg-gradient-to-br from-[#111827] via-[#0F172A] to-[#1a1208] p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-10">
+          <div className="relative mt-12 overflow-hidden rounded-md border border-[#D4AF37]/25 bg-gradient-to-br from-[#172033] via-[#0F172A] to-[#1a1208] p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-10">
             <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#D4AF37]/15 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-12 -left-8 h-40 w-40 rounded-full bg-[#FF9933]/12 blur-3xl" />
             <h3 className="relative font-display text-2xl font-bold text-white sm:text-3xl">{t('schedule.cta.title')}</h3>

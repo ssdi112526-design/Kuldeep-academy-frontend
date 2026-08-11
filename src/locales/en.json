@@ -1,7 +1,7 @@
 {
   "brand": {
-    "name": "Raghunandan",
-    "akhada": "Wrestling Academy"
+    "name": "Kuldeep Malik",
+    "akhada": "Sports Academy"
   },
   "nav": {
     "home": "Home",
@@ -11,13 +11,23 @@
     "gallery": "Gallery",
     "facilities": "Facilities",
     "features": "Features",
+    "membership": "Membership",
     "achievements": "Achievements",
     "coaches": "Coaches",
+    "governingBody": "Governing Body",
+    "about": "About",
+    "aboutAcademy": "About Academy",
     "contact": "Contact",
     "join": "Join Academy",
     "akhada": "Academy",
     "admin": "Admin",
-    "login": "Login"
+    "login": "Login",
+    "groups": {
+      "academy": "Academy",
+      "training": "Training",
+      "media": "Media",
+      "about": "About"
+    }
   },
   "lang": {
     "label": "English",
@@ -27,13 +37,23 @@
   },
   "hero": {
     "badge": "India's Smart Digital Academy Platform",
-    "titleLine1": "Build Champions",
-    "titleLine2": "Preserve Tradition",
-    "subtitle": "Manage athletes, memberships, training, tournaments, attendance, and payments — all in one intelligent platform built for Indian Academies.",
+    "titleBuild": "Build",
+    "titleChampions": "Champions.",
+    "titlePreserve": "Preserve",
+    "titleTradition": "Tradition.",
+    "titleLine1": "Build Champions.",
+    "titleLine2": "Preserve Tradition.",
+    "subtitle": "Train with discipline, heritage, and modern athletic systems — memberships, attendance, tournaments, and performance in one academy platform.",
+    "support": "Discipline, strength and tradition — shaping the next generation of pehlwans.",
     "ctaPrimary": "Join Academy",
-    "ctaSecondary": "Explore Heritage",
+    "ctaSecondary": "Explore Training",
     "ctaAdmin": "Admin",
-    "imageAlt": "Premium Indian Academy — pehlwans training at dawn"
+    "imageAlt": "Athletes training wrestling at Kuldeep Malik Sports Academy",
+    "features": {
+      "discipline": { "title": "Discipline", "text": "Builds Character" },
+      "strength": { "title": "Strength", "text": "Builds Power" },
+      "competition": { "title": "Competition", "text": "Builds Champions" }
+    }
   },
   "programs": {
     "eyebrow": "Programs",
@@ -112,7 +132,7 @@
     "legendTitle": "Activity Legend",
     "cta": {
       "title": "Ready to Begin Your Wrestling Journey?",
-      "text": "Join Raghunandan wrestling academy and train under experienced coaches in a disciplined environment where tradition meets modern athletic excellence.",
+      "text": "Join Kuldeep Malik Sports Academy and train under experienced coaches in a disciplined environment where tradition meets modern athletic excellence.",
       "join": "Join Academy",
       "contact": "Contact Us"
     }
@@ -211,14 +231,26 @@
       }
     }
   },
+  "membership": {
+    "eyebrow": "Membership",
+    "title": "Training plans that fit",
+    "highlight": "every pehlwan.",
+    "subtitle": "Clear pricing and benefits for monthly, quarterly, and championship-focused training."
+  },
   "about": {
     "eyebrow": "About",
     "title": "Tradition meets",
     "highlight": "modern excellence.",
-    "subtitle": "Raghunandan wrestling academy unites centuries of pehlwani discipline with a clean digital operating system for every academy.",
+    "subtitle": "Kuldeep Malik Sports Academy unites disciplined athletic training with a clean digital operating system for every athlete and member.",
     "mantra": "ॐ भूर्भुवः स्वः, तत्सवितुर्वरेण्यं, भर्गो देवस्य धीमहि, धियो यो नः प्रचोदयात्",
     "mantraLabel": "Gayatri Mantra",
     "imageAlt": "Heritage Academy grounds",
+    "registration": {
+      "society": "Society",
+      "regNo": "Registration No.",
+      "regDate": "Registration Date",
+      "office": "Registered Office"
+    },
     "pillars": {
       "heritage": {
         "title": "Heritage",
@@ -266,18 +298,18 @@
     "eyebrow": "Coaches",
     "title": "Gurus who shape",
     "highlight": "leaders.",
-    "imageAlt": "Pehlwans of Raghunandan wrestling academy",
+    "imageAlt": "Pehlwans of Kuldeep Malik Sports Academy",
     "specialization": "Specialization",
     "achievementsLabel": "Achievements",
     "items": {
-      "guru": {
-        "name": "Pahalwan Ashwani Kumar",
-        "role": "Founder",
-        "experience": "20+ Years",
-        "specialty": "Traditional Kushti",
-        "bio": "Master of mitti kushti who shapes champions through discipline, technique, and timeless Academy values.",
-        "specialization": "Classical Kushti",
-        "achievements": "40+ state-level pehlwans mentored"
+      "kuldeep": {
+        "name": "Kuldeep Malik",
+        "role": "Founder & Head Coach",
+        "experience": "Academy Founder",
+        "specialty": "Wrestling & Sports Training",
+        "bio": "Founder of Kuldeep Malik Sports Academy — guiding athletes with discipline, strength, and championship focus.",
+        "specialization": "Wrestling Coaching",
+        "achievements": "Kuldeep Malik Sports Academy"
       },
       "mahavir": {
         "name": "Pahalwan Satish Kashyap",
@@ -329,6 +361,21 @@
       }
     }
   },
+  "governingBody": {
+    "eyebrow": "Society",
+    "title": "Governing Body &",
+    "highlight": "Office Bearers",
+    "subtitle": "Details of the Office-bearers and members of the Society as on 31-03-2024 (FORM XVII-B).",
+    "asOnLabel": "As on",
+    "registrationLabel": "Registration No. & Date",
+    "cols": {
+      "membershipNo": "Membership No.",
+      "name": "Name",
+      "designation": "Designation",
+      "address": "Address",
+      "appointed": "Date of Appointment"
+    }
+  },
   "contact": {
     "eyebrow": "Contact",
     "title": "Start your",
@@ -349,9 +396,9 @@
     "send": "Send Message",
     "sent": "Message sent successfully!",
     "successTitle": "Message Sent Successfully!",
-    "successBody": "Thank you for contacting Raghunandan wrestling academy. We'll get back to you shortly.",
+    "successBody": "Thank you for contacting Kuldeep Malik Sports Academy. We'll get back to you shortly.",
     "successClose": "OK",
-    "mapTitle": "Raghunandan wrestling academy location",
+    "mapTitle": "Kuldeep Malik Sports Academy location",
     "errors": {
       "title": "Please complete the form",
       "generic": "Please fill all required fields correctly.",

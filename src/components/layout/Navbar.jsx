@@ -1,16 +1,180 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { HiMenuAlt3, HiX } from 'react-icons/hi';
+import { HiChevronDown, HiMenuAlt3, HiX } from 'react-icons/hi';
 import Logo from '../ui/Logo';
 import LanguageSwitcher from '../LanguageSwitcher';
-import { navLinks } from '../../data/akhada';
+import { navGroups } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
+
+function useHashActive() {
+  const { hash, pathname } = useLocation();
+
+  const isActive = (href) => {
+    if (href === '/#home') return pathname === '/' && (!hash || hash === '#home' || hash === '');
+    if (href === '/login') {
+      return (
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/admin') ||
+        pathname.startsWith('/student') ||
+        pathname.startsWith('/coach')
+      );
+    }
+    return Boolean(hash && href.endsWith(hash));
+  };
+
+  const groupActive = (group) => {
+    if (group.href) return isActive(group.href);
+    return (group.children || []).some((c) => isActive(c.href));
+  };
+
+  return { isActive, groupActive, pathname, hash };
+}
+
+function DesktopDropdown({ group, t, isActive, groupActive }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const menuId = useId();
+  const active = groupActive(group);
+
+  useEffect(() => {
+    const onPointer = (e) => {
+      if (!ref.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  return (
+    <div
+      className="relative"
+      ref={ref}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        className={`relative inline-flex items-center gap-1 whitespace-nowrap text-[13px] font-semibold tracking-wide transition ${
+          active ? 'text-white' : 'text-white/75 hover:text-white'
+        }`}
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-controls={menuId}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {t(group.labelKey)}
+        <HiChevronDown
+          className={`transition duration-200 ${open ? 'rotate-180 text-[#F5A400]' : ''}`}
+          size={14}
+          aria-hidden
+        />
+        {active ? (
+          <span className="absolute -bottom-1 left-0 h-0.5 w-full bg-[#F5A400]" aria-hidden />
+        ) : null}
+      </button>
+
+      <div
+        id={menuId}
+        role="menu"
+        className={`absolute left-1/2 top-full z-50 w-52 -translate-x-1/2 pt-3 transition duration-200 ${
+          open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden rounded-[12px] border border-white/10 bg-[#06251E] py-2 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+          {group.children.map((item) => {
+            const itemActive = isActive(item.href);
+            return (
+              <Link
+                key={item.href + item.labelKey}
+                to={item.href}
+                role="menuitem"
+                className={`block px-4 py-2.5 text-[13px] font-medium transition ${
+                  itemActive
+                    ? 'bg-white/10 text-white'
+                    : 'text-[#B8C7C2] hover:bg-white/5 hover:text-white'
+                }`}
+                onClick={() => setOpen(false)}
+              >
+                <span className="inline-flex items-center gap-2">
+                  {itemActive ? <span className="h-1.5 w-1.5 rounded-full bg-[#F5A400]" aria-hidden /> : null}
+                  {t(item.labelKey)}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileAccordion({ group, t, isActive, groupActive, onNavigate }) {
+  const [open, setOpen] = useState(false);
+  const active = groupActive(group);
+
+  if (group.href) {
+    return (
+      <Link
+        to={group.href}
+        className={`block rounded-[12px] px-3 py-3 text-[15px] font-semibold transition ${
+          isActive(group.href) ? 'bg-white/10 text-white' : 'text-[#B8C7C2] hover:bg-white/5 hover:text-white'
+        }`}
+        onClick={onNavigate}
+      >
+        {t(group.labelKey)}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="border-b border-white/10 last:border-b-0">
+      <button
+        type="button"
+        className={`flex w-full items-center justify-between px-3 py-3.5 text-left text-[15px] font-semibold ${
+          active ? 'text-white' : 'text-[#B8C7C2]'
+        }`}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="inline-flex items-center gap-2">
+          {active ? <span className="h-1.5 w-1.5 rounded-full bg-[#F5A400]" aria-hidden /> : null}
+          {t(group.labelKey)}
+        </span>
+        <HiChevronDown className={`text-[#B8C7C2] transition ${open ? 'rotate-180' : ''}`} size={18} />
+      </button>
+      {open ? (
+        <div className="space-y-0.5 pb-3 pl-2">
+          {group.children.map((item) => (
+            <Link
+              key={item.href + item.labelKey}
+              to={item.href}
+              className={`block rounded-[12px] px-3 py-2.5 text-sm font-medium transition ${
+                isActive(item.href)
+                  ? 'bg-white/10 text-white'
+                  : 'text-[#B8C7C2] hover:bg-white/5 hover:text-white'
+              }`}
+              onClick={onNavigate}
+            >
+              {t(item.labelKey)}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { hash, pathname } = useLocation();
   const { t } = useTranslation();
+  const { isActive, groupActive, pathname, hash } = useHashActive();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -34,74 +198,75 @@ export default function Navbar() {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.matchMedia('(min-width: 1280px)').matches) setOpen(false);
+      if (window.matchMedia('(min-width: 1024px)').matches) setOpen(false);
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const isActive = (href) => {
-    if (href === '/#home') return pathname === '/' && (!hash || hash === '#home' || hash === '');
-    if (href === '/login') return pathname.startsWith('/login') || pathname.startsWith('/admin') || pathname.startsWith('/student');
-    return hash && href.endsWith(hash);
-  };
-
-  const navCtaClass =
-    'inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full bg-[#2563EB] px-5 text-[13px] font-semibold text-white shadow-[0_6px_18px_rgba(37,99,235,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#1D4ED8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/40';
-
   return (
     <header
       className={`fixed inset-x-0 top-0 z-[60] transition-all duration-300 ${
-        scrolled
-          ? 'border-b border-[#E5E7EB] bg-white/95 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md md:backdrop-blur-xl'
-          : 'border-b border-transparent bg-white/95 md:bg-white/90 md:backdrop-blur-md'
+        scrolled || open
+          ? 'border-b border-white/10 bg-[#03120F]/95 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md'
+          : 'border-b border-transparent bg-[#03120F]/80 backdrop-blur-sm'
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <div className="min-w-0 shrink">
-          <Logo />
+          <Logo invert />
         </div>
 
-        <nav
-          className="hidden min-w-0 flex-1 items-center justify-center gap-x-3 xl:flex 2xl:gap-x-5"
-          aria-label="Primary"
-        >
-          {navLinks.map((link) => {
-            const active = isActive(link.href);
+        <nav className="hidden flex-1 items-center justify-center gap-x-7 lg:flex" aria-label="Primary">
+          {navGroups.map((group) => {
+            if (group.href) {
+              const active = isActive(group.href);
+              return (
+                <Link
+                  key={group.id}
+                  to={group.href}
+                  className={`relative whitespace-nowrap text-[13px] font-semibold tracking-wide transition ${
+                    active ? 'text-white' : 'text-white/75 hover:text-white'
+                  }`}
+                >
+                  {t(group.labelKey)}
+                  {active ? (
+                    <span className="absolute -bottom-1 left-0 h-0.5 w-full bg-[#F5A400]" aria-hidden />
+                  ) : null}
+                </Link>
+              );
+            }
             return (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`relative shrink-0 whitespace-nowrap text-[12px] font-medium transition 2xl:text-[13px] ${
-                  active ? 'text-[#111827]' : 'text-[#6B7280] hover:text-[#111827]'
-                }`}
-              >
-                {t(link.labelKey)}
-                {active && (
-                  <span className="absolute -bottom-1 left-0 h-0.5 w-full rounded-full bg-[#2563EB]" />
-                )}
-              </Link>
+              <DesktopDropdown
+                key={group.id}
+                group={group}
+                t={t}
+                isActive={isActive}
+                groupActive={groupActive}
+              />
             );
           })}
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <LanguageSwitcher />
-          {/* Match desktop nav breakpoint (xl) so CTAs never show without the link row */}
-          <div className="hidden xl:inline-grid xl:grid-cols-2 xl:gap-2">
-            <Link to="/#contact" className={navCtaClass}>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <LanguageSwitcher invert />
+          <div className="hidden items-center gap-2 lg:flex">
+            <Link
+              to="/#contact"
+              className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#F5A400] px-4 text-[13px] font-bold text-[#03120F] transition hover:bg-[#e09500] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A400]/50"
+            >
               {t('nav.join')}
             </Link>
             <Link
               to="/login"
-              className={`${navCtaClass} ${isActive('/login') ? 'bg-[#1D4ED8]' : ''}`}
+              className="inline-flex h-10 items-center justify-center rounded-[12px] border border-white/25 bg-transparent px-4 text-[13px] font-bold text-white transition hover:border-[#F5A400]/60 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A400]/40"
             >
               {t('nav.login')}
             </Link>
           </div>
           <button
             type="button"
-            className="rounded-lg p-2 text-[#111827] xl:hidden"
+            className="rounded-[12px] p-2 text-white transition hover:bg-white/10 lg:hidden"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls="mobile-nav-panel"
@@ -112,41 +277,41 @@ export default function Navbar() {
         </div>
       </div>
 
-      {open && (
+      {open ? (
         <div
           id="mobile-nav-panel"
-          className="max-h-[min(80vh,calc(100dvh-4.5rem))] overflow-y-auto border-t border-[#E5E7EB] bg-white px-4 py-4 xl:hidden"
+          className="fixed inset-x-0 bottom-0 top-[4.25rem] z-50 overflow-y-auto overscroll-contain border-t border-white/10 bg-[#03120F] lg:hidden"
         >
-          <nav className="flex flex-col gap-1" aria-label="Mobile">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                  isActive(link.href)
-                    ? 'bg-[#EFF6FF] text-[#2563EB]'
-                    : 'text-[#374151] hover:bg-[#F8FAFC]'
-                }`}
-                onClick={() => setOpen(false)}
-              >
-                {t(link.labelKey)}
-              </Link>
+          <nav className="mx-auto flex max-w-lg flex-col px-4 py-4 pb-10" aria-label="Mobile">
+            {navGroups.map((group) => (
+              <MobileAccordion
+                key={group.id}
+                group={group}
+                t={t}
+                isActive={isActive}
+                groupActive={groupActive}
+                onNavigate={() => setOpen(false)}
+              />
             ))}
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Link to="/#contact" onClick={() => setOpen(false)} className={`${navCtaClass} h-11 w-full`}>
+            <div className="mt-6 grid gap-2">
+              <Link
+                to="/#contact"
+                onClick={() => setOpen(false)}
+                className="inline-flex h-12 items-center justify-center rounded-[12px] bg-[#F5A400] text-sm font-bold text-[#03120F]"
+              >
                 {t('nav.join')}
               </Link>
               <Link
                 to="/login"
                 onClick={() => setOpen(false)}
-                className={`${navCtaClass} h-11 w-full ${isActive('/login') ? 'bg-[#1D4ED8]' : ''}`}
+                className="inline-flex h-12 items-center justify-center rounded-[12px] border border-white/25 text-sm font-bold text-white"
               >
                 {t('nav.login')}
               </Link>
             </div>
           </nav>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

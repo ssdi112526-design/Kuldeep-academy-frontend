@@ -1,10 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { getYoutubeEmbedUrl, getVimeoEmbedUrl } from '../../utils/videoUtils';
 
 export default function VideoPlayerModal({ video, onClose }) {
   const videoRef = useRef(null);
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [video]);
 
   useEffect(() => {
     if (!video) return undefined;
@@ -46,6 +51,7 @@ export default function VideoPlayerModal({ video, onClose }) {
   const youtube = getYoutubeEmbedUrl(video.youtubeUrl);
   const vimeo = getVimeoEmbedUrl(video.vimeoUrl);
   const mp4 = video.videoFile ? mediaUrl(video.videoFile) : null;
+  const hasSource = Boolean(mp4 || youtube || vimeo);
 
   return (
     <div
@@ -69,7 +75,7 @@ export default function VideoPlayerModal({ video, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="aspect-video w-full bg-black">
-          {mp4 ? (
+          {mp4 && !broken ? (
             <video
               ref={videoRef}
               key={mp4}
@@ -81,8 +87,9 @@ export default function VideoPlayerModal({ video, onClose }) {
               controlsList="nodownload"
               className="h-full w-full"
               poster={video.thumbnail ? mediaUrl(video.thumbnail) : undefined}
+              onError={() => setBroken(true)}
             />
-          ) : youtube || vimeo ? (
+          ) : !mp4 && (youtube || vimeo) ? (
             <iframe
               title={video.title}
               src={youtube || vimeo}
@@ -91,8 +98,10 @@ export default function VideoPlayerModal({ video, onClose }) {
               allowFullScreen
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-white/70">
-              No playable source available.
+            <div className="flex h-full min-h-[220px] items-center justify-center px-6 text-center text-sm text-white/70">
+              {hasSource
+                ? 'This video could not be loaded. The file may be missing or corrupted.'
+                : 'No playable source available.'}
             </div>
           )}
         </div>
@@ -101,7 +110,7 @@ export default function VideoPlayerModal({ video, onClose }) {
             <h3 className="font-display text-lg font-bold">{video.title}</h3>
             {video.subtitle ? <p className="mt-1 text-sm text-white/70">{video.subtitle}</p> : null}
           </div>
-          {mp4 ? (
+          {mp4 && !broken ? (
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-xs text-white/80">
                 Speed

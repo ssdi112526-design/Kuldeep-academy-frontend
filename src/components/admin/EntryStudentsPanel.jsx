@@ -478,9 +478,11 @@ export default function EntryStudentsPanel() {
       toast.error('You do not have permission to delete students');
       return;
     }
+    const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await entryService.students.remove(confirm.id);
+      await entryService.students.remove(deleteId);
+      setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
       toast.success('Student deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchStats();
@@ -488,6 +490,7 @@ export default function EntryStudentsPanel() {
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -1039,7 +1042,7 @@ export default function EntryStudentsPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete this student?"
+        title="Are you sure you want to delete this?"
         message="This will permanently delete the student record and documents."
         confirmLabel="Delete"
         danger

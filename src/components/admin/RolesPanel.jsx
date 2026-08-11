@@ -175,15 +175,18 @@ export default function RolesPanel() {
   };
 
   const confirmDelete = async () => {
+    const deleteId = confirm.id;
     setConfirm((c) => ({ ...c, loading: true }));
     try {
-      await roleAdminService.remove(confirm.id);
+      await roleAdminService.remove(deleteId);
+      setRoles((prev) => prev.filter((r) => r.id !== deleteId));
       toast.success('Role deleted');
       setConfirm({ open: false, id: null, loading: false });
       fetchList(pagination.page);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((c) => ({ ...c, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -255,7 +258,7 @@ export default function RolesPanel() {
                           </button>
                         )}
                         {canDelete && !role.isSystem && (
-                          <button type="button" title="Delete" onClick={() => setConfirm({ open: true, id: role.id, loading: false })} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
+                          <button type="button" title="Are you sure you want to delete this?" onClick={() => setConfirm({ open: true, id: role.id, loading: false })} className="rounded-lg p-2 text-red-600 hover:bg-red-50">
                             <FaTrash size={13} />
                           </button>
                         )}
@@ -349,7 +352,7 @@ export default function RolesPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete role?"
+        title="Are you sure you want to delete this?"
         message="Custom roles with no users can be deleted."
         confirmLabel="Delete"
         loading={confirm.loading}

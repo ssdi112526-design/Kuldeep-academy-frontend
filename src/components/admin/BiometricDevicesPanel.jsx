@@ -143,15 +143,18 @@ export default function BiometricDevicesPanel() {
   };
 
   const handleDelete = async () => {
+    const deleteId = confirm.id;
     setConfirm((c) => ({ ...c, loading: true }));
     try {
-      await biometricService.deleteDevice(confirm.id);
+      await biometricService.deleteDevice(deleteId);
+      setDevices((prev) => prev.filter((d) => (d._id || d.id) !== deleteId));
       toast.success('Device deleted');
       setConfirm({ open: false, id: null, loading: false });
       await load();
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((c) => ({ ...c, loading: false }));
+      load();
     }
   };
 
@@ -488,7 +491,7 @@ export default function BiometricDevicesPanel() {
       <ConfirmDialog
         open={confirm.open}
         loading={confirm.loading}
-        title="Delete biometric device?"
+        title="Are you sure you want to delete this?"
         message="Device logs will also be removed. Attendance records are kept."
         confirmLabel="Delete"
         danger

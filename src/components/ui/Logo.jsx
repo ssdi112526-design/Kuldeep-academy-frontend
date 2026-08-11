@@ -2,23 +2,26 @@ import { Link } from 'react-router-dom';
 import logoImg from '../../assets/logo.webp';
 import useTranslation from '../../hooks/useTranslation';
 
-export default function Logo({ className = '', showText = true }) {
+export default function Logo({ className = '', showText = true, invert = false }) {
   const { t } = useTranslation();
+  const nameClass = invert ? 'text-white' : 'text-[#071A2B]';
+  const subClass = invert ? 'text-[#F5A400]' : 'text-[#0B3D2E]';
+
   return (
     <Link to="/" className={`inline-flex items-center gap-2.5 ${className}`}>
       <img
         src={logoImg}
-        alt={t('brand.name') + ' ' + t('brand.akhada')}
-        className="h-11 w-11 shrink-0 rounded-full object-contain shadow-[0_2px_10px_rgba(7,26,53,0.12)]"
+        alt={`${t('brand.name')} ${t('brand.akhada')}`}
+        className="h-10 w-10 shrink-0 rounded-full object-contain shadow-[0_2px_10px_rgba(7,26,43,0.14)] sm:h-11 sm:w-11"
       />
-      {showText && (
-        <span className="font-display text-[15px] font-bold leading-tight tracking-tight text-[#071A35] sm:text-base">
+      {showText ? (
+        <span className={`font-display text-[14px] font-extrabold leading-tight tracking-tight sm:text-[15px] ${nameClass}`}>
           {t('brand.name')}
-          <span className="block text-[12px] font-semibold tracking-[0.04em] text-[#2563EB] sm:text-[13px]">
+          <span className={`block text-[11px] font-bold tracking-[0.06em] sm:text-[12px] ${subClass}`}>
             {t('brand.akhada')}
           </span>
         </span>
-      )}
+      ) : null}
     </Link>
   );
 }

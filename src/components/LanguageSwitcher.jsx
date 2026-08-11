@@ -4,11 +4,11 @@ import { FiGlobe } from 'react-icons/fi';
 import useTranslation from '../hooks/useTranslation';
 
 const OPTIONS = [
-  { code: 'en', flag: '🇺🇸', labelKey: 'lang.english' },
-  { code: 'hi', flag: '🇮🇳', labelKey: 'lang.hindi' },
+  { code: 'en', labelKey: 'lang.english', short: 'EN' },
+  { code: 'hi', labelKey: 'lang.hindi', short: 'HI' },
 ];
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ invert = false }) {
   const { language, setLanguage, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -30,47 +30,33 @@ export default function LanguageSwitcher() {
   }, []);
 
   const current = OPTIONS.find((o) => o.code === language) || OPTIONS[0];
+  const trigger = invert
+    ? 'border-white/20 bg-white/5 text-white hover:bg-white/10'
+    : 'border-[#E9E7DE] bg-white/90 text-[#071A2B] hover:bg-white';
 
   return (
     <div className="relative" ref={rootRef}>
-      {/* Desktop trigger */}
       <button
         type="button"
-        className="hidden items-center gap-1.5 rounded-full border border-white/40 bg-white/70 px-3 py-1.5 text-[13px] font-semibold text-[#071A35] shadow-[0_4px_16px_rgba(0,0,0,0.06)] backdrop-blur-md transition hover:bg-white lg:inline-flex"
+        className={`inline-flex h-9 items-center gap-1.5 rounded-[12px] border px-2.5 text-[12px] font-bold backdrop-blur-md transition sm:px-3 ${trigger}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
         aria-label={t('lang.switch')}
         onClick={() => setOpen((v) => !v)}
       >
-        <FiGlobe className="text-[#2563EB]" size={15} aria-hidden />
-        <span>{t(current.labelKey)}</span>
-        <HiChevronDown
-          className={`text-[#6B7280] transition ${open ? 'rotate-180' : ''}`}
-          size={14}
-          aria-hidden
-        />
+        <FiGlobe className="text-[#F5A400]" size={14} aria-hidden />
+        <span className="hidden sm:inline">{t(current.labelKey)}</span>
+        <span className="sm:hidden">{current.short}</span>
+        <HiChevronDown className={`opacity-70 transition ${open ? 'rotate-180' : ''}`} size={13} aria-hidden />
       </button>
 
-      {/* Mobile globe */}
-      <button
-        type="button"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white/80 text-[#2563EB] shadow-sm backdrop-blur-md lg:hidden"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        aria-label={t('lang.switch')}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <FiGlobe size={18} />
-      </button>
-
-      {open && (
+      {open ? (
         <ul
           id={listId}
           role="listbox"
           aria-label={t('lang.switch')}
-          className="absolute right-0 z-[60] mt-2 min-w-[160px] overflow-hidden rounded-2xl border border-white/50 bg-white/90 p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+          className="absolute right-0 z-[70] mt-2 min-w-[148px] overflow-hidden rounded-[12px] border border-[#E9E7DE] bg-white p-1 shadow-[0_16px_40px_rgba(7,26,43,0.12)]"
         >
           {OPTIONS.map((opt) => {
             const selected = language === opt.code;
@@ -78,24 +64,24 @@ export default function LanguageSwitcher() {
               <li key={opt.code} role="option" aria-selected={selected}>
                 <button
                   type="button"
-                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+                  className={`flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-sm font-medium transition ${
                     selected
-                      ? 'bg-[#EFF6FF] text-[#2563EB]'
-                      : 'text-[#374151] hover:bg-[#F8FAFC]'
+                      ? 'bg-[#F8F7F2] text-[#0B3D2E]'
+                      : 'text-[#64748B] hover:bg-[#F8F7F2] hover:text-[#071A2B]'
                   }`}
                   onClick={() => {
                     setLanguage(opt.code);
                     setOpen(false);
                   }}
                 >
-                  <span aria-hidden>{opt.flag}</span>
+                  <span className="w-6 text-[11px] font-bold text-[#D97706]">{opt.short}</span>
                   {t(opt.labelKey)}
                 </button>
               </li>
             );
           })}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }

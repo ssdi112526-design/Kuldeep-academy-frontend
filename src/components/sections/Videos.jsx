@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { FaPlay } from 'react-icons/fa';
 import Reveal from '../ui/Reveal';
 import VideoPlayerModal from '../ui/VideoPlayerModal';
@@ -97,7 +97,7 @@ export default function Videos() {
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-80 animate-pulse rounded-[24px] bg-[#EFE6D8]/80" />
+              <div key={i} className="h-80 animate-pulse rounded-md bg-[#EFE6D8]/80" />
             ))}
           </div>
         ) : error ? (
@@ -109,7 +109,7 @@ export default function Videos() {
             {featured ? (
               <Reveal>
                 <article
-                  className="group relative mb-10 cursor-pointer overflow-hidden rounded-[28px] border border-[#D4AF37]/25 shadow-[0_18px_50px_rgba(26,18,11,0.12)] transition duration-350 hover:shadow-[0_22px_56px_rgba(212,175,55,0.28)]"
+                  className="group relative mb-10 cursor-pointer overflow-hidden rounded-md border border-[#D4AF37]/25 shadow-[0_18px_50px_rgba(26,18,11,0.12)] transition duration-350 hover:shadow-[0_22px_56px_rgba(212,175,55,0.28)]"
                   onClick={() => openVideo(featured)}
                   role="button"
                   tabIndex={0}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import Reveal, { SectionHeading } from '../ui/Reveal';
 import useTranslation from '../../hooks/useTranslation';
@@ -54,13 +54,13 @@ export default function Gallery() {
         {loading ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-[280px] animate-pulse rounded-[24px] bg-slate-200/70" />
+              <div key={i} className="h-[280px] animate-pulse rounded-md bg-slate-200/70" />
             ))}
           </div>
         ) : error ? (
           <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
-          <p className="text-center text-sm text-[#6B7280]">Gallery images will appear here soon.</p>
+          <p className="text-center text-sm text-[#64748B]">Gallery images will appear here soon.</p>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item, i) => {
@@ -70,7 +70,7 @@ export default function Gallery() {
                   <button
                     type="button"
                     onClick={() => setActive({ src: mediaUrl(item.image), caption })}
-                    className="group relative block w-full overflow-hidden rounded-[24px] shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+                    className="group relative block w-full overflow-hidden rounded-md shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
                   >
                     <img
                       src={mediaUrl(item.image)}
@@ -85,8 +85,8 @@ export default function Gallery() {
                         e.currentTarget.src = wrestlingFallbacks.gallery;
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/55 via-transparent to-transparent opacity-80" />
-                    <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#172033]/55 via-transparent to-transparent opacity-80" />
+                    <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#172033] backdrop-blur">
                       {caption}
                     </span>
                   </button>
@@ -99,7 +99,7 @@ export default function Gallery() {
 
       {active && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#111827]/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#172033]/70 p-4 backdrop-blur-sm"
           onClick={() => setActive(null)}
           role="dialog"
           aria-modal="true"
@@ -107,7 +107,7 @@ export default function Gallery() {
         >
           <button
             type="button"
-            className="absolute right-5 top-5 rounded-full bg-white p-3 text-[#111827] shadow"
+            className="absolute right-5 top-5 rounded-full bg-white p-3 text-[#172033] shadow"
             aria-label={t('gallery.close')}
             onClick={() => setActive(null)}
           >
@@ -116,7 +116,7 @@ export default function Gallery() {
           <img
             src={active.src}
             alt={active.caption}
-            className="max-h-[85vh] max-w-5xl rounded-[24px] object-contain shadow-2xl"
+            className="max-h-[85vh] max-w-5xl rounded-md object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

@@ -171,17 +171,19 @@ export default function ProgramsPanel({ onChanged }) {
 
   const handleDelete = async () => {
     setConfirm((s) => ({ ...s, loading: true }));
+    const deleteId = confirm.id;
     try {
-      await programService.remove(confirm.id);
+      await programService.remove(deleteId);
+      setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
       clearPublicCache('programs');
       toast.success('Program deleted');
       setConfirm({ open: false, id: null, loading: false });
-      const page = pagination.page;
-      await fetchList(page);
+      await fetchList(pagination.page);
       onChanged?.();
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -372,7 +374,7 @@ export default function ProgramsPanel({ onChanged }) {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete this program?"
+        title="Are you sure you want to delete this?"
         message="This will also remove the uploaded image. This cannot be undone."
         confirmLabel="Delete"
         danger

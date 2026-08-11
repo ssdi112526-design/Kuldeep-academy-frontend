@@ -145,15 +145,18 @@ export default function PaymentHistoryPanel() {
 
   const handleDelete = async () => {
     if (!canDelete || !confirm.id) return;
+    const deleteId = confirm.id;
     setConfirm((c) => ({ ...c, loading: true }));
     try {
-      await financeService.deletePayment(confirm.id);
+      await financeService.deletePayment(deleteId);
+      setRows((prev) => prev.filter((row) => (row._id || row.id) !== deleteId));
       toast.success('Payment deleted');
       setConfirm({ open: false, id: null, loading: false });
       fetchList(pagination.page);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((c) => ({ ...c, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -428,7 +431,7 @@ export default function PaymentHistoryPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete payment?"
+        title="Are you sure you want to delete this?"
         message="This soft-deletes the payment and recalculates the fee month."
         confirmLabel="Delete"
         danger

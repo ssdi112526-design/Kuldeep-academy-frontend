@@ -22,7 +22,7 @@ export default function AttendanceSettingsPanel() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    name: 'Raghunandan wrestling academy',
+    name: 'Kuldeep Malik Sports Academy',
     latitude: '',
     longitude: '',
     allowedRadiusMeters: 500,
@@ -38,7 +38,7 @@ export default function AttendanceSettingsPanel() {
       const res = await attendanceSettingsService.get();
       const s = res.data?.data?.settings || {};
       setForm({
-        name: s.name || 'Raghunandan wrestling academy',
+        name: s.name || 'Kuldeep Malik Sports Academy',
         latitude: s.latitude != null ? String(s.latitude) : '',
         longitude: s.longitude != null ? String(s.longitude) : '',
         allowedRadiusMeters: s.allowedRadiusMeters ?? 500,
@@ -81,7 +81,7 @@ export default function AttendanceSettingsPanel() {
     setSaving(true);
     try {
       const payload = {
-        name: form.name.trim() || 'Raghunandan wrestling academy',
+        name: form.name.trim() || 'Kuldeep Malik Sports Academy',
         latitude: form.latitude === '' ? null : Number(form.latitude),
         longitude: form.longitude === '' ? null : Number(form.longitude),
         allowedRadiusMeters: Number(form.allowedRadiusMeters) || 500,
@@ -144,7 +144,7 @@ export default function AttendanceSettingsPanel() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
         <p className="font-semibold">Important</p>
         <p className="mt-1 text-xs leading-relaxed">
-          Do not guess coordinates. Stand at Raghunandan wrestling academy and tap <strong>Use Current Location</strong>, or paste
+          Do not guess coordinates. Stand at Kuldeep Malik Sports Academy and tap <strong>Use Current Location</strong>, or paste
           verified Google Maps coordinates. QR attendance stays blocked until latitude/longitude are saved.
         </p>
       </div>

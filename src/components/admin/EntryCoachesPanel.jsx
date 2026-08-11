@@ -25,6 +25,7 @@ import {
   validateIndianMobile,
   validatePan,
 } from '../../utils/formValidation';
+import { clearPublicCache } from '../../utils/publicCache';
 import EntryCoachProfileModal from './EntryCoachProfileModal';
 import AccessDenied from './AccessDenied';
 
@@ -39,6 +40,7 @@ const EMPTY = {
   address: '',
   experienceYears: '',
   specialization: '',
+  designation: '',
   qualification: '',
   salary: '',
   joiningDate: '',
@@ -47,6 +49,8 @@ const EMPTY = {
   panNumber: '',
   achievements: '',
   biography: '',
+  showOnWebsite: false,
+  websiteOrder: 0,
   loginUsername: '',
   password: '',
   confirmPassword: '',
@@ -218,6 +222,7 @@ export default function EntryCoachesPanel() {
         address: coach.address || '',
         experienceYears: coach.experienceYears ?? '',
         specialization: coach.specialization || '',
+        designation: coach.designation || '',
         qualification: coach.qualification || '',
         salary: coach.salary ?? '',
         joiningDate: coach.joiningDate ? coach.joiningDate.slice(0, 10) : '',
@@ -226,6 +231,8 @@ export default function EntryCoachesPanel() {
         panNumber: coach.panNumber || '',
         achievements: coach.achievements || '',
         biography: coach.biography || '',
+        showOnWebsite: Boolean(coach.showOnWebsite),
+        websiteOrder: coach.websiteOrder ?? 0,
         loginUsername: coach.username || coach.loginAccount?.username || '',
         password: '',
         confirmPassword: '',
@@ -287,6 +294,7 @@ export default function EntryCoachesPanel() {
       address: form.address || undefined,
       experienceYears: form.experienceYears || undefined,
       specialization: form.specialization || undefined,
+      designation: form.designation?.trim() || undefined,
       qualification: form.qualification || undefined,
       salary: form.salary === '' || form.salary == null ? undefined : Number(form.salary),
       joiningDate: form.joiningDate || undefined,
@@ -295,6 +303,8 @@ export default function EntryCoachesPanel() {
       panNumber: normalizePan(form.panNumber),
       achievements: form.achievements || undefined,
       biography: form.biography || undefined,
+      showOnWebsite: Boolean(form.showOnWebsite),
+      websiteOrder: Number(form.websiteOrder) || 0,
       loginUsername: form.loginUsername?.trim() || undefined,
       ...(form.password
         ? { password: form.password, confirmPassword: form.confirmPassword }
@@ -332,6 +342,7 @@ export default function EntryCoachesPanel() {
         toast.success('Coach created');
       }
 
+      clearPublicCache('coaches');
       setModalOpen(false);
       setEditingId(null);
       setFieldErrors({});
@@ -351,9 +362,12 @@ export default function EntryCoachesPanel() {
       toast.error('You do not have permission to delete coaches');
       return;
     }
+    const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
-      await entryService.coaches.remove(confirm.id);
+      await entryService.coaches.remove(deleteId);
+      setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
+      clearPublicCache('coaches');
       toast.success('Coach deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchStats();
@@ -361,6 +375,7 @@ export default function EntryCoachesPanel() {
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
+      fetchList(pagination.page);
     }
   };
 
@@ -707,6 +722,35 @@ export default function EntryCoachesPanel() {
               </label>
 
               <label className="block text-sm font-medium text-ink">
+                Website Designation
+                <input
+                  value={form.designation}
+                  onChange={(e) => updateField('designation', e.target.value)}
+                  className={fieldClass(fieldErrors, 'designation')}
+                  placeholder="e.g. Head Coach"
+                />
+              </label>
+
+              <label className="flex items-center gap-2 text-sm font-medium text-ink">
+                <input
+                  type="checkbox"
+                  checked={form.showOnWebsite}
+                  onChange={(e) => updateField('showOnWebsite', e.target.checked)}
+                />
+                Show on website
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Website Order
+                <input
+                  type="number"
+                  value={form.websiteOrder}
+                  onChange={(e) => updateField('websiteOrder', Number(e.target.value) || 0)}
+                  className={fieldClass(fieldErrors, 'websiteOrder')}
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
                 Salary (₹)
                 <input
                   id="coach-salary"
@@ -816,7 +860,7 @@ export default function EntryCoachesPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Delete this coach?"
+        title="Are you sure you want to delete this?"
         message="This will permanently delete the coach record and documents."
         confirmLabel="Delete"
         danger

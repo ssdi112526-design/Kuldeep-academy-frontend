@@ -1,11 +1,11 @@
-import heroImg from '../assets/akhada/hero-banner.webp';
+import heroImg from '../assets/akhada/hero-wrestlers.webp';
 import aboutImg from '../assets/akhada/about-heritage.webp';
 import coachesImg from '../assets/akhada/coaches-athletes.png';
 import achievementsTrophy from '../assets/akhada/achievements-trophy.webp';
 import achievementsMedals from '../assets/akhada/achievements-medals.webp';
 import achievementsCelebration from '../assets/akhada/achievements-celebration.webp';
 import achievementsPodium from '../assets/akhada/achievements-podium.webp';
-import coachGuru from '../assets/akhada/coaches/guru-raghunandan.webp';
+import coachKuldeep from '../assets/akhada/coaches/kuldeep-malik.webp';
 import coachMahavir from '../assets/akhada/coaches/mahavir-singh.webp';
 import coachVikram from '../assets/akhada/coaches/vikram-pehlwan.webp';
 import coachAnita from '../assets/akhada/coaches/anita-kakar.webp';
@@ -29,13 +29,15 @@ export const achievementVisuals = [
 ];
 
 export const companyInfo = {
-  name: 'Raghunandan wrestling academy',
-  address: 'P-155, Plot No. 52, Gali No. 5, Phase-4, Shiv Vihar, Karawal Nagar, North East Delhi – 110094',
-  phones: ['+91 96540 08400', '+91 96540 08500'],
-  email: 'hello@raghunandanakhada.com',
+  name: 'Kuldeep Malik Sports Academy',
+  address: '1554/31, Chhotu Ram Colony, Gohana Road, Sonipat',
+  phones: [],
+  email: '',
+  registrationNo: 'HR/008/2023/01608',
+  registrationDate: '10-01-2023',
 };
 
-/** Nav items use translation keys via labelKey */
+/** Flat list kept for footer / accessibility maps — all destinations preserved */
 export const navLinks = [
   { labelKey: 'nav.home', href: '/#home' },
   { labelKey: 'nav.programs', href: '/#programs' },
@@ -44,8 +46,59 @@ export const navLinks = [
   { labelKey: 'nav.gallery', href: '/#gallery' },
   { labelKey: 'nav.facilities', href: '/#facilities' },
   { labelKey: 'nav.features', href: '/#features' },
+  { labelKey: 'nav.membership', href: '/#membership' },
   { labelKey: 'nav.coaches', href: '/#coaches' },
+  { labelKey: 'nav.achievements', href: '/#achievements' },
+  { labelKey: 'nav.governingBody', href: '/#governing-body' },
+  { labelKey: 'nav.about', href: '/#about' },
   { labelKey: 'nav.contact', href: '/#contact' },
+];
+
+/** Grouped desktop / mobile navigation — every existing section remains reachable */
+export const navGroups = [
+  {
+    id: 'home',
+    labelKey: 'nav.home',
+    href: '/#home',
+  },
+  {
+    id: 'academy',
+    labelKey: 'nav.groups.academy',
+    children: [
+      { labelKey: 'nav.programs', href: '/#programs' },
+      { labelKey: 'nav.schedule', href: '/#schedule' },
+      { labelKey: 'nav.facilities', href: '/#facilities' },
+      { labelKey: 'nav.features', href: '/#features' },
+      { labelKey: 'nav.membership', href: '/#membership' },
+    ],
+  },
+  {
+    id: 'training',
+    labelKey: 'nav.groups.training',
+    children: [
+      { labelKey: 'nav.coaches', href: '/#coaches' },
+      { labelKey: 'nav.programs', href: '/#programs' },
+      { labelKey: 'nav.schedule', href: '/#schedule' },
+    ],
+  },
+  {
+    id: 'media',
+    labelKey: 'nav.groups.media',
+    children: [
+      { labelKey: 'nav.videos', href: '/#videos' },
+      { labelKey: 'nav.gallery', href: '/#gallery' },
+      { labelKey: 'nav.achievements', href: '/#achievements' },
+    ],
+  },
+  {
+    id: 'about',
+    labelKey: 'nav.groups.about',
+    children: [
+      { labelKey: 'nav.aboutAcademy', href: '/#about' },
+      { labelKey: 'nav.governingBody', href: '/#governing-body' },
+      { labelKey: 'nav.contact', href: '/#contact' },
+    ],
+  },
 ];
 
 export const aboutPillars = [
@@ -71,7 +124,7 @@ export const facilityTags = ['gym', 'changing', 'competition', 'attendance'];
 
 /** Premium homepage coach cards (Hero → Coaches → Programs) */
 export const championCoaches = [
-  { key: 'guru', image: coachGuru },
+  { key: 'kuldeep', image: coachKuldeep },
   { key: 'mahavir', image: coachMahavir },
   { key: 'vikram', image: coachVikram },
   { key: 'anita', image: coachAnita },

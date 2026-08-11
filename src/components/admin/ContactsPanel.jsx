@@ -127,16 +127,20 @@ export default function ContactsPanel() {
     setConfirmState((s) => ({ ...s, loading: true }));
     try {
       if (confirmState.mode === 'single') {
-        await contactService.remove(confirmState.targetId);
+        const deleteId = confirmState.targetId;
+        await contactService.remove(deleteId);
+        setContacts((prev) => prev.filter((c) => (c._id || c.id) !== deleteId));
         setSelectedIds((prev) => {
           const next = new Set(prev);
-          next.delete(confirmState.targetId);
+          next.delete(deleteId);
           return next;
         });
         toast.success('Record deleted successfully');
       } else {
         const ids = [...selectedIds];
         await contactService.bulkDelete(ids);
+        const idSet = new Set(ids);
+        setContacts((prev) => prev.filter((c) => !idSet.has(c._id || c.id)));
         setSelectedIds(new Set());
         toast.success(`${ids.length} record(s) deleted successfully`);
       }
@@ -149,6 +153,7 @@ export default function ContactsPanel() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Delete failed');
       setConfirmState((s) => ({ ...s, loading: false }));
+      fetchContacts(pagination.page);
     }
   };
 
@@ -235,7 +240,7 @@ export default function ContactsPanel() {
 
       <ConfirmDialog
         open={confirmState.open}
-        title="Are you sure you want to delete this record?"
+        title="Are you sure you want to delete this?"
         message={
           confirmState.mode === 'bulk'
             ? `This will permanently delete ${selectedIds.size} selected record(s).`
