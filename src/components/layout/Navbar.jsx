@@ -205,82 +205,94 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-[60] transition-all duration-300 ${
-        scrolled || open
-          ? 'border-b border-white/10 bg-[#03120F]/95 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md'
-          : 'border-b border-transparent bg-[#03120F]/80 backdrop-blur-sm'
-      }`}
-    >
-      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <div className="min-w-0 shrink">
-          <Logo invert />
-        </div>
+    <>
+      {/*
+        Keep backdrop-blur on the bar only — blur/filter on the same ancestor as the
+        mobile drawer makes position:fixed resolve against the short header box, so
+        the menu never fills the screen on phones.
+      */}
+      <header className="fixed inset-x-0 top-0 z-[60]">
+        <div
+          className={`border-b transition-all duration-300 ${
+            scrolled || open
+              ? 'border-white/10 bg-[#03120F]/95 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md'
+              : 'border-transparent bg-[#03120F]/80 backdrop-blur-sm'
+          }`}
+        >
+          <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+            <div className="min-w-0 shrink">
+              <Logo invert />
+            </div>
 
-        <nav className="hidden flex-1 items-center justify-center gap-x-7 lg:flex" aria-label="Primary">
-          {navGroups.map((group) => {
-            if (group.href) {
-              const active = isActive(group.href);
-              return (
+            <nav className="hidden flex-1 items-center justify-center gap-x-7 lg:flex" aria-label="Primary">
+              {navGroups.map((group) => {
+                if (group.href) {
+                  const active = isActive(group.href);
+                  return (
+                    <Link
+                      key={group.id}
+                      to={group.href}
+                      className={`relative whitespace-nowrap text-[13px] font-semibold tracking-wide transition ${
+                        active ? 'text-white' : 'text-white/75 hover:text-white'
+                      }`}
+                    >
+                      {t(group.labelKey)}
+                      {active ? (
+                        <span className="absolute -bottom-1 left-0 h-0.5 w-full bg-[#F5A400]" aria-hidden />
+                      ) : null}
+                    </Link>
+                  );
+                }
+                return (
+                  <DesktopDropdown
+                    key={group.id}
+                    group={group}
+                    t={t}
+                    isActive={isActive}
+                    groupActive={groupActive}
+                  />
+                );
+              })}
+            </nav>
+
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <LanguageSwitcher invert />
+              <div className="hidden items-center gap-2 lg:flex">
                 <Link
-                  key={group.id}
-                  to={group.href}
-                  className={`relative whitespace-nowrap text-[13px] font-semibold tracking-wide transition ${
-                    active ? 'text-white' : 'text-white/75 hover:text-white'
-                  }`}
+                  to="/#contact"
+                  className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#F5A400] px-4 text-[13px] font-bold text-[#03120F] transition hover:bg-[#e09500] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A400]/50"
                 >
-                  {t(group.labelKey)}
-                  {active ? (
-                    <span className="absolute -bottom-1 left-0 h-0.5 w-full bg-[#F5A400]" aria-hidden />
-                  ) : null}
+                  {t('nav.join')}
                 </Link>
-              );
-            }
-            return (
-              <DesktopDropdown
-                key={group.id}
-                group={group}
-                t={t}
-                isActive={isActive}
-                groupActive={groupActive}
-              />
-            );
-          })}
-        </nav>
-
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <LanguageSwitcher invert />
-          <div className="hidden items-center gap-2 lg:flex">
-            <Link
-              to="/#contact"
-              className="inline-flex h-10 items-center justify-center rounded-[12px] bg-[#F5A400] px-4 text-[13px] font-bold text-[#03120F] transition hover:bg-[#e09500] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A400]/50"
-            >
-              {t('nav.join')}
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex h-10 items-center justify-center rounded-[12px] border border-white/25 bg-transparent px-4 text-[13px] font-bold text-white transition hover:border-[#F5A400]/60 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A400]/40"
-            >
-              {t('nav.login')}
-            </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex h-10 items-center justify-center rounded-[12px] border border-white/25 bg-transparent px-4 text-[13px] font-bold text-white transition hover:border-[#F5A400]/60 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A400]/40"
+                >
+                  {t('nav.login')}
+                </Link>
+              </div>
+              <button
+                type="button"
+                className="rounded-[12px] p-2 text-white transition hover:bg-white/10 lg:hidden"
+                aria-label={open ? 'Close menu' : 'Open menu'}
+                aria-expanded={open}
+                aria-controls="mobile-nav-panel"
+                onClick={() => setOpen((v) => !v)}
+              >
+                {open ? <HiX size={22} /> : <HiMenuAlt3 size={22} />}
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            className="rounded-[12px] p-2 text-white transition hover:bg-white/10 lg:hidden"
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            aria-expanded={open}
-            aria-controls="mobile-nav-panel"
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <HiX size={22} /> : <HiMenuAlt3 size={22} />}
-          </button>
         </div>
-      </div>
+      </header>
 
       {open ? (
         <div
           id="mobile-nav-panel"
-          className="fixed inset-x-0 bottom-0 top-[4.25rem] z-50 overflow-y-auto overscroll-contain border-t border-white/10 bg-[#03120F] lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-[4.25rem] z-[55] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#03120F] lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile navigation"
         >
           <nav className="mx-auto flex max-w-lg flex-col px-4 py-4 pb-10" aria-label="Mobile">
             {navGroups.map((group) => (
@@ -312,6 +324,6 @@ export default function Navbar() {
           </nav>
         </div>
       ) : null}
-    </header>
+    </>
   );
 }
