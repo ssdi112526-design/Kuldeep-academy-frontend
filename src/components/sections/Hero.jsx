@@ -55,11 +55,10 @@ function HeroCopy({ t }) {
         </p>
       </div>
 
-      <h1 className="font-display text-[clamp(2.75rem,7.2vw,5.6rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.04em]">
-        <span className="block text-white">{t('hero.titleBuild')}</span>
-        <span className="block text-[#F5A400]">{t('hero.titleChampions')}</span>
-        <span className="mt-1 block text-white">{t('hero.titlePreserve')}</span>
-        <span className="block text-[#F5A400]">{t('hero.titleTradition')}</span>
+      <h1 className="font-display text-[clamp(2.2rem,6.2vw,4.75rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.03em]">
+        <span className="block text-white">{t('hero.titleLine1')}</span>
+        <span className="block text-[#F5A400]">{t('hero.titleLine2')}</span>
+        <span className="mt-1 block text-white">{t('hero.titleLine3')}</span>
       </h1>
 
       <p className="mt-6 max-w-[500px] text-[15px] leading-relaxed text-[#B8C7C2] sm:mt-7 sm:text-[16px]">
@@ -109,7 +108,7 @@ export default function Hero() {
             height={900}
             decoding="async"
             fetchPriority="high"
-            className="h-full w-full object-cover object-[48%_center]"
+            className="h-full w-full object-cover object-center"
           />
           <div
             className="absolute inset-y-0 left-0 w-[42%] bg-gradient-to-r from-[#03120F] via-[#03120F]/85 to-transparent"
@@ -169,7 +168,7 @@ export default function Hero() {
             height={750}
             decoding="async"
             fetchPriority="high"
-            className="h-full w-full object-cover object-[48%_center]"
+            className="h-full w-full object-cover object-center"
           />
           <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#03120F] to-transparent" aria-hidden />
           <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#03120F]/70 to-transparent" aria-hidden />

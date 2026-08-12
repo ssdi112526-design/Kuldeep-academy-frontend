@@ -1,4 +1,4 @@
-import heroImg from '../assets/akhada/hero-wrestlers.webp';
+import heroImg from '../assets/akhada/hero-celebration.webp';
 import aboutImg from '../assets/akhada/about-heritage.webp';
 import coachesImg from '../assets/akhada/coaches-athletes.png';
 import achievementsTrophy from '../assets/akhada/achievements-trophy.webp';
