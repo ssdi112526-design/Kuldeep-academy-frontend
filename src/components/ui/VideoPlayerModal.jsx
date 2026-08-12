@@ -100,7 +100,7 @@ export default function VideoPlayerModal({ video, onClose }) {
           ) : (
             <div className="flex h-full min-h-[220px] items-center justify-center px-6 text-center text-sm text-white/70">
               {hasSource
-                ? 'This video could not be loaded. The file may be missing or corrupted.'
+                ? 'This video file is missing on the server (often after a redeploy). Please re-upload it from Admin → Videos.'
                 : 'No playable source available.'}
             </div>
           )}
