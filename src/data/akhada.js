@@ -7,8 +7,9 @@ import achievementsCelebration from '../assets/akhada/achievements-celebration.w
 import achievementsPodium from '../assets/akhada/achievements-podium.webp';
 import coachKuldeep from '../assets/akhada/coaches/kuldeep-malik.webp';
 import coachMahavir from '../assets/akhada/coaches/mahavir-singh.webp';
-import coachVikram from '../assets/akhada/coaches/vikram-pehlwan.webp';
-import coachAnita from '../assets/akhada/coaches/anita-kakar.webp';
+import wrestlerAthlete1 from '../assets/akhada/wrestlers/athlete-1.png';
+import wrestlerAthlete2 from '../assets/akhada/wrestlers/athlete-2.png';
+import wrestlerAthlete3 from '../assets/akhada/wrestlers/athlete-3.png';
 
 export const images = {
   hero: heroImg,
@@ -20,130 +21,66 @@ export const images = {
   achievementsPodium,
 };
 
-/** Achievement section showcase images (AI) */
-export const achievementVisuals = [
-  { key: 'champions', image: achievementsTrophy, position: 'object-[center_18%]' },
-  { key: 'medals', image: achievementsMedals, position: 'object-center' },
-  { key: 'national', image: achievementsPodium, position: 'object-[center_15%]' },
-  { key: 'years', image: achievementsCelebration, position: 'object-[center_22%]' },
-];
-
 export const companyInfo = {
   name: 'Kuldeep Malik Sports Academy',
-  address: '1554/31, Chhotu Ram Colony, Gohana Road, Sonipat',
+  address: '1554/31, Chhotu Ram Colony, Gohana   Road, Sonipat, Haryana',
   phones: [],
   email: '',
   registrationNo: 'HR/008/2023/01608',
   registrationDate: '10-01-2023',
 };
 
-/** Flat list kept for footer / accessibility maps — all destinations preserved */
-export const navLinks = [
+/** Public website navigation — minimal institutional links only */
+export const publicNavLinks = [
   { labelKey: 'nav.home', href: '/#home' },
-  { labelKey: 'nav.programs', href: '/#programs' },
-  { labelKey: 'nav.schedule', href: '/#schedule' },
-  { labelKey: 'nav.videos', href: '/#videos' },
+  { labelKey: 'nav.aboutAcademy', href: '/#about' },
   { labelKey: 'nav.gallery', href: '/#gallery' },
-  { labelKey: 'nav.facilities', href: '/#facilities' },
-  { labelKey: 'nav.features', href: '/#features' },
-  { labelKey: 'nav.membership', href: '/#membership' },
-  { labelKey: 'nav.coaches', href: '/#coaches' },
-  { labelKey: 'nav.achievements', href: '/#achievements' },
-  { labelKey: 'nav.governingBody', href: '/#governing-body' },
-  { labelKey: 'nav.about', href: '/#about' },
-  { labelKey: 'nav.contact', href: '/#contact' },
 ];
 
-/** Grouped desktop / mobile navigation — every existing section remains reachable */
-export const navGroups = [
-  {
-    id: 'home',
-    labelKey: 'nav.home',
-    href: '/#home',
-  },
-  {
-    id: 'academy',
-    labelKey: 'nav.groups.academy',
-    children: [
-      { labelKey: 'nav.programs', href: '/#programs' },
-      { labelKey: 'nav.schedule', href: '/#schedule' },
-      { labelKey: 'nav.facilities', href: '/#facilities' },
-      { labelKey: 'nav.features', href: '/#features' },
-      { labelKey: 'nav.membership', href: '/#membership' },
-    ],
-  },
-  {
-    id: 'training',
-    labelKey: 'nav.groups.training',
-    children: [
-      { labelKey: 'nav.coaches', href: '/#coaches' },
-      { labelKey: 'nav.programs', href: '/#programs' },
-      { labelKey: 'nav.schedule', href: '/#schedule' },
-    ],
-  },
-  {
-    id: 'media',
-    labelKey: 'nav.groups.media',
-    children: [
-      { labelKey: 'nav.videos', href: '/#videos' },
-      { labelKey: 'nav.gallery', href: '/#gallery' },
-      { labelKey: 'nav.achievements', href: '/#achievements' },
-    ],
-  },
-  {
-    id: 'about',
-    labelKey: 'nav.groups.about',
-    children: [
-      { labelKey: 'nav.aboutAcademy', href: '/#about' },
-      { labelKey: 'nav.governingBody', href: '/#governing-body' },
-      { labelKey: 'nav.contact', href: '/#contact' },
-    ],
-  },
+export const publicFooterLinks = [
+  { labelKey: 'nav.home', href: '/#home' },
+  { labelKey: 'nav.aboutAcademy', href: '/#about' },
+  { labelKey: 'nav.gallery', href: '/#gallery' },
+  { labelKey: 'nav.inquire', href: '/#inquire' },
+  { labelKey: 'nav.location', href: '/#location' },
 ];
 
-export const aboutPillars = [
-  { key: 'heritage' },
-  { key: 'discipline' },
-  { key: 'technology' },
-];
+/** @deprecated kept for any leftover imports — public site uses publicNavLinks */
+export const navLinks = publicNavLinks;
+export const navGroups = publicNavLinks.map((l, i) => ({
+  id: `link-${i}`,
+  labelKey: l.labelKey,
+  href: l.href,
+}));
 
-export const features = [
-  { key: 'profiles' },
-  { key: 'memberships' },
-  { key: 'attendance' },
-  { key: 'training' },
-  { key: 'analytics' },
-  { key: 'tournaments' },
-  { key: 'coach' },
-  { key: 'payments' },
-];
+export const aboutPillars = [{ key: 'heritage' }, { key: 'training' }, { key: 'strength' }];
 
-export const programTags = ['beginner', 'yoga', 'traditional', 'competition'];
-
-export const facilityTags = ['gym', 'changing', 'competition', 'attendance'];
-
-/** Premium homepage coach cards (Hero → Coaches → Programs) */
+/** Homepage coach cards — founder + second coach only */
 export const championCoaches = [
-  { key: 'kuldeep', image: coachKuldeep },
-  { key: 'mahavir', image: coachMahavir },
-  { key: 'vikram', image: coachVikram },
-  { key: 'anita', image: coachAnita },
+  { key: 'kuldeep', image: coachKuldeep, objectPosition: 'object-top' },
+  { key: 'mahavir', image: coachMahavir, objectPosition: 'object-[center_28%]' },
 ];
 
-export const achievements = [
-  { key: 'champions', value: 250, suffix: '+' },
-  { key: 'medals', value: 180, suffix: '+' },
-  { key: 'national', value: 45, suffix: '+' },
-  { key: 'years', value: 30, suffix: '+' },
+/** Prestigious members — images from existing assets; copy kept minimal */
+export const prestigiousMembers = [
+  {
+    key: 'sakshi',
+    image: heroImg,
+    objectPosition: 'object-[center_35%]',
+  },
+  {
+    key: 'gyan',
+    image: achievementsPodium,
+    objectPosition: 'object-[center_20%]',
+  },
 ];
 
-export const testimonials = [
-  { key: 'arjun', initial: 'A' },
-  { key: 'suresh', initial: 'S' },
-  { key: 'meera', initial: 'M' },
+/** Wrestler showcase — 3 AI-generated academy athlete images */
+export const academyWrestlers = [
+  { key: 'athlete1', image: wrestlerAthlete1, objectPosition: 'object-top' },
+  { key: 'athlete2', image: wrestlerAthlete2, objectPosition: 'object-[center_20%]' },
+  { key: 'athlete3', image: wrestlerAthlete3, objectPosition: 'object-center' },
 ];
-
-export const footerProgramKeys = ['beginner', 'advanced', 'strength', 'mud', 'competition'];
 
 export const socialLinks = [
   { label: 'Facebook', href: 'https://facebook.com', icon: 'FaFacebookF' },
@@ -151,4 +88,21 @@ export const socialLinks = [
   { label: 'YouTube', href: 'https://youtube.com', icon: 'FaYoutube' },
   { label: 'X', href: 'https://x.com', icon: 'FaXTwitter' },
   { label: 'LinkedIn', href: 'https://linkedin.com', icon: 'FaLinkedinIn' },
+];
+
+/** Kept for unused section modules so admin/legacy imports stay safe */
+export const programTags = ['beginner', 'yoga', 'traditional', 'competition'];
+export const facilityTags = ['gym', 'changing', 'competition', 'attendance'];
+export const testimonials = [{ key: 'arjun' }, { key: 'suresh' }, { key: 'meera' }];
+export const achievements = [
+  { key: 'champions', value: 0 },
+  { key: 'medals', value: 0 },
+  { key: 'national', value: 0 },
+  { key: 'years', value: 0 },
+];
+export const achievementVisuals = [
+  { key: 'trophy', image: achievementsTrophy },
+  { key: 'medals', image: achievementsMedals },
+  { key: 'celebration', image: achievementsCelebration },
+  { key: 'podium', image: achievementsPodium },
 ];

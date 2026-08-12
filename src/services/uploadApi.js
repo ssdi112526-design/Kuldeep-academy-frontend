@@ -16,7 +16,7 @@ function resolveUploadBaseURL() {
 
   // Production fallback when only VITE_API_URL=/api is set
   if (import.meta.env.PROD) {
-    return 'https://raghunandan-akhada-backend.onrender.com/api';
+    return 'https://kuldeep-malik-sports-academy-backend.onrender.com/api';
   }
 
   return api || '/api';

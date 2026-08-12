@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import logoImg from '../../assets/logo.webp';
+import kuldeepLogo from '../../assets/akhada/coaches/kuldeep-malik.webp';
 import useTranslation from '../../hooks/useTranslation';
 
 export default function Logo({ className = '', showText = true, invert = false }) {
@@ -10,9 +10,9 @@ export default function Logo({ className = '', showText = true, invert = false }
   return (
     <Link to="/" className={`inline-flex items-center gap-2.5 ${className}`}>
       <img
-        src={logoImg}
+        src={kuldeepLogo}
         alt={`${t('brand.name')} ${t('brand.akhada')}`}
-        className="h-10 w-10 shrink-0 rounded-full object-contain shadow-[0_2px_10px_rgba(7,26,43,0.14)] sm:h-11 sm:w-11"
+        className="h-10 w-10 shrink-0 rounded-full object-cover object-top shadow-[0_2px_10px_rgba(7,26,43,0.14)] sm:h-11 sm:w-11"
       />
       {showText ? (
         <span className={`font-display text-[14px] font-extrabold leading-tight tracking-tight sm:text-[15px] ${nameClass}`}>

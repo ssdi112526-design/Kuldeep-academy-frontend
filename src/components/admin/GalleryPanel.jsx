@@ -9,13 +9,16 @@ import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
+import { GALLERY_ACHIEVEMENTS, resolveAchievement } from '../../utils/galleryAchievements';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import ImageUploader from './ImageUploader';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
+import GalleryAchievementBadge from '../ui/GalleryAchievementBadge';
 
-const EMPTY = { title: '', category: 'General', displayOrder: 0 };
+const EMPTY = { title: '', category: 'General', displayOrder: 0, achievementType: 'none' };
+
 
 export default function GalleryPanel({ onChanged }) {
   const toast = useToast();
@@ -99,6 +102,7 @@ export default function GalleryPanel({ onChanged }) {
       title: item.title || '',
       category: item.category || 'General',
       displayOrder: item.displayOrder ?? 0,
+      achievementType: item.achievementType || 'none',
     });
     setFiles([]);
     setFile(null);
@@ -132,6 +136,7 @@ export default function GalleryPanel({ onChanged }) {
         title: form.title.trim(),
         category: form.category.trim() || 'General',
         displayOrder: form.displayOrder,
+        achievementType: form.achievementType || 'none',
       };
       if (editing) await galleryService.update(editing._id, payload, file);
       else await galleryService.create(payload, files);
@@ -200,6 +205,7 @@ export default function GalleryPanel({ onChanged }) {
               <article key={item._id} className="group overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
                 <div className="relative aspect-square overflow-hidden bg-slate-100">
                   <img src={mediaUrl(item.image)} alt={item.title || ''} className="h-full w-full object-cover" loading="lazy" />
+                  <GalleryAchievementBadge item={item} />
                   <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                     {canEdit ? (
                       <button
@@ -227,6 +233,10 @@ export default function GalleryPanel({ onChanged }) {
                   <p className="truncate text-sm font-medium text-ink">{item.title || 'Untitled'}</p>
                   <p className="text-xs text-muted">
                     {item.category} · Order {item.displayOrder}
+                    {(() => {
+                      const a = resolveAchievement(item);
+                      return a ? ` · ${a.label}` : '';
+                    })()}
                   </p>
                 </div>
               </article>
@@ -267,6 +277,20 @@ export default function GalleryPanel({ onChanged }) {
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
                 />
+              </label>
+              <label className="block text-sm font-medium text-ink">
+                Achievement / Medal
+                <select
+                  value={form.achievementType || 'none'}
+                  onChange={(e) => setForm({ ...form, achievementType: e.target.value })}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                >
+                  {GALLERY_ACHIEVEMENTS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="block text-sm font-medium text-ink">
                 Display Order

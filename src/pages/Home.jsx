@@ -2,38 +2,26 @@ import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import Hero from '../components/sections/Hero';
 import About from '../components/sections/About';
-import Programs from '../components/sections/Programs';
-import TrainingSchedule from '../components/sections/TrainingSchedule';
-import Features from '../components/sections/Features';
-import Facilities from '../components/sections/Facilities';
 import Coaches from '../components/sections/Coaches';
-import Achievements from '../components/sections/Achievements';
+import PrestigiousMembers from '../components/sections/PrestigiousMembers';
+import Wrestlers from '../components/sections/Wrestlers';
 import Gallery from '../components/sections/Gallery';
-import Videos from '../components/sections/Videos';
-import Membership from '../components/sections/Membership';
-import GoverningBody from '../components/sections/GoverningBody';
-import Testimonials from '../components/sections/Testimonials';
-import Contact from '../components/sections/Contact';
+import Inquire from '../components/sections/Inquire';
+import Location from '../components/sections/Location';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#F8F7F2]">
+    <div className="min-h-screen bg-[#F7F3EC]">
       <Navbar />
       <main>
         <Hero />
         <About />
-        <Programs />
-        <TrainingSchedule />
-        <Features />
-        <Facilities />
         <Coaches />
-        <Achievements />
+        <PrestigiousMembers />
+        <Wrestlers />
         <Gallery />
-        <Videos />
-        <Membership />
-        <GoverningBody />
-        <Testimonials />
-        <Contact />
+        <Inquire />
+        <Location />
       </main>
       <Footer />
     </div>

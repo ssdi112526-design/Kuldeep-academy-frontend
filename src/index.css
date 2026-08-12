@@ -2,7 +2,7 @@
 
 @theme {
   --font-sans: "Manrope", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Plus Jakarta Sans", "Manrope", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Oswald", "Manrope", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
   --font-hindi: "Noto Sans Devanagari", "Manrope", ui-sans-serif, sans-serif;
 
   /* Athletic 2026 palette */
@@ -53,8 +53,8 @@ body {
   font-family: var(--font-sans);
   font-size: 16.5px;
   line-height: 1.65;
-  color: #102033;
-  background: #f8f7f2;
+  color: #1a120b;
+  background: #f7f3ec;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -82,6 +82,7 @@ body.lang-hi .font-display {
 
 .font-display {
   font-family: var(--font-display);
+  letter-spacing: 0.01em;
 }
 
 .font-hindi {

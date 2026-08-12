@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/uploads/:path*",
-      "destination": "https://raghunandan-akhada-backend.onrender.com/uploads/:path*"
+      "destination": "https://kuldeep-malik-sports-academy-backend.onrender.com/uploads/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://raghunandan-akhada-backend.onrender.com/api/:path*"
+      "destination": "https://kuldeep-malik-sports-academy-backend.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",

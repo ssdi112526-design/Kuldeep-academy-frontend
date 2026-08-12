@@ -13,11 +13,31 @@ function safeRedirectPath(value) {
   return null;
 }
 
+const PORTAL_COPY = {
+  admin: {
+    title: 'Admin Login',
+    subtitle: 'Sign in to the academy admin dashboard.',
+  },
+  parent: {
+    title: 'Parents Login',
+    subtitle: 'Sign in with your family / student portal credentials.',
+  },
+  player: {
+    title: 'Player Login',
+    subtitle: 'Sign in to your athlete portal.',
+  },
+};
+
 export default function Login() {
   const { login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const portal = String(searchParams.get('portal') || '').toLowerCase();
+  const portalCopy = PORTAL_COPY[portal] || {
+    title: 'Welcome back',
+    subtitle: 'Sign in to continue to your academy dashboard.',
+  };
   const [error, setError] = useState('');
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
   const {
@@ -80,8 +100,8 @@ export default function Login() {
         <div className="mb-6 flex justify-center">
           <Logo />
         </div>
-        <h1 className="mb-1 text-center font-display text-2xl font-extrabold text-[#071A2B]">Welcome back</h1>
-        <p className="mb-6 text-center text-sm text-[#64748B]">Sign in to continue to your academy dashboard.</p>
+        <h1 className="mb-1 text-center font-display text-2xl font-extrabold text-[#071A2B]">{portalCopy.title}</h1>
+        <p className="mb-6 text-center text-sm text-[#64748B]">{portalCopy.subtitle}</p>
 
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="mt-6 space-y-4" noValidate>
           <label className="block text-sm">
