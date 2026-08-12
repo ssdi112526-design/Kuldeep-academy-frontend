@@ -113,7 +113,9 @@ export const videoService = {
   getBySlug: (slug) => api.get(`/videos/${slug}`),
   list: (params) => api.get('/admin/videos', { params }),
   stats: () => api.get('/admin/videos/stats'),
-  create: (data, { video, onUploadProgress } = {}) => {
+  create: async (data, { video, onUploadProgress } = {}) => {
+    const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
+    if (video) await wakeUploadBackend();
     const form = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
@@ -122,12 +124,15 @@ export const videoService = {
       form.append(key, String(value));
     });
     if (video) form.append('video', video);
-    return api.post('/admin/videos', form, {
+    // Direct to Render — avoids Vercel 120s proxy timeout ("Network Error" on live)
+    return uploadApi.post('/admin/videos', form, {
       onUploadProgress,
-      timeout: 10 * 60 * 1000,
+      timeout: 15 * 60 * 1000,
     });
   },
-  update: (id, data, { video, onUploadProgress } = {}) => {
+  update: async (id, data, { video, onUploadProgress } = {}) => {
+    const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
+    if (video) await wakeUploadBackend();
     const form = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
@@ -135,9 +140,9 @@ export const videoService = {
       form.append(key, String(value));
     });
     if (video) form.append('video', video);
-    return api.put(`/admin/videos/${id}`, form, {
+    return uploadApi.put(`/admin/videos/${id}`, form, {
       onUploadProgress,
-      timeout: 10 * 60 * 1000,
+      timeout: 15 * 60 * 1000,
     });
   },
   remove: (id) => api.delete(`/admin/videos/${id}`),
