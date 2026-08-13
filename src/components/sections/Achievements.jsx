@@ -93,6 +93,7 @@ function levelLine(item, medalKey, theme) {
 
 function AchievementCard({ item }) {
   const photo = mediaUrl(item.image) || mediaUrl(item.player?.photo);
+  const [imgFailed, setImgFailed] = useState(false);
   const playerName = item.playerName || item.player?.fullName || 'Player';
   const medalKey = normalizeMedal(item.medal) || 'Other';
   const theme = THEMES[medalKey] || THEMES.Other;
@@ -101,17 +102,19 @@ function AchievementCard({ item }) {
   const description =
     item.description?.trim() ||
     'Representing Kuldeep Malik Sports Academy with pride on the mat.';
+  const showPhoto = Boolean(photo) && !imgFailed;
 
   return (
     <article
       className={`group flex h-full flex-col overflow-hidden rounded-[1.35rem] border transition duration-300 hover:-translate-y-1 ${theme.card}`}
     >
       <div className="relative aspect-[5/4] overflow-hidden bg-[#1A1410]">
-        {photo ? (
+        {showPhoto ? (
           <img
             src={photo}
             alt={playerName}
             loading="lazy"
+            onError={() => setImgFailed(true)}
             className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-[1.05]"
           />
         ) : (

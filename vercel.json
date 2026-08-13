@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api",
+      "destination": "https://kuldeep-malik-sports-academy-backend.onrender.com/api"
+    },
+    {
+      "source": "/api/",
+      "destination": "https://kuldeep-malik-sports-academy-backend.onrender.com/api/"
+    },
+    {
       "source": "/uploads/:path*",
       "destination": "https://kuldeep-malik-sports-academy-backend.onrender.com/uploads/:path*"
     },
