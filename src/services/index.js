@@ -34,21 +34,48 @@ export const contentService = {
   getAll: () => api.get('/content'),
 };
 
+const isBrowserFile = (value) =>
+  typeof File !== 'undefined' && value instanceof File
+    ? true
+    : typeof Blob !== 'undefined' && value instanceof Blob;
+
+/** Build multipart body only when a real file is present; otherwise send JSON (avoids Multer "Unexpected field"). */
 const asForm = (data, fileField = 'image', file) => {
   const form = new FormData();
   Object.entries(data || {}).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
+    // Never treat path strings / leftover File refs as duplicate upload fields
+    if (key === fileField || key === 'image' || key === 'photo' || key === 'file' || key === 'profileImage') {
+      return;
+    }
     form.append(key, String(value));
   });
-  if (file) form.append(fileField, file);
+  if (isBrowserFile(file)) form.append(fileField, file);
   return form;
+};
+
+const withOptionalImage = (jsonRequest, formRequest, data, file) => {
+  if (isBrowserFile(file)) return formRequest(asForm(data, 'image', file));
+  return jsonRequest(data);
 };
 
 export const programService = {
   listPublic: () => api.get('/programs'),
   list: (params) => api.get('/admin/programs', { params }),
-  create: (data, file) => api.post('/admin/programs', asForm(data, 'image', file)),
-  update: (id, data, file) => api.put(`/admin/programs/${id}`, asForm(data, 'image', file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/programs', body),
+      (form) => api.post('/admin/programs', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/programs/${id}`, body),
+      (form) => api.put(`/admin/programs/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/programs/${id}`),
 };
 
@@ -65,23 +92,53 @@ export const galleryService = {
     list.forEach((f) => form.append('images', f));
     return api.post('/admin/gallery', form);
   },
-  update: (id, data, file) => api.put(`/admin/gallery/${id}`, asForm(data, 'image', file)),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/gallery/${id}`, body),
+      (form) => api.put(`/admin/gallery/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/gallery/${id}`),
 };
 
 export const facilityService = {
   listPublic: () => api.get('/facilities'),
   list: (params) => api.get('/admin/facilities', { params }),
-  create: (data, file) => api.post('/admin/facilities', asForm(data, 'image', file)),
-  update: (id, data, file) => api.put(`/admin/facilities/${id}`, asForm(data, 'image', file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/facilities', body),
+      (form) => api.post('/admin/facilities', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/facilities/${id}`, body),
+      (form) => api.put(`/admin/facilities/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/facilities/${id}`),
 };
 
 export const athleteService = {
   listPublic: () => api.get('/athletes'),
   list: (params) => api.get('/admin/athletes', { params }),
-  create: (data, file) => api.post('/admin/athletes', asForm(data, 'image', file)),
-  update: (id, data, file) => api.put(`/admin/athletes/${id}`, asForm(data, 'image', file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/athletes', body),
+      (form) => api.post('/admin/athletes', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/athletes/${id}`, body),
+      (form) => api.put(`/admin/athletes/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/athletes/${id}`),
 };
 
@@ -93,16 +150,40 @@ export const globalSearchService = {
 export const featureService = {
   listPublic: () => api.get('/features'),
   list: (params) => api.get('/admin/features', { params }),
-  create: (data, file) => api.post('/admin/features', asForm(data, 'image', file)),
-  update: (id, data, file) => api.put(`/admin/features/${id}`, asForm(data, 'image', file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/features', body),
+      (form) => api.post('/admin/features', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/features/${id}`, body),
+      (form) => api.put(`/admin/features/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/features/${id}`),
 };
 
 export const membershipService = {
   listPublic: () => api.get('/membership-plans'),
   list: (params) => api.get('/admin/membership-plans', { params }),
-  create: (data, file) => api.post('/admin/membership-plans', asForm(data, 'image', file)),
-  update: (id, data, file) => api.put(`/admin/membership-plans/${id}`, asForm(data, 'image', file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/membership-plans', body),
+      (form) => api.post('/admin/membership-plans', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/membership-plans/${id}`, body),
+      (form) => api.put(`/admin/membership-plans/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/membership-plans/${id}`),
 };
 
@@ -287,24 +368,24 @@ export const achievementService = {
   remove: (id) => api.delete(`/admin/achievements/${id}`),
 };
 
-const appendForm = (data, file) => {
-  const form = new FormData();
-  Object.entries(data || {}).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-    if (Array.isArray(value)) {
-      value.forEach((v) => form.append(key, String(v)));
-      return;
-    }
-    form.append(key, String(value));
-  });
-  if (file) form.append('image', file);
-  return form;
-};
+const appendForm = (data, file) => asForm(data, 'image', file);
 
 export const playerAchievementService = {
   list: (params) => api.get('/admin/player-achievements', { params }),
-  create: (data, file) => api.post('/admin/player-achievements', appendForm(data, file)),
-  update: (id, data, file) => api.put(`/admin/player-achievements/${id}`, appendForm(data, file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/player-achievements', body),
+      (form) => api.post('/admin/player-achievements', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/player-achievements/${id}`, body),
+      (form) => api.put(`/admin/player-achievements/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/player-achievements/${id}`),
 };
 
@@ -318,10 +399,28 @@ export const equipmentPublicService = {
 
 export const tournamentService = {
   list: (params) => api.get('/admin/tournaments', { params }),
-  create: (data, file) => api.post('/admin/tournaments', appendForm(data, file)),
-  update: (id, data, file) => api.put(`/admin/tournaments/${id}`, appendForm(data, file)),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/tournaments', body),
+      (form) => api.post('/admin/tournaments', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/tournaments/${id}`, body),
+      (form) => api.put(`/admin/tournaments/${id}`, form),
+      data,
+      file
+    ),
   remove: (id) => api.delete(`/admin/tournaments/${id}`),
-  upsertResult: (id, data, file) => api.post(`/admin/tournaments/${id}/results`, appendForm(data, file)),
+  upsertResult: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.post(`/admin/tournaments/${id}/results`, body),
+      (form) => api.post(`/admin/tournaments/${id}/results`, form),
+      data,
+      file
+    ),
   removeResult: (id, resultId) => api.delete(`/admin/tournaments/${id}/results/${resultId}`),
 };
 
@@ -337,7 +436,7 @@ export const parentAdminService = {
       }
       form.append(key, String(value));
     });
-    if (file) form.append('image', file);
+    if (isBrowserFile(file)) form.append('image', file);
     return api.post('/admin/parents', form);
   },
 };
@@ -446,16 +545,20 @@ export const userAdminService = {
       if (value === undefined || value === null) return;
       form.append(key, String(value));
     });
-    if (profileImage) form.append('profileImage', profileImage);
+    if (isBrowserFile(profileImage)) form.append('profileImage', profileImage);
     return api.post('/admin/users', form);
   },
   update: (id, data, profileImage) => {
+    if (!isBrowserFile(profileImage)) {
+      return api.put(`/admin/users/${id}`, data);
+    }
     const form = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
+      if (key === 'profileImage' || key === 'image' || key === 'photo' || key === 'file') return;
       form.append(key, String(value));
     });
-    if (profileImage) form.append('profileImage', profileImage);
+    form.append('profileImage', profileImage);
     return api.put(`/admin/users/${id}`, form);
   },
   remove: (id) => api.delete(`/admin/users/${id}`),
@@ -536,16 +639,20 @@ export const sponsorshipService = {
       if (value === undefined || value === null) return;
       form.append(key, String(value));
     });
-    if (file) form.append('document', file);
+    if (isBrowserFile(file)) form.append('document', file);
     return api.post('/admin/sponsorships', form);
   },
   update: (id, data, file) => {
+    if (!isBrowserFile(file)) {
+      return api.put(`/admin/sponsorships/${id}`, data);
+    }
     const form = new FormData();
     Object.entries(data || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
+      if (key === 'document' || key === 'image' || key === 'file') return;
       form.append(key, String(value));
     });
-    if (file) form.append('document', file);
+    form.append('document', file);
     return api.put(`/admin/sponsorships/${id}`, form);
   },
   remove: (id) => api.delete(`/admin/sponsorships/${id}`),
