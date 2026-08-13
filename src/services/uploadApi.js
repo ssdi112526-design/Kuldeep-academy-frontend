@@ -1,29 +1,12 @@
 import axios from 'axios';
+import { getUploadApiBaseURL } from './apiBase';
 
 /**
- * Large multipart uploads (videos) must bypass the Vercel → Render rewrite.
- * Vercel proxied requests hard-timeout at ~120s, which surfaces as Axios "Network Error".
+ * Multipart uploads (player photos, videos, etc.).
+ * Always targets the SAME backend as api.js so JWT stays valid.
  */
-function resolveUploadBaseURL() {
-  const upload = (import.meta.env.VITE_UPLOAD_API_URL || '').trim();
-  if (upload) return upload.replace(/\/$/, '');
-
-  const api = (import.meta.env.VITE_API_URL || '/api').trim();
-  // Relative /api is fine locally (Vite proxy) but unsafe for big live uploads.
-  if (api.startsWith('http://') || api.startsWith('https://')) {
-    return api.replace(/\/$/, '');
-  }
-
-  // Production fallback when only VITE_API_URL=/api is set
-  if (import.meta.env.PROD) {
-    return 'https://kuldeep-malik-sports-academy-backend.onrender.com/api';
-  }
-
-  return api || '/api';
-}
-
 const uploadApi = axios.create({
-  baseURL: resolveUploadBaseURL(),
+  baseURL: getUploadApiBaseURL(),
   timeout: 15 * 60 * 1000,
 });
 

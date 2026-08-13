@@ -1,3 +1,5 @@
+import { getApiBaseURL, KULDEEP_PROD_API } from '../services/apiBase';
+
 /** Resolve uploaded image path against API / media origin. */
 export function mediaUrl(imagePath) {
   if (!imagePath) return '';
@@ -11,8 +13,8 @@ export function mediaUrl(imagePath) {
   const mediaOrigin = (import.meta.env.VITE_MEDIA_URL || '').replace(/\/$/, '');
   if (mediaOrigin) return `${mediaOrigin}${path}`;
 
-  const apiBase = import.meta.env.VITE_API_URL || '';
-  // Relative /api (Vercel rewrite) → keep same-origin /uploads (proxied by vercel.json)
+  const apiBase = getApiBaseURL() || KULDEEP_PROD_API;
+  // Relative /api (local Vite proxy) → same-origin /uploads
   if (!apiBase || apiBase.startsWith('/')) {
     return path;
   }
