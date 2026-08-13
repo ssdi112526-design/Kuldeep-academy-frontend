@@ -257,31 +257,48 @@ export const entryService = {
         { format, search },
         { responseType: 'blob' }
       ),
-    create: (data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
+    create: async (data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
+      const hasFiles = [photo, parentPhoto, aadhaarFront, aadhaarBack, panCard].some(isBrowserFile);
+      if (!hasFiles) return api.post('/admin/students', data);
+
+      const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
+      await wakeUploadBackend();
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
+        if (['photo', 'parentPhoto', 'aadhaarFront', 'aadhaarBack', 'panCard', 'image', 'file', 'profileImage'].includes(key)) {
+          return;
+        }
         form.append(key, String(value));
       });
-      if (photo) form.append('photo', photo);
-      if (parentPhoto) form.append('parentPhoto', parentPhoto);
-      if (aadhaarFront) form.append('aadhaarFront', aadhaarFront);
-      if (aadhaarBack) form.append('aadhaarBack', aadhaarBack);
-      if (panCard) form.append('panCard', panCard);
-      return api.post('/admin/students', form);
+      if (isBrowserFile(photo)) form.append('photo', photo);
+      if (isBrowserFile(parentPhoto)) form.append('parentPhoto', parentPhoto);
+      if (isBrowserFile(aadhaarFront)) form.append('aadhaarFront', aadhaarFront);
+      if (isBrowserFile(aadhaarBack)) form.append('aadhaarBack', aadhaarBack);
+      if (isBrowserFile(panCard)) form.append('panCard', panCard);
+      // Direct to Render — Vercel rewrite can corrupt multipart field names ("Unexpected field")
+      return uploadApi.post('/admin/students', form, { timeout: 5 * 60 * 1000 });
     },
-    update: (id, data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
+    update: async (id, data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
+      const hasFiles = [photo, parentPhoto, aadhaarFront, aadhaarBack, panCard].some(isBrowserFile);
+      if (!hasFiles) return api.put(`/admin/students/${id}`, data);
+
+      const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
+      await wakeUploadBackend();
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
+        if (['photo', 'parentPhoto', 'aadhaarFront', 'aadhaarBack', 'panCard', 'image', 'file', 'profileImage'].includes(key)) {
+          return;
+        }
         form.append(key, String(value));
       });
-      if (photo) form.append('photo', photo);
-      if (parentPhoto) form.append('parentPhoto', parentPhoto);
-      if (aadhaarFront) form.append('aadhaarFront', aadhaarFront);
-      if (aadhaarBack) form.append('aadhaarBack', aadhaarBack);
-      if (panCard) form.append('panCard', panCard);
-      return api.put(`/admin/students/${id}`, form);
+      if (isBrowserFile(photo)) form.append('photo', photo);
+      if (isBrowserFile(parentPhoto)) form.append('parentPhoto', parentPhoto);
+      if (isBrowserFile(aadhaarFront)) form.append('aadhaarFront', aadhaarFront);
+      if (isBrowserFile(aadhaarBack)) form.append('aadhaarBack', aadhaarBack);
+      if (isBrowserFile(panCard)) form.append('panCard', panCard);
+      return uploadApi.put(`/admin/students/${id}`, form, { timeout: 5 * 60 * 1000 });
     },
     remove: (id) => api.delete(`/admin/students/${id}`),
     resetPassword: (id, payload) => api.post(`/admin/students/${id}/reset-password`, payload),
@@ -297,33 +314,51 @@ export const entryService = {
         { format, search, status },
         { responseType: 'blob' }
       ),
-    create: (data, { photo, aadhaarFront, aadhaarBack, panCard, certificates } = {}) => {
+    create: async (data, { photo, aadhaarFront, aadhaarBack, panCard, certificates } = {}) => {
+      const certList = Array.isArray(certificates) ? certificates : certificates ? [certificates] : [];
+      const hasFiles =
+        [photo, aadhaarFront, aadhaarBack, panCard].some(isBrowserFile) || certList.some(isBrowserFile);
+      if (!hasFiles) return api.post('/admin/coaches', data);
+
+      const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
+      await wakeUploadBackend();
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
+        if (['photo', 'aadhaarFront', 'aadhaarBack', 'panCard', 'certificates', 'image', 'file', 'profileImage'].includes(key)) {
+          return;
+        }
         form.append(key, String(value));
       });
-      if (photo) form.append('photo', photo);
-      if (aadhaarFront) form.append('aadhaarFront', aadhaarFront);
-      if (aadhaarBack) form.append('aadhaarBack', aadhaarBack);
-      if (panCard) form.append('panCard', panCard);
-      if (Array.isArray(certificates)) certificates.forEach((f) => form.append('certificates', f));
-      else if (certificates) form.append('certificates', certificates);
-      return api.post('/admin/coaches', form);
+      if (isBrowserFile(photo)) form.append('photo', photo);
+      if (isBrowserFile(aadhaarFront)) form.append('aadhaarFront', aadhaarFront);
+      if (isBrowserFile(aadhaarBack)) form.append('aadhaarBack', aadhaarBack);
+      if (isBrowserFile(panCard)) form.append('panCard', panCard);
+      certList.filter(isBrowserFile).forEach((f) => form.append('certificates', f));
+      return uploadApi.post('/admin/coaches', form, { timeout: 5 * 60 * 1000 });
     },
-    update: (id, data, { photo, aadhaarFront, aadhaarBack, panCard, certificates } = {}) => {
+    update: async (id, data, { photo, aadhaarFront, aadhaarBack, panCard, certificates } = {}) => {
+      const certList = Array.isArray(certificates) ? certificates : certificates ? [certificates] : [];
+      const hasFiles =
+        [photo, aadhaarFront, aadhaarBack, panCard].some(isBrowserFile) || certList.some(isBrowserFile);
+      if (!hasFiles) return api.put(`/admin/coaches/${id}`, data);
+
+      const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
+      await wakeUploadBackend();
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
+        if (['photo', 'aadhaarFront', 'aadhaarBack', 'panCard', 'certificates', 'image', 'file', 'profileImage'].includes(key)) {
+          return;
+        }
         form.append(key, String(value));
       });
-      if (photo) form.append('photo', photo);
-      if (aadhaarFront) form.append('aadhaarFront', aadhaarFront);
-      if (aadhaarBack) form.append('aadhaarBack', aadhaarBack);
-      if (panCard) form.append('panCard', panCard);
-      if (Array.isArray(certificates)) certificates.forEach((f) => form.append('certificates', f));
-      else if (certificates) form.append('certificates', certificates);
-      return api.put(`/admin/coaches/${id}`, form);
+      if (isBrowserFile(photo)) form.append('photo', photo);
+      if (isBrowserFile(aadhaarFront)) form.append('aadhaarFront', aadhaarFront);
+      if (isBrowserFile(aadhaarBack)) form.append('aadhaarBack', aadhaarBack);
+      if (isBrowserFile(panCard)) form.append('panCard', panCard);
+      certList.filter(isBrowserFile).forEach((f) => form.append('certificates', f));
+      return uploadApi.put(`/admin/coaches/${id}`, form, { timeout: 5 * 60 * 1000 });
     },
     remove: (id) => api.delete(`/admin/coaches/${id}`),
     resetPassword: (id, payload) => api.post(`/admin/coaches/${id}/reset-password`, payload),
