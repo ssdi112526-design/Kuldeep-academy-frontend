@@ -28,8 +28,42 @@ const PORTAL_COPY = {
   },
 };
 
+const PORTAL_MISMATCH = {
+  admin: 'This login is for Admin only. Please use the Parents or Player login button for your account.',
+  parent: 'This login is for Parents only. Please use the Admin or Player login button for your account.',
+  player: 'This login is for Players only. Please use the Admin or Parents login button for your account.',
+};
+
+function resolveAccountKind(user) {
+  if (!user) return 'unknown';
+  if (user.isStudent || user.role === 'student' || user.accountType === 'student') return 'player';
+  if (user.isCoach || user.role === 'coach' || user.accountType === 'coach' || user.coachId) return 'coach';
+  if (user.isParent || user.role === 'parent' || user.accountType === 'parent' || user.roleSlug === 'parent') {
+    return 'parent';
+  }
+  if (
+    user.canAccessAdmin ||
+    user.isSuperAdmin ||
+    user.role === 'admin' ||
+    user.roleSlug === 'super_admin' ||
+    user.roleSlug === 'admin' ||
+    (Array.isArray(user.permissions) && user.permissions.length > 0)
+  ) {
+    return 'admin';
+  }
+  return 'unknown';
+}
+
+function portalAllowsAccount(portal, kind) {
+  if (!portal || !PORTAL_COPY[portal]) return true;
+  if (portal === 'admin') return kind === 'admin';
+  if (portal === 'parent') return kind === 'parent';
+  if (portal === 'player') return kind === 'player';
+  return true;
+}
+
 export default function Login() {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -46,42 +80,41 @@ export default function Login() {
     formState: { errors, isSubmitting },
   } = useForm();
 
+  const showValidation = (title, message) => {
+    setError(message);
+    setValidationPopup({ open: true, title, message });
+    toast.error(message);
+  };
+
   const onInvalid = (formErrors) => {
     const message =
       formErrors.login?.message || formErrors.password?.message || 'Please fill all required fields.';
-    setValidationPopup({
-      open: true,
-      title: 'Validation required',
-      message,
-    });
-    toast.error(message);
+    showValidation('Validation required', message);
   };
 
   const onSubmit = async (data) => {
     setError('');
     try {
       const user = await login({ login: data.login.trim(), password: data.password });
+      const kind = resolveAccountKind(user);
+
+      if (!portalAllowsAccount(portal, kind)) {
+        await logout();
+        showValidation('Wrong login portal', PORTAL_MISMATCH[portal] || 'This account cannot use this login.');
+        return;
+      }
+
       const redirect = safeRedirectPath(searchParams.get('redirect'));
       if (redirect) {
         navigate(redirect, { replace: true });
         return;
       }
-      if (user.isStudent || user.role === 'student' || user.accountType === 'student') {
-        navigate('/student');
-      } else if (user.isCoach || user.role === 'coach' || user.accountType === 'coach' || user.coachId) {
-        navigate('/coach');
-      } else if (user.isParent || user.role === 'parent' || user.accountType === 'parent' || user.roleSlug === 'parent') {
-        navigate('/parent');
-      } else if (
-        user.canAccessAdmin ||
-        user.isSuperAdmin ||
-        user.role === 'admin' ||
-        user.roleSlug === 'super_admin'
-      ) {
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
+
+      if (kind === 'player') navigate('/student');
+      else if (kind === 'coach') navigate('/coach');
+      else if (kind === 'parent') navigate('/parent');
+      else if (kind === 'admin') navigate('/admin');
+      else navigate('/');
     } catch (err) {
       const network =
         err?.code === 'ERR_NETWORK' ||
@@ -90,9 +123,7 @@ export default function Login() {
       const msg = network
         ? 'Cannot reach API server. Make sure the backend is running on port 5000 (and only one server is using that port).'
         : err.response?.data?.message || 'Login failed';
-      setError(msg);
-      setValidationPopup({ open: true, title: 'Login failed', message: msg });
-      toast.error(msg);
+      showValidation('Login failed', msg);
     }
   };
 
