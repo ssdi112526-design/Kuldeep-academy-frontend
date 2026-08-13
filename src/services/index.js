@@ -77,6 +77,19 @@ export const facilityService = {
   remove: (id) => api.delete(`/admin/facilities/${id}`),
 };
 
+export const athleteService = {
+  listPublic: () => api.get('/athletes'),
+  list: (params) => api.get('/admin/athletes', { params }),
+  create: (data, file) => api.post('/admin/athletes', asForm(data, 'image', file)),
+  update: (id, data, file) => api.put(`/admin/athletes/${id}`, asForm(data, 'image', file)),
+  remove: (id) => api.delete(`/admin/athletes/${id}`),
+};
+
+export const globalSearchService = {
+  search: (q, { signal } = {}) =>
+    api.get('/admin/global-search', { params: { q }, signal }),
+};
+
 export const featureService = {
   listPublic: () => api.get('/features'),
   list: (params) => api.get('/admin/features', { params }),
@@ -163,25 +176,27 @@ export const entryService = {
         { format, search },
         { responseType: 'blob' }
       ),
-    create: (data, { photo, aadhaarFront, aadhaarBack, panCard } = {}) => {
+    create: (data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
         form.append(key, String(value));
       });
       if (photo) form.append('photo', photo);
+      if (parentPhoto) form.append('parentPhoto', parentPhoto);
       if (aadhaarFront) form.append('aadhaarFront', aadhaarFront);
       if (aadhaarBack) form.append('aadhaarBack', aadhaarBack);
       if (panCard) form.append('panCard', panCard);
       return api.post('/admin/students', form);
     },
-    update: (id, data, { photo, aadhaarFront, aadhaarBack, panCard } = {}) => {
+    update: (id, data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
         form.append(key, String(value));
       });
       if (photo) form.append('photo', photo);
+      if (parentPhoto) form.append('parentPhoto', parentPhoto);
       if (aadhaarFront) form.append('aadhaarFront', aadhaarFront);
       if (aadhaarBack) form.append('aadhaarBack', aadhaarBack);
       if (panCard) form.append('panCard', panCard);
@@ -272,6 +287,74 @@ export const achievementService = {
   remove: (id) => api.delete(`/admin/achievements/${id}`),
 };
 
+const appendForm = (data, file) => {
+  const form = new FormData();
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      value.forEach((v) => form.append(key, String(v)));
+      return;
+    }
+    form.append(key, String(value));
+  });
+  if (file) form.append('image', file);
+  return form;
+};
+
+export const playerAchievementService = {
+  list: (params) => api.get('/admin/player-achievements', { params }),
+  create: (data, file) => api.post('/admin/player-achievements', appendForm(data, file)),
+  update: (id, data, file) => api.put(`/admin/player-achievements/${id}`, appendForm(data, file)),
+  remove: (id) => api.delete(`/admin/player-achievements/${id}`),
+};
+
+export const playerAchievementPublicService = {
+  listPublic: (params) => api.get('/public/achievements', { params }),
+};
+
+export const equipmentPublicService = {
+  listPublic: () => api.get('/public/equipment'),
+};
+
+export const tournamentService = {
+  list: (params) => api.get('/admin/tournaments', { params }),
+  create: (data, file) => api.post('/admin/tournaments', appendForm(data, file)),
+  update: (id, data, file) => api.put(`/admin/tournaments/${id}`, appendForm(data, file)),
+  remove: (id) => api.delete(`/admin/tournaments/${id}`),
+  upsertResult: (id, data, file) => api.post(`/admin/tournaments/${id}/results`, appendForm(data, file)),
+  removeResult: (id, resultId) => api.delete(`/admin/tournaments/${id}/results/${resultId}`),
+};
+
+export const parentAdminService = {
+  list: () => api.get('/admin/parents'),
+  create: (data, file) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      if (key === 'studentIds' && Array.isArray(value)) {
+        value.forEach((id) => form.append('studentIds', String(id)));
+        return;
+      }
+      form.append(key, String(value));
+    });
+    if (file) form.append('image', file);
+    return api.post('/admin/parents', form);
+  },
+};
+
+export const parentPortalService = {
+  me: () => api.get('/parent/me'),
+  childAttendance: (studentId, params) =>
+    api.get(`/parent/children/${studentId}/attendance`, { params }),
+  childAchievements: (studentId) => api.get(`/parent/children/${studentId}/achievements`),
+  childTournaments: (studentId) => api.get(`/parent/children/${studentId}/tournaments`),
+};
+
+export const playerPortalService = {
+  myAchievements: () => api.get('/student/my-achievements'),
+  myTournaments: () => api.get('/student/my-tournaments'),
+};
+
 export const scheduleService = {
   listPublic: () => api.get('/schedule'),
   listSessions: (params) => api.get('/admin/schedule/sessions', { params }),
@@ -300,8 +383,9 @@ export const attendanceService = {
     id ? api.post(`/admin/attendance/qr/${id}/close`) : api.post('/admin/attendance/qr/close'),
   exportRecords: (payload) =>
     api.post('/admin/attendance/export', payload, { responseType: 'blob' }),
+  markStatus: (payload) => api.post('/admin/attendance/mark', payload),
   myProfile: () => api.get('/student/profile'),
-  myAttendance: () => api.get('/student/attendance'),
+  myAttendance: (params) => api.get('/student/attendance', { params }),
   scan: (payload) => api.post('/student/attendance/scan', payload),
 };
 
@@ -417,4 +501,56 @@ export const financeService = {
     api.post('/admin/finance/export/coach-payments', payload, { responseType: 'blob' }),
   exportPending: (payload) =>
     api.post('/admin/finance/export/pending', payload, { responseType: 'blob' }),
+};
+
+export const reportsService = {
+  dashboard: () => api.get('/admin/reports/dashboard'),
+  players: (params) => api.get('/admin/reports/players', { params }),
+  kheloIndia: (params) => api.get('/admin/reports/khelo-india', { params }),
+  attendanceDashboard: (params) => api.get('/admin/reports/attendance/dashboard', { params }),
+  monthlyAttendance: (params) => api.get('/admin/reports/attendance/monthly', { params }),
+  employeeAttendance: (params) => api.get('/admin/reports/attendance/employees', { params }),
+  ageCategories: (params) => api.get('/admin/reports/categories/age', { params }),
+  playerCategories: (params) => api.get('/admin/reports/categories/player', { params }),
+  weightCategories: (params) => api.get('/admin/reports/categories/weight', { params }),
+  tournaments: (params) => api.get('/admin/reports/tournaments', { params }),
+  medals: (params) => api.get('/admin/reports/medals', { params }),
+  pendingFees: (params) => api.get('/admin/reports/fees/pending', { params }),
+  salary: (params) => api.get('/admin/reports/salary', { params }),
+  sponsorships: (params) => api.get('/admin/reports/sponsorships', { params }),
+  export: (reportKey, payload) =>
+    api.post(`/admin/reports/export/${reportKey}`, payload, { responseType: 'blob' }),
+};
+
+export const mediaRestoreService = {
+  status: () => api.get('/admin/media/status'),
+  restore: (mode = 'referenced') => api.post('/admin/media/restore', { mode }),
+};
+
+export const sponsorshipService = {
+  list: (params) => api.get('/admin/sponsorships', { params }),
+  getOne: (id) => api.get(`/admin/sponsorships/${id}`),
+  create: (data, file) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      form.append(key, String(value));
+    });
+    if (file) form.append('document', file);
+    return api.post('/admin/sponsorships', form);
+  },
+  update: (id, data, file) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      form.append(key, String(value));
+    });
+    if (file) form.append('document', file);
+    return api.put(`/admin/sponsorships/${id}`, form);
+  },
+  remove: (id) => api.delete(`/admin/sponsorships/${id}`),
+  downloadDocument: (id) =>
+    api.get(`/admin/sponsorships/${id}/document`, { responseType: 'blob' }),
+  export: (payload) =>
+    api.post('/admin/sponsorships/export', payload, { responseType: 'blob' }),
 };

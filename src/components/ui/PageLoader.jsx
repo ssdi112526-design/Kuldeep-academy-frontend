@@ -1,4 +1,4 @@
-import logoImg from '../../assets/logo.webp';
+import kuldeepImg from '../../assets/akhada/coaches/kuldeep-malik.webp';
 
 /**
  * Full-page branded loader — used on refresh / route load.
@@ -16,12 +16,12 @@ export default function PageLoader({ message = 'Loading...' }) {
       />
 
       <div className="relative flex flex-col items-center px-6" role="status" aria-live="polite" aria-label={message}>
-        <div className="relative flex h-20 w-20 items-center justify-center">
+        <div className="relative flex h-24 w-24 items-center justify-center">
           <span className="absolute inset-0 animate-pulse rounded-full border border-[#D97706]/40" />
           <img
-            src={logoImg}
+            src={kuldeepImg}
             alt="Kuldeep Malik Sports Academy"
-            className="relative h-14 w-14 rounded-full object-contain shadow-[0_8px_24px_rgba(7,26,43,0.12)]"
+            className="relative h-20 w-20 rounded-full object-cover object-top shadow-[0_8px_24px_rgba(7,26,43,0.12)] ring-1 ring-[#D97706]/25"
           />
         </div>
 
@@ -40,7 +40,7 @@ export function PanelLoader({ message = 'Loading data...' }) {
     <div className="mt-6 flex flex-col items-center justify-center rounded-[14px] border border-[#E9E7DE] bg-white px-4 py-16 shadow-sm">
       <div className="relative flex h-14 w-14 items-center justify-center" role="status" aria-label={message}>
         <span className="absolute inset-0 animate-pulse rounded-full border border-[#D97706]/40" />
-        <img src={logoImg} alt="" className="relative h-9 w-9 rounded-full object-contain" />
+        <img src={kuldeepImg} alt="" className="relative h-10 w-10 rounded-full object-cover object-top" />
       </div>
       <p className="mt-4 text-sm font-medium text-[#071A2B]">{message}</p>
       <div className="mt-5 w-full max-w-md space-y-2.5 px-4" aria-hidden>

@@ -2,30 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
   FaClipboardList,
-  FaDumbbell,
-  FaImages,
-  FaBuilding,
-  FaInbox,
-  FaVideo,
   FaUsers,
   FaUserTie,
   FaUserShield,
   FaUserLock,
-  FaCalendarAlt,
   FaTrophy,
   FaBars,
   FaTimes,
-  FaFingerprint,
   FaCog,
-  FaFileInvoiceDollar,
   FaChartPie,
   FaHistory,
   FaReceipt,
   FaMoneyCheckAlt,
   FaExclamationCircle,
-  FaStar,
-  FaIdCard,
-  FaGlobe,
+  FaMedal,
+  FaChartBar,
+  FaUserFriends,
+  FaTools,
+  FaImages,
+  FaHandshake,
+  FaRunning,
+  FaDatabase,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -34,24 +31,12 @@ import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../context/PermissionContext';
 import { cmsStatsService } from '../services';
 import StatCard from '../components/admin/StatCard';
-import ContactsPanel from '../components/admin/ContactsPanel';
-import ProgramsPanel from '../components/admin/ProgramsPanel';
-import GalleryPanel from '../components/admin/GalleryPanel';
-import FacilitiesPanel from '../components/admin/FacilitiesPanel';
-import FeaturesPanel from '../components/admin/FeaturesPanel';
-import MembershipPanel from '../components/admin/MembershipPanel';
-import WebsiteContentPanel from '../components/admin/WebsiteContentPanel';
-import VideosPanel from '../components/admin/VideosPanel';
 import EntryStudentsPanel from '../components/admin/EntryStudentsPanel';
 import EntryCoachesPanel from '../components/admin/EntryCoachesPanel';
-import EntryEquipmentPanel from '../components/admin/EntryEquipmentPanel';
 import UsersPanel from '../components/admin/UsersPanel';
 import RolesPanel from '../components/admin/RolesPanel';
-import AchievementsPanel from '../components/admin/AchievementsPanel';
-import SchedulePanel from '../components/admin/SchedulePanel';
 import AttendancePanel from '../components/admin/AttendancePanel';
 import CoachAttendancePanel from '../components/admin/CoachAttendancePanel';
-import BiometricDevicesPanel from '../components/admin/BiometricDevicesPanel';
 import AttendanceSettingsPanel from '../components/admin/AttendanceSettingsPanel';
 import FinanceDashboardPanel from '../components/admin/FinanceDashboardPanel';
 import StudentFeesPanel from '../components/admin/StudentFeesPanel';
@@ -60,91 +45,91 @@ import PendingFeesPanel from '../components/admin/PendingFeesPanel';
 import CoachPaymentsPanel from '../components/admin/CoachPaymentsPanel';
 import PaymentHistoryPanel from '../components/admin/PaymentHistoryPanel';
 import ReceiptsPanel from '../components/admin/ReceiptsPanel';
-import FinanceReportsPanel from '../components/admin/FinanceReportsPanel';
+import PlayerAchievementsPanel from '../components/admin/PlayerAchievementsPanel';
+import TournamentRecordsPanel from '../components/admin/TournamentRecordsPanel';
+import ReportsHubPanel from '../components/admin/ReportsHubPanel';
+import ParentsPanel from '../components/admin/ParentsPanel';
+import EntryEquipmentPanel from '../components/admin/EntryEquipmentPanel';
+import GalleryPanel from '../components/admin/GalleryPanel';
+import AthletesPanel from '../components/admin/AthletesPanel';
+import SponsorshipsPanel from '../components/admin/SponsorshipsPanel';
+import MediaRestorePanel from '../components/admin/MediaRestorePanel';
 import AccessDenied from '../components/admin/AccessDenied';
-import { formatBytes } from '../utils/videoUtils';
+import GlobalSearch from '../components/admin/GlobalSearch';
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: FaClipboardList, module: 'dashboard', permission: 'dashboard.view' },
-  { id: 'inquiries', label: 'Inquiries', icon: FaInbox, module: 'inquiries', permission: 'inquiries.view' },
   {
-    id: 'content',
-    label: 'Content Management',
+    id: 'players-menu',
+    label: 'Players',
     children: [
-      { id: 'programs', label: 'Programs', icon: FaDumbbell, module: 'programs', permission: 'programs.view' },
-      { id: 'schedule', label: 'Schedule', icon: FaCalendarAlt, module: 'schedule', permission: 'schedule.view' },
-      { id: 'achievements', label: 'Achievements', icon: FaTrophy, module: 'achievements', permission: 'achievements.view' },
+      { id: 'students', label: 'All Players', icon: FaUsers, module: 'students', permission: 'students.view' },
+      { id: 'parents', label: 'Parent Accounts', icon: FaUserFriends, module: 'students', permission: 'students.view' },
+      { id: 'coaches', label: 'Employees', icon: FaUserTie, module: 'coaches', permission: 'coaches.view' },
       { id: 'gallery', label: 'Gallery', icon: FaImages, module: 'gallery', permission: 'gallery.view' },
-      { id: 'facilities', label: 'Facilities', icon: FaBuilding, module: 'facilities', permission: 'facilities.view' },
-      { id: 'features', label: 'Features', icon: FaStar, module: 'features', permission: 'features.view' },
-      { id: 'membership', label: 'Membership', icon: FaIdCard, module: 'membership', permission: 'membership.view' },
-      { id: 'website-content', label: 'Website Content', icon: FaGlobe, module: 'website_content', permission: 'website_content.view' },
-      { id: 'videos', label: 'Videos', icon: FaVideo, module: 'videos', permission: 'videos.view' },
-    ],
-  },
-  {
-    id: 'entry',
-    label: 'Entry Management',
-    children: [
-      { id: 'students', label: 'Students', icon: FaUsers, module: 'students', permission: 'students.view' },
-      { id: 'coaches', label: 'Coaches', icon: FaUserTie, module: 'coaches', permission: 'coaches.view' },
-      { id: 'equipment', label: 'Equipment & Tools', icon: FaBuilding, module: 'equipment', permission: 'equipment.view' },
+      { id: 'sponsorships', label: 'Sponsorships', icon: FaHandshake, module: 'sponsorships', permission: 'sponsorships.view' },
+      {
+        id: 'tournaments',
+        label: 'Tournament Records',
+        icon: FaMedal,
+        module: 'tournaments',
+        permission: 'tournaments.view',
+      },
+      { id: 'equipment', label: 'Equipment', icon: FaTools, module: 'equipment', permission: 'equipment.view' },
+      { id: 'athletes', label: 'Athletes', icon: FaRunning, module: 'athletes', permission: 'athletes.view' },
+      { id: 'reports', label: 'Reports', icon: FaChartBar, module: 'reports', permission: 'reports.view' },
     ],
   },
   {
     id: 'attendance-menu',
     label: 'Attendance',
     children: [
-      { id: 'attendance', label: 'Students', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
-      { id: 'coach-attendance', label: 'Coaches', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
-      { id: 'biometric-devices', label: 'Biometric Devices', icon: FaFingerprint, module: 'attendance', permission: 'attendance.view' },
-      { id: 'attendance-settings', label: 'Attendance Settings', icon: FaCog, module: 'attendance', permission: 'attendance.view' },
+      { id: 'attendance', label: 'Players', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
+      { id: 'coach-attendance', label: 'Employees', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
+      { id: 'attendance-settings', label: 'Settings', icon: FaCog, module: 'attendance', permission: 'attendance.view' },
     ],
   },
   {
-    id: 'finance-menu',
-    label: 'Finance',
+    id: 'achievements',
+    label: 'Achievements',
+    icon: FaTrophy,
+    module: 'player_achievements',
+    permission: 'player_achievements.view',
+  },
+  {
+    id: 'fees-menu',
+    label: 'Fees',
     children: [
-      { id: 'finance-dashboard', label: 'Finance Dashboard', icon: FaChartPie, module: 'finance', permission: 'finance.view' },
-      { id: 'student-fees', label: 'Student Fees', icon: FaUsers, module: 'finance', permission: 'finance.view' },
-      { id: 'collect-fees', label: 'Collect Fees', icon: FaMoneyCheckAlt, module: 'finance', permission: 'finance.create' },
+      { id: 'finance-dashboard', label: 'Overview', icon: FaChartPie, module: 'finance', permission: 'finance.view' },
+      { id: 'student-fees', label: 'Player Fees', icon: FaUsers, module: 'finance', permission: 'finance.view' },
+      { id: 'collect-fees', label: 'Add Payment', icon: FaMoneyCheckAlt, module: 'finance', permission: 'finance.create' },
       { id: 'pending-fees', label: 'Pending Fees', icon: FaExclamationCircle, module: 'finance', permission: 'finance.view' },
-      { id: 'coach-payments', label: 'Coach Payments', icon: FaUserTie, module: 'finance', permission: 'finance.view' },
       { id: 'payment-history', label: 'Payment History', icon: FaHistory, module: 'finance', permission: 'finance.view' },
       { id: 'receipts', label: 'Receipts', icon: FaReceipt, module: 'finance', permission: 'finance.view' },
-      { id: 'finance-reports', label: 'Reports', icon: FaFileInvoiceDollar, module: 'finance', permission: 'finance.view' },
+      { id: 'coach-payments', label: 'Employee Payments', icon: FaUserTie, module: 'finance', permission: 'finance.view' },
     ],
   },
   {
     id: 'user-mgmt',
-    label: 'User Management',
+    label: 'Access Control',
     superAdminOnly: true,
     children: [
       { id: 'users', label: 'Users', icon: FaUserShield, module: 'users', permission: 'users.view' },
       { id: 'roles', label: 'Roles & Permissions', icon: FaUserLock, module: 'roles', permission: 'roles.view' },
+      { id: 'media-restore', label: 'Media Restore', icon: FaDatabase, superAdminOnly: true },
     ],
   },
 ];
 
 const SECTION_MODULE = {
   dashboard: 'dashboard',
-  inquiries: 'inquiries',
-  programs: 'programs',
-  schedule: 'schedule',
-  achievements: 'achievements',
-  gallery: 'gallery',
-  facilities: 'facilities',
-  features: 'features',
-  membership: 'membership',
-  'website-content': 'website_content',
-  videos: 'videos',
   students: 'students',
-  coaches: 'coaches',
-  equipment: 'equipment',
+  parents: 'students',
   attendance: 'attendance',
   'coach-attendance': 'attendance',
-  'biometric-devices': 'attendance',
   'attendance-settings': 'attendance',
+  coaches: 'coaches',
+  achievements: 'player_achievements',
   'finance-dashboard': 'finance',
   'student-fees': 'finance',
   'collect-fees': 'finance',
@@ -152,7 +137,12 @@ const SECTION_MODULE = {
   'coach-payments': 'finance',
   'payment-history': 'finance',
   receipts: 'finance',
-  'finance-reports': 'finance',
+  sponsorships: 'sponsorships',
+  reports: 'reports',
+  tournaments: 'tournaments',
+  equipment: 'equipment',
+  athletes: 'athletes',
+  gallery: 'gallery',
   users: 'users',
   roles: 'roles',
 };
@@ -197,26 +187,19 @@ function NavItems({ items, section, onSelect }) {
 }
 
 export default function Admin() {
-  const { user, loading, canAccessAdmin, logout, isStudent, isCoach } = useAuth();
+  const { user, loading, canAccessAdmin, logout, isStudent, isCoach, isParent } = useAuth();
   const { can, canModule, isSuperAdmin } = usePermissions();
   const [section, setSection] = useState('dashboard');
+  const [focusTarget, setFocusTarget] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cmsStats, setCmsStats] = useState({
-    totalPrograms: 0,
-    totalGallery: 0,
-    totalFacilities: 0,
-    totalVideos: 0,
-    publishedVideos: 0,
-    draftVideos: 0,
-    featuredVideos: 0,
-    totalStorageBytes: 0,
     totalStudents: 0,
     totalCoaches: 0,
-    totalFeatures: 0,
-    totalMembershipPlans: 0,
     totalInquiries: 0,
-    recentInquiries: [],
     recentStudents: [],
+    playerAchievementsTotal: 0,
+    playersWithAchievements: 0,
+    medals: { Gold: 0, Silver: 0, Bronze: 0, Other: 0 },
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -238,7 +221,10 @@ export default function Admin() {
 
   const filteredNav = useMemo(() => {
     const canSeeItem = (item) => {
+      if (item.superAdminOnly && !isSuperAdmin) return false;
       if (isSuperAdmin) return true;
+      if (item.id === 'achievements' && (canModule('player_achievements') || canModule('achievements'))) return true;
+      if (item.id === 'reports' && (canModule('reports') || canModule('finance') || canModule('students'))) return true;
       if (item.module && canModule(item.module)) return true;
       if (item.permission && can(item.permission)) return true;
       return false;
@@ -285,85 +271,109 @@ export default function Admin() {
   if (!user) return <Navigate to="/login" replace />;
   if (isStudent) return <Navigate to="/student" replace />;
   if (isCoach) return <Navigate to="/coach" replace />;
+  if (isParent) return <Navigate to="/parent" replace />;
   if (!canAccessAdmin && !isSuperAdmin) return <Navigate to="/" replace />;
 
   const titles = {
-    dashboard: { title: 'Dashboard', subtitle: 'Content overview for Kuldeep Malik Sports Academy.' },
-    inquiries: { title: 'Inquiries', subtitle: 'Manage contact form submissions.' },
-    programs: { title: 'Programs', subtitle: 'Create and manage training programs.' },
-    schedule: { title: 'Schedule', subtitle: 'Update training sessions and weekly timetable.' },
-    achievements: { title: 'Achievements', subtitle: 'Update homepage achievement counters.' },
-    gallery: { title: 'Gallery', subtitle: 'Upload and organize gallery images.' },
-    facilities: { title: 'Facilities', subtitle: 'Manage academy facilities.' },
-    features: { title: 'Features', subtitle: 'Manage homepage feature cards (bilingual).' },
-    membership: { title: 'Membership', subtitle: 'Manage public membership plans and pricing.' },
-    'website-content': {
-      title: 'Website Content',
-      subtitle: 'Edit company info, social links, hero and about content.',
-    },
-    videos: { title: 'Videos', subtitle: 'Upload and manage Academy training & championship videos.' },
-    students: { title: 'Students', subtitle: 'Manage student entries, documents and profiles.' },
-    coaches: { title: 'Coaches', subtitle: 'Manage coach entries, documents and profiles.' },
-    equipment: { title: 'Equipment & Tools', subtitle: 'Manage academy equipment, QR codes and history.' },
-    attendance: { title: 'Student Attendance', subtitle: 'Mark daily student attendance, track history, and export reports.' },
-    'coach-attendance': { title: 'Coach Attendance', subtitle: 'Mark daily coach attendance, track history, and export reports.' },
-    'biometric-devices': {
-      title: 'Biometric Devices',
-      subtitle: 'Manage fingerprint devices, sync agents, enrollment mappings, and unknown punch logs.',
-    },
+    dashboard: { title: 'Dashboard', subtitle: 'Operations overview for Kuldeep Malik Sports Academy.' },
+    students: { title: 'Players', subtitle: 'Manage player profiles, status, attendance and documents.' },
+    parents: { title: 'Parent Accounts', subtitle: 'Create parent logins linked to their children / players.' },
+    attendance: { title: 'Player Attendance', subtitle: 'Mark daily player attendance, track history, and export reports.' },
+    'coach-attendance': { title: 'Employee Attendance', subtitle: 'Mark daily employee/coach attendance and history.' },
     'attendance-settings': {
       title: 'Attendance Settings',
-      subtitle: 'Set Academy latitude/longitude for QR geofence and the website Contact map.',
+      subtitle: 'Set Academy latitude/longitude for QR geofence.',
     },
+    coaches: { title: 'Employees', subtitle: 'Manage coaches and employee profiles separately from players.' },
+    achievements: { title: 'Achievements', subtitle: 'Assign medals, titles and certificates to players.' },
     'finance-dashboard': {
-      title: 'Finance Dashboard',
-      subtitle: 'Student fee collection, coach payments and net balance overview.',
+      title: 'Fees Overview',
+      subtitle: 'Player fee collection, employee payments and balance overview.',
     },
     'student-fees': {
-      title: 'Student Fees',
-      subtitle: 'Monthly fee defaults, dues and student-wise fee status.',
+      title: 'Player Fees',
+      subtitle: 'Monthly Fees, Hostel Fees and Other Fees — defaults, generate bills and dues.',
     },
     'collect-fees': {
-      title: 'Collect Fees',
-      subtitle: 'Manually record cash, UPI or bank payments and generate receipts.',
+      title: 'Add Payment',
+      subtitle: 'Collect Monthly, Hostel or Other fees (Cash / UPI / Bank) and print receipts.',
     },
     'pending-fees': {
       title: 'Pending Fees',
-      subtitle: 'Students with outstanding or partial fee balances.',
+      subtitle: 'Players with outstanding or partial fee balances.',
     },
     'coach-payments': {
-      title: 'Coach Payments',
-      subtitle: 'Record coach salary, bonus and deduction payments manually.',
+      title: 'Employee Payments',
+      subtitle: 'Record salary, bonus and deduction payments for employees.',
     },
     'payment-history': {
       title: 'Payment History',
-      subtitle: 'All student fee payment transactions and receipts.',
+      subtitle: 'All player fee payment transactions and receipts.',
     },
     receipts: {
       title: 'Receipts',
-      subtitle: 'View and print student fee receipts.',
+      subtitle: 'View and print player fee receipts.',
     },
-    'finance-reports': {
-      title: 'Finance Reports',
-      subtitle: 'Collection reports, pending fees and Excel/CSV exports.',
+    reports: {
+      title: 'Reports',
+      subtitle:
+        'Akhada management reports — players, attendance, categories, tournaments, medals, fees, salary and sponsorships.',
+    },
+    sponsorships: {
+      title: 'Sponsorships',
+      subtitle: 'Manage sponsors, contracts, documents and expiry — admin only.',
+    },
+    tournaments: {
+      title: 'Tournament Records',
+      subtitle: 'Tournaments, player participation, results, positions and medals.',
+    },
+    equipment: {
+      title: 'Equipment',
+      subtitle: 'Manage akhada equipment inventory from the admin panel.',
+    },
+    athletes: {
+      title: 'Athletes',
+      subtitle: 'Upload wrestler photos for the public Meet Our Wrestlers section.',
+    },
+    gallery: {
+      title: 'Gallery',
+      subtitle: 'Upload and manage gallery images for the public website.',
     },
     users: { title: 'Users', subtitle: 'Create accounts and manage staff access.' },
     roles: { title: 'Roles & Permissions', subtitle: 'Configure role-based access across the admin panel.' },
+    'media-restore': {
+      title: 'Media Restore',
+      subtitle: 'Restore missing /uploads files from PostgreSQL backup after a disk wipe.',
+    },
   };
 
   const meta = titles[section] || titles.dashboard;
   const sectionModule = SECTION_MODULE[section];
-  const allowedSection = isSuperAdmin || !sectionModule || canModule(sectionModule);
+  const allowedSection =
+    isSuperAdmin ||
+    !sectionModule ||
+    canModule(sectionModule) ||
+    (section === 'achievements' && canModule('achievements')) ||
+    (section === 'media-restore' && isSuperAdmin) ||
+    (section === 'reports' &&
+      (canModule('finance') || canModule('students') || canModule('attendance') || canModule('tournaments')));
 
   const selectSection = (id) => {
     setSection(id);
     setMobileNavOpen(false);
   };
 
+  const handleGlobalSearchSelect = (item) => {
+    if (!item?.section || !item?.id) return;
+    setFocusTarget({ section: item.section, id: item.id, type: item.type, at: Date.now() });
+    setSection(item.section);
+    setMobileNavOpen(false);
+  };
+
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-surface">
       <header className="relative z-[60] shrink-0 border-b border-slate-100 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4 lg:flex-nowrap">
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
@@ -378,7 +388,10 @@ export default function Admin() {
               <Logo />
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="order-3 w-full min-w-0 lg:order-none lg:mx-2 lg:flex-1">
+            <GlobalSearch onSelect={handleGlobalSearchSelect} />
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             <div className="hidden text-right md:block">
               <p className="text-sm font-medium text-ink">{user.name}</p>
               <p className="max-w-[180px] truncate text-xs text-muted">
@@ -442,72 +455,101 @@ export default function Admin() {
                 {section === 'dashboard' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                      <StatCard label="Total Students" value={cmsStats.totalStudents} icon={FaUsers} loading={statsLoading} />
-                      <StatCard label="Total Coaches" value={cmsStats.totalCoaches} icon={FaUserTie} loading={statsLoading} />
-                      <StatCard label="Total Programs" value={cmsStats.totalPrograms} icon={FaDumbbell} loading={statsLoading} />
-                      <StatCard label="Total Gallery" value={cmsStats.totalGallery} icon={FaImages} loading={statsLoading} />
-                      <StatCard label="Total Videos" value={cmsStats.totalVideos} icon={FaVideo} loading={statsLoading} />
-                      <StatCard label="Total Facilities" value={cmsStats.totalFacilities} icon={FaBuilding} loading={statsLoading} />
-                      <StatCard label="Total Features" value={cmsStats.totalFeatures} icon={FaStar} loading={statsLoading} />
-                      <StatCard label="Total Membership Plans" value={cmsStats.totalMembershipPlans} icon={FaIdCard} loading={statsLoading} />
-                      <StatCard label="Total Inquiries" value={cmsStats.totalInquiries} icon={FaInbox} loading={statsLoading} />
-                      <StatCard label="Published Videos" value={cmsStats.publishedVideos} icon={FaVideo} loading={statsLoading} />
-                      <StatCard label="Video Storage" value={formatBytes(cmsStats.totalStorageBytes || 0)} icon={FaVideo} loading={statsLoading} />
+                      <StatCard label="Total Players" value={cmsStats.totalStudents} icon={FaUsers} loading={statsLoading} />
+                      <StatCard label="Total Employees" value={cmsStats.totalCoaches} icon={FaUserTie} loading={statsLoading} />
+                      <StatCard label="Open Inquiries" value={cmsStats.totalInquiries} icon={FaClipboardList} loading={statsLoading} />
                     </div>
 
-                    {(cmsStats.recentInquiries?.length || cmsStats.recentStudents?.length) ? (
-                      <div className="grid gap-4 lg:grid-cols-2">
-                        {cmsStats.recentInquiries?.length ? (
-                          <div className="rounded-xl border border-slate-100 bg-white p-4">
-                            <h3 className="text-sm font-bold text-ink">Recent Inquiries</h3>
-                            <ul className="mt-3 space-y-2">
-                              {cmsStats.recentInquiries.map((item) => (
-                                <li key={item._id || item.id} className="flex items-center justify-between gap-2 text-sm">
-                                  <span className="truncate font-medium text-ink">{item.fullName}</span>
-                                  <span className="shrink-0 text-xs text-muted">
-                                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-                        {cmsStats.recentStudents?.length ? (
-                          <div className="rounded-xl border border-slate-100 bg-white p-4">
-                            <h3 className="text-sm font-bold text-ink">Recent Students</h3>
-                            <ul className="mt-3 space-y-2">
-                              {cmsStats.recentStudents.map((item) => (
-                                <li key={item._id || item.id} className="flex items-center justify-between gap-2 text-sm">
-                                  <span className="truncate font-medium text-ink">{item.fullName}</span>
-                                  <span className="shrink-0 text-xs text-muted">
-                                    {item.studentCode || item.registrationNumber || ''}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
+                    <div className="rounded-xl border border-slate-100 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-sm font-bold text-ink">Achievement Summary</h3>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-brand hover:underline"
+                          onClick={() => selectSection('achievements')}
+                        >
+                          View all →
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                        <button type="button" className="rounded-lg bg-surface p-3 text-left" onClick={() => selectSection('achievements')}>
+                          <p className="text-xs text-muted">Players with medals</p>
+                          <p className="mt-1 text-xl font-bold text-ink">{cmsStats.playersWithAchievements ?? 0}</p>
+                        </button>
+                        <button type="button" className="rounded-lg bg-surface p-3 text-left" onClick={() => selectSection('achievements')}>
+                          <p className="text-xs text-muted">Total achievements</p>
+                          <p className="mt-1 text-xl font-bold text-ink">{cmsStats.playerAchievementsTotal ?? 0}</p>
+                        </button>
+                        <button type="button" className="rounded-lg bg-amber-50 p-3 text-left" onClick={() => selectSection('achievements')}>
+                          <p className="text-xs text-amber-800">Gold</p>
+                          <p className="mt-1 text-xl font-bold text-amber-900">{cmsStats.medals?.Gold ?? 0}</p>
+                        </button>
+                        <button type="button" className="rounded-lg bg-slate-100 p-3 text-left" onClick={() => selectSection('achievements')}>
+                          <p className="text-xs text-slate-600">Silver</p>
+                          <p className="mt-1 text-xl font-bold text-slate-800">{cmsStats.medals?.Silver ?? 0}</p>
+                        </button>
+                        <button type="button" className="rounded-lg bg-orange-50 p-3 text-left" onClick={() => selectSection('achievements')}>
+                          <p className="text-xs text-orange-800">Bronze</p>
+                          <p className="mt-1 text-xl font-bold text-orange-900">{cmsStats.medals?.Bronze ?? 0}</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {cmsStats.recentStudents?.length ? (
+                      <div className="rounded-xl border border-slate-100 bg-white p-4">
+                        <h3 className="text-sm font-bold text-ink">Recent Players</h3>
+                        <ul className="mt-3 space-y-2">
+                          {cmsStats.recentStudents.map((item) => (
+                            <li key={item._id || item.id} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="truncate font-medium text-ink">{item.fullName}</span>
+                              <span className="shrink-0 text-xs text-muted">
+                                {item.studentCode || item.registrationNumber || ''}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     ) : null}
                   </div>
                 )}
 
-                {section === 'inquiries' && <ContactsPanel />}
-                {section === 'programs' && <ProgramsPanel onChanged={refreshCmsStats} />}
-                {section === 'schedule' && <SchedulePanel />}
-                {section === 'achievements' && <AchievementsPanel />}
-                {section === 'gallery' && <GalleryPanel onChanged={refreshCmsStats} />}
-                {section === 'facilities' && <FacilitiesPanel onChanged={refreshCmsStats} />}
-                {section === 'features' && <FeaturesPanel onChanged={refreshCmsStats} />}
-                {section === 'membership' && <MembershipPanel onChanged={refreshCmsStats} />}
-                {section === 'website-content' && <WebsiteContentPanel onChanged={refreshCmsStats} />}
-                {section === 'videos' && <VideosPanel onChanged={refreshCmsStats} />}
-                {section === 'students' && <EntryStudentsPanel />}
-                {section === 'coaches' && <EntryCoachesPanel />}
+                {section === 'students' && (
+                  <EntryStudentsPanel
+                    focusId={focusTarget?.section === 'students' ? focusTarget.id : null}
+                    focusToken={focusTarget?.section === 'students' ? focusTarget.at : null}
+                  />
+                )}
+                {section === 'parents' && (
+                  <ParentsPanel
+                    focusId={focusTarget?.section === 'parents' ? focusTarget.id : null}
+                    focusToken={focusTarget?.section === 'parents' ? focusTarget.at : null}
+                  />
+                )}
+                {section === 'coaches' && (
+                  <EntryCoachesPanel
+                    focusId={focusTarget?.section === 'coaches' ? focusTarget.id : null}
+                    focusToken={focusTarget?.section === 'coaches' ? focusTarget.at : null}
+                  />
+                )}
+                {section === 'achievements' && (
+                  <PlayerAchievementsPanel
+                    focusId={focusTarget?.section === 'achievements' ? focusTarget.id : null}
+                    focusToken={focusTarget?.section === 'achievements' ? focusTarget.at : null}
+                  />
+                )}
+                {section === 'tournaments' && (
+                  <TournamentRecordsPanel
+                    focusId={focusTarget?.section === 'tournaments' ? focusTarget.id : null}
+                    focusToken={focusTarget?.section === 'tournaments' ? focusTarget.at : null}
+                  />
+                )}
                 {section === 'equipment' && <EntryEquipmentPanel />}
+                {section === 'athletes' && <AthletesPanel />}
+                {section === 'gallery' && <GalleryPanel />}
+                {section === 'reports' && <ReportsHubPanel />}
+                {section === 'sponsorships' && <SponsorshipsPanel />}
                 {section === 'attendance' && <AttendancePanel />}
                 {section === 'coach-attendance' && <CoachAttendancePanel />}
-                {section === 'biometric-devices' && <BiometricDevicesPanel />}
                 {section === 'attendance-settings' && <AttendanceSettingsPanel />}
                 {section === 'finance-dashboard' && <FinanceDashboardPanel />}
                 {section === 'student-fees' && <StudentFeesPanel />}
@@ -516,9 +558,9 @@ export default function Admin() {
                 {section === 'coach-payments' && <CoachPaymentsPanel />}
                 {section === 'payment-history' && <PaymentHistoryPanel />}
                 {section === 'receipts' && <ReceiptsPanel />}
-                {section === 'finance-reports' && <FinanceReportsPanel />}
                 {section === 'users' && <UsersPanel />}
                 {section === 'roles' && <RolesPanel />}
+                {section === 'media-restore' && <MediaRestorePanel />}
               </>
             )}
           </div>

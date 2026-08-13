@@ -57,6 +57,16 @@ export const PAYMENT_MODES = [
   { value: 'Other', label: 'Other' },
 ];
 
+export const FEE_CATEGORIES = [
+  { value: 'Monthly', label: 'Monthly Fees' },
+  { value: 'Hostel', label: 'Hostel Fees' },
+  { value: 'Other', label: 'Other Fees' },
+];
+
+export function feeCategoryLabel(value) {
+  return FEE_CATEGORIES.find((c) => c.value === value)?.label || value || 'Monthly Fees';
+}
+
 export const MONTHS = [
   { value: 1, label: 'January' },
   { value: 2, label: 'February' },

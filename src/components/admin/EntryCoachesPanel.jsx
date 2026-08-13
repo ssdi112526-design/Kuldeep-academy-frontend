@@ -8,7 +8,7 @@ import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { entryService, biometricService } from '../../services';
+import { entryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -30,34 +30,46 @@ import EntryCoachProfileModal from './EntryCoachProfileModal';
 import AccessDenied from './AccessDenied';
 
 const STATUS_OPTIONS = ['Active', 'Inactive', 'Suspended'];
+const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
+const CATEGORY_OPTIONS = ['Coach', 'Assistant Coach', 'Warden', 'Cook', 'Cleaner', 'Physio'];
+const ROLE_OPTIONS = [
+  'Head Coach',
+  'Coach',
+  'Assistant Coach',
+  'Warden',
+  'Cook',
+  'Cleaner',
+  'Physio',
+  'Manager',
+  'Accountant',
+  'Staff',
+];
 
 const EMPTY = {
   fullName: '',
-  fatherName: '',
   mobile: '',
   email: '',
   dateOfBirth: '',
-  address: '',
-  experienceYears: '',
-  specialization: '',
-  designation: '',
-  qualification: '',
-  salary: '',
-  joiningDate: '',
-  status: 'Active',
+  gender: '',
   aadhaarNumber: '',
   panNumber: '',
-  achievements: '',
-  biography: '',
-  showOnWebsite: false,
-  websiteOrder: 0,
+  joiningDate: '',
+  employeeRole: '',
+  category: '',
+  status: 'Active',
   loginUsername: '',
   password: '',
   confirmPassword: '',
-  biometricUserId: '',
 };
 
-export default function EntryCoachesPanel() {
+function formatDisplayDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export default function EntryCoachesPanel({ focusId = null, focusToken = null } = {}) {
   const toast = useToast();
   const { can, canModule } = usePermissions();
   const canView = canModule('coaches');
@@ -85,8 +97,6 @@ export default function EntryCoachesPanel() {
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
 
   const [photoFile, setPhotoFile] = useState(null);
-  const [certificateFiles, setCertificateFiles] = useState([]);
-
   const [photoPreview, setPhotoPreview] = useState('');
 
   const [saving, setSaving] = useState(false);
@@ -95,7 +105,13 @@ export default function EntryCoachesPanel() {
 
   const [profile, setProfile] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [resetModal, setResetModal] = useState({ open: false, coach: null, password: '', confirmPassword: '', loading: false });
+  const [resetModal, setResetModal] = useState({
+    open: false,
+    coach: null,
+    password: '',
+    confirmPassword: '',
+    loading: false,
+  });
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -110,28 +126,25 @@ export default function EntryCoachesPanel() {
 
   const validateCoachForm = () => {
     const errors = {};
-    const fullName = requiredText(form.fullName, 'Full name');
-    const fatherName = requiredText(form.fatherName, 'Father name');
+    const fullName = requiredText(form.fullName, 'Employee name');
     const mobile = validateIndianMobile(form.mobile, 'Mobile number');
     const email = validateEmail(form.email);
     const dob = validateDate(form.dateOfBirth, 'Date of birth', { maxToday: true });
-    const aadhaar = validateAadhaar(form.aadhaarNumber);
-    const pan = validatePan(form.panNumber);
+    const joining = validateDate(form.joiningDate, 'Joining date', { required: true });
+    const aadhaar = validateAadhaar(form.aadhaarNumber, { required: false });
+    const pan = validatePan(form.panNumber, { required: false });
 
     if (fullName) errors.fullName = fullName;
-    if (fatherName) errors.fatherName = fatherName;
     if (mobile) errors.mobile = mobile;
     if (email) errors.email = email;
     if (dob) errors.dateOfBirth = dob;
+    if (joining) errors.joiningDate = joining;
+    if (!form.employeeRole?.trim()) errors.employeeRole = 'Role is required';
+    if (!form.category) errors.category = 'Category is required';
+    else if (!CATEGORY_OPTIONS.includes(form.category)) errors.category = 'Select a valid category';
     if (aadhaar) errors.aadhaarNumber = aadhaar;
     if (pan) errors.panNumber = pan;
-    if (form.salary !== '' && form.salary != null) {
-      const salaryNum = Number(form.salary);
-      if (!Number.isFinite(salaryNum) || salaryNum < 0) {
-        errors.salary = 'Salary must be a valid number (0 or more)';
-      }
-    }
-    if (!editingId && !photoFile) errors.photo = 'Coach photo is required';
+    if (!editingId && !photoFile) errors.photo = 'Profile image is required';
     if (!editingId) {
       if (!form.loginUsername?.trim()) errors.loginUsername = 'Username is required';
       if (!form.password) errors.password = 'Password is required';
@@ -171,7 +184,7 @@ export default function EntryCoachesPanel() {
       setItems(coaches);
       setPagination((prev) => ({ ...prev, ...p }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load coaches');
+      setError(err.response?.data?.message || 'Failed to load employees');
     } finally {
       setLoading(false);
     }
@@ -192,21 +205,18 @@ export default function EntryCoachesPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit]);
 
-  if (!canView) return <AccessDenied />;
-
   const openCreate = () => {
     if (!canCreate) return;
     setEditingId(null);
     setForm(EMPTY);
     setFieldErrors({});
     setPhotoFile(null);
-    setCertificateFiles([]);
     setPhotoPreview('');
     setModalOpen(true);
   };
 
   const openEdit = async (id) => {
-    if (!canEdit) return;
+    if (!canView) return;
     try {
       const res = await entryService.coaches.getOne(id);
       const coach = res.data.data.coach;
@@ -215,52 +225,49 @@ export default function EntryCoachesPanel() {
       setForm({
         ...EMPTY,
         fullName: coach.fullName || '',
-        fatherName: coach.fatherName || '',
         mobile: coach.mobile || '',
         email: coach.email || '',
-        dateOfBirth: coach.dateOfBirth ? coach.dateOfBirth.slice(0, 10) : '',
-        address: coach.address || '',
-        experienceYears: coach.experienceYears ?? '',
-        specialization: coach.specialization || '',
-        designation: coach.designation || '',
-        qualification: coach.qualification || '',
-        salary: coach.salary ?? '',
-        joiningDate: coach.joiningDate ? coach.joiningDate.slice(0, 10) : '',
-        status: coach.status || 'Active',
+        dateOfBirth: coach.dateOfBirth ? String(coach.dateOfBirth).slice(0, 10) : '',
+        gender: coach.gender || '',
         aadhaarNumber: coach.aadhaarNumber || '',
         panNumber: coach.panNumber || '',
-        achievements: coach.achievements || '',
-        biography: coach.biography || '',
-        showOnWebsite: Boolean(coach.showOnWebsite),
-        websiteOrder: coach.websiteOrder ?? 0,
+        joiningDate: coach.joiningDate ? String(coach.joiningDate).slice(0, 10) : '',
+        employeeRole: coach.employeeRole || '',
+        category: coach.category || '',
+        status: coach.status || 'Active',
         loginUsername: coach.username || coach.loginAccount?.username || '',
         password: '',
         confirmPassword: '',
-        biometricUserId: coach.biometricUserId || '',
       });
-
       setPhotoFile(null);
-      setCertificateFiles([]);
       setPhotoPreview(coach.photo ? mediaUrl(coach.photo) : '');
-
       setModalOpen(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to load coach');
+      toast.error(err.response?.data?.message || 'Failed to load employee');
     }
   };
 
+  useEffect(() => {
+    if (!canView || !focusId) return;
+    openEdit(focusId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusToken, canView]);
+
+  if (!canView) return <AccessDenied />;
+
   const handleSave = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (editingId && !canEdit) {
-      toast.error('You do not have permission to edit coaches');
+      toast.error('You do not have permission to edit employees');
       return;
     }
     if (!editingId && !canCreate) {
-      toast.error('You do not have permission to create coaches');
+      toast.error('You do not have permission to create employees');
       return;
     }
-    if ((photoFile || certificateFiles.length > 0) && !canAttachFiles) {
-      toast.error('You do not have permission to upload coach files');
+    if (photoFile && !canAttachFiles) {
+      toast.error('You do not have permission to upload employee files');
       return;
     }
     const errors = validateCoachForm();
@@ -268,12 +275,15 @@ export default function EntryCoachesPanel() {
     if (Object.keys(errors).length > 0) {
       const message = firstErrorMessage(errors, [
         'fullName',
-        'fatherName',
         'mobile',
         'email',
         'dateOfBirth',
+        'gender',
         'aadhaarNumber',
         'panNumber',
+        'joiningDate',
+        'employeeRole',
+        'category',
         'loginUsername',
         'password',
         'confirmPassword',
@@ -287,28 +297,18 @@ export default function EntryCoachesPanel() {
 
     const payload = {
       fullName: form.fullName.trim(),
-      fatherName: form.fatherName.trim(),
       mobile: normalizeMobile(form.mobile),
       email: form.email || undefined,
       dateOfBirth: form.dateOfBirth,
-      address: form.address || undefined,
-      experienceYears: form.experienceYears || undefined,
-      specialization: form.specialization || undefined,
-      designation: form.designation?.trim() || undefined,
-      qualification: form.qualification || undefined,
-      salary: form.salary === '' || form.salary == null ? undefined : Number(form.salary),
-      joiningDate: form.joiningDate || undefined,
+      gender: form.gender || undefined,
+      aadhaarNumber: normalizeAadhaar(form.aadhaarNumber) || '',
+      panNumber: normalizePan(form.panNumber) || '',
+      joiningDate: form.joiningDate,
+      employeeRole: form.employeeRole.trim(),
+      category: form.category,
       status: form.status,
-      aadhaarNumber: normalizeAadhaar(form.aadhaarNumber),
-      panNumber: normalizePan(form.panNumber),
-      achievements: form.achievements || undefined,
-      biography: form.biography || undefined,
-      showOnWebsite: Boolean(form.showOnWebsite),
-      websiteOrder: Number(form.websiteOrder) || 0,
       loginUsername: form.loginUsername?.trim() || undefined,
-      ...(form.password
-        ? { password: form.password, confirmPassword: form.confirmPassword }
-        : {}),
+      ...(form.password ? { password: form.password, confirmPassword: form.confirmPassword } : {}),
     };
 
     setSaving(true);
@@ -316,30 +316,13 @@ export default function EntryCoachesPanel() {
       if (editingId) {
         await entryService.coaches.update(editingId, payload, {
           photo: photoFile || undefined,
-          certificates: certificateFiles?.length ? certificateFiles : undefined,
         });
-        try {
-          await biometricService.setCoachBiometric(editingId, form.biometricUserId.trim() || null);
-        } catch (bioErr) {
-          toast.error(getApiErrorMessage(bioErr, 'Coach saved but biometric ID failed'));
-          setSaving(false);
-          return;
-        }
-        toast.success('Coach updated');
+        toast.success('Employee updated');
       } else {
-        const created = await entryService.coaches.create(payload, {
+        await entryService.coaches.create(payload, {
           photo: photoFile,
-          certificates: certificateFiles?.length ? certificateFiles : undefined,
         });
-        const newId = created.data?.data?.coach?.id;
-        if (newId && form.biometricUserId.trim()) {
-          try {
-            await biometricService.setCoachBiometric(newId, form.biometricUserId.trim());
-          } catch (bioErr) {
-            toast.error(getApiErrorMessage(bioErr, 'Coach created but biometric ID failed'));
-          }
-        }
-        toast.success('Coach created');
+        toast.success('Employee created');
       }
 
       clearPublicCache('coaches');
@@ -347,7 +330,7 @@ export default function EntryCoachesPanel() {
       setEditingId(null);
       setFieldErrors({});
       await fetchStats();
-      fetchList(pagination.page);
+      await fetchList(editingId ? pagination.page : 1);
     } catch (err) {
       const msg = getApiErrorMessage(err, 'Save failed');
       setValidationPopup({ open: true, title: 'Save failed', message: msg });
@@ -359,23 +342,43 @@ export default function EntryCoachesPanel() {
 
   const handleDelete = async () => {
     if (!canDelete) {
-      toast.error('You do not have permission to delete coaches');
+      toast.error('You do not have permission to delete employees');
       return;
     }
     const deleteId = confirm.id;
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await entryService.coaches.remove(deleteId);
-      setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
-      clearPublicCache('coaches');
-      toast.success('Coach deleted');
+      setItems((prev) => prev.filter((item) => item.id !== deleteId));
+      toast.success('Employee deleted');
       setConfirm({ open: false, id: null, loading: false });
+      clearPublicCache('coaches');
       await fetchStats();
       await fetchList(pagination.page);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Delete failed'));
       setConfirm((s) => ({ ...s, loading: false }));
       fetchList(pagination.page);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!canExport) {
+      toast.error('You do not have permission to export employees');
+      return;
+    }
+    setExporting(true);
+    try {
+      const res = await entryService.coaches.exportRecords({
+        format: 'xlsx',
+        search: search.trim(),
+        status: status !== 'all' ? status : undefined,
+      });
+      triggerBlobDownload(res.data, `employees-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      toast.error((await parseBlobError(err)) || 'Export failed');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -389,51 +392,30 @@ export default function EntryCoachesPanel() {
     }
   };
 
-  const handleExport = async () => {
-    if (!canExport) {
-      toast.error('You do not have permission to export coaches');
-      return;
-    }
-    setExporting(true);
-    try {
-      const res = await entryService.coaches.exportRecords({
-        format: 'xlsx',
-        search: search.trim(),
-        status: status !== 'all' ? status : undefined,
-      });
-      triggerBlobDownload(res.data, `coaches-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success('Export downloaded');
-    } catch (err) {
-      toast.error(await parseBlobError(err));
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Coaches</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Employees</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalCoaches ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Active Coaches</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Active Employees</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.activeCoaches ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Inactive Coaches</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Inactive Employees</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.inactiveCoaches ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Suspended Coaches</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Suspended</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.suspendedCoaches ?? 0}</p>
         </div>
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search coaches..." />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search employees..." />
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -455,7 +437,7 @@ export default function EntryCoachesPanel() {
           ) : null}
           {canCreate ? (
             <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-              <FaPlus /> Add Coach
+              <FaPlus /> Add Employee
             </Button>
           ) : null}
         </div>
@@ -471,17 +453,16 @@ export default function EntryCoachesPanel() {
         ) : error ? (
           <p className="p-6 text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted">No coaches found.</p>
+          <p className="p-8 text-center text-sm text-muted">No employees found.</p>
         ) : (
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-muted">
               <tr>
-                <th className="px-4 py-3">Photo</th>
-                <th className="px-4 py-3">Coach ID</th>
-                <th className="px-4 py-3">Coach</th>
-                <th className="px-4 py-3">Username</th>
-                <th className="px-4 py-3">Account Status</th>
-                <th className="px-4 py-3">Attendance</th>
+                <th className="px-4 py-3">Employee</th>
+                <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Joining Date</th>
+                <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -489,33 +470,42 @@ export default function EntryCoachesPanel() {
               {items.map((c) => (
                 <tr key={c.id} className="border-t border-slate-50 align-top">
                   <td className="px-4 py-3">
-                    <img src={mediaUrl(c.photo)} alt="" className="h-12 w-12 rounded-xl object-cover bg-slate-50" />
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={mediaUrl(c.photo)}
+                        alt=""
+                        className="h-11 w-11 rounded-xl object-cover bg-slate-50"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink">{c.fullName}</p>
+                        <p className="text-xs text-muted">{c.coachCode}</p>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-muted whitespace-nowrap">{c.coachCode}</td>
+                  <td className="px-4 py-3 text-ink">{c.employeeRole || '—'}</td>
+                  <td className="px-4 py-3 text-ink">{c.category || '—'}</td>
+                  <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDisplayDate(c.joiningDate)}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{c.fullName}</p>
-                    <p className="text-xs text-muted">{c.mobile}</p>
+                    <p className="text-ink">{c.mobile || '—'}</p>
+                    <p className="text-xs text-muted">{c.email || ''}</p>
                   </td>
-                  <td className="px-4 py-3 text-muted">{c.username || c.loginAccount?.username || 0}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        (c.accountStatus || c.status) === 'Active'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {c.accountStatus || c.status || 0}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-ink">{c.attendancePercentage ?? 0}%</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button type="button" onClick={() => openProfile(c.id)} className="rounded-lg p-2 text-brand hover:bg-brand/10">
+                      <button
+                        type="button"
+                        onClick={() => openProfile(c.id)}
+                        className="rounded-lg p-2 text-brand hover:bg-brand/10"
+                        title="View"
+                      >
                         <FaEye />
                       </button>
                       {canEdit ? (
-                        <button type="button" onClick={() => openEdit(c.id)} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(c.id)}
+                          className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"
+                          title="Edit"
+                        >
                           <FaEdit />
                         </button>
                       ) : null}
@@ -542,6 +532,7 @@ export default function EntryCoachesPanel() {
                           type="button"
                           onClick={() => setConfirm({ open: true, id: c.id, loading: false })}
                           className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                          title="Delete"
                         >
                           <FaTrash />
                         </button>
@@ -571,88 +562,237 @@ export default function EntryCoachesPanel() {
             noValidate
           >
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-bold text-ink">{editingId ? 'Edit Coach' : 'Add Coach'}</h3>
+              <h3 className="text-lg font-bold text-ink">{editingId ? 'Edit Employee' : 'Add Employee'}</h3>
               <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl p-2 text-muted hover:text-ink">
                 &times;
               </button>
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-medium text-ink sm:col-span-2">
-                Full Name *
-                <input id="coach-fullName" value={form.fullName} onChange={(e) => updateField('fullName', e.target.value)} className={fieldClass(fieldErrors, 'fullName')} />
-                {fieldErrors.fullName ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.fullName}</span> : null}
-              </label>
-              <label className="block text-sm font-medium text-ink">
-                Father Name *
-                <input id="coach-fatherName" value={form.fatherName} onChange={(e) => updateField('fatherName', e.target.value)} className={fieldClass(fieldErrors, 'fatherName')} />
-                {fieldErrors.fatherName ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.fatherName}</span> : null}
-              </label>
-              <label className="block text-sm font-medium text-ink">
-                Mobile *
-                <input
-                  id="coach-mobile"
-                  inputMode="numeric"
-                  value={form.mobile}
-                  onChange={(e) => updateField('mobile', normalizeMobile(e.target.value))}
-                  maxLength={10}
-                  className={fieldClass(fieldErrors, 'mobile')}
-                  placeholder="10-digit mobile"
-                />
-                {fieldErrors.mobile ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.mobile}</span> : null}
-              </label>
-              <label className="block text-sm font-medium text-ink sm:col-span-2">
-                Email
-                <input id="coach-email" type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} className={fieldClass(fieldErrors, 'email')} />
-                {fieldErrors.email ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.email}</span> : null}
-              </label>
-              <label className="block text-sm font-medium text-ink sm:col-span-2">
-                Date of Birth *
-                <input id="coach-dateOfBirth" type="date" value={form.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)} className={fieldClass(fieldErrors, 'dateOfBirth')} />
-                {fieldErrors.dateOfBirth ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.dateOfBirth}</span> : null}
-              </label>
+            <div className="mt-5 space-y-6">
+              <section>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Basic Information</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-ink sm:col-span-2">
+                    Employee Name *
+                    <input
+                      id="coach-fullName"
+                      value={form.fullName}
+                      onChange={(e) => updateField('fullName', e.target.value)}
+                      className={fieldClass(fieldErrors, 'fullName')}
+                    />
+                    {fieldErrors.fullName ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.fullName}</span>
+                    ) : null}
+                  </label>
 
-              <label className="block text-sm font-medium text-ink">
-                Aadhaar Number *
-                <input
-                  id="coach-aadhaarNumber"
-                  inputMode="numeric"
-                  value={form.aadhaarNumber}
-                  onChange={(e) => updateField('aadhaarNumber', normalizeAadhaar(e.target.value))}
-                  maxLength={12}
-                  className={fieldClass(fieldErrors, 'aadhaarNumber')}
-                  placeholder="12-digit Aadhaar"
-                />
-                {fieldErrors.aadhaarNumber ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.aadhaarNumber}</span> : null}
-              </label>
-              <label className="block text-sm font-medium text-ink">
-                PAN Number *
-                <input
-                  id="coach-panNumber"
-                  value={form.panNumber}
-                  onChange={(e) => updateField('panNumber', normalizePan(e.target.value))}
-                  maxLength={10}
-                  className={`${fieldClass(fieldErrors, 'panNumber')} uppercase`}
-                  placeholder="ABCDE1234F"
-                />
-                {fieldErrors.panNumber ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.panNumber}</span> : null}
-              </label>
+                  <div className="sm:col-span-2">
+                    <p className="text-sm font-medium text-ink">Profile Image {!editingId ? '*' : ''}</p>
+                    <ImageUploader
+                      previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
+                      onChange={(f) => {
+                        if (!canAttachFiles) {
+                          toast.error('You do not have permission to upload employee files');
+                          return;
+                        }
+                        setPhotoFile(f);
+                        setPhotoPreview(URL.createObjectURL(f));
+                        if (fieldErrors.photo) {
+                          setFieldErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.photo;
+                            return next;
+                          });
+                        }
+                      }}
+                      onClear={() => {
+                        setPhotoFile(null);
+                        setPhotoPreview('');
+                      }}
+                      label="Upload employee photo (JPG/PNG/WEBP)"
+                    />
+                    {fieldErrors.photo ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.photo}</span>
+                    ) : null}
+                  </div>
 
-              <label className="block text-sm font-medium text-ink">
-                Status
-                <select value={form.status} onChange={(e) => updateField('status', e.target.value)} className={fieldClass(fieldErrors, 'status')}>
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
+                  <label className="block text-sm font-medium text-ink">
+                    Mobile Number *
+                    <input
+                      id="coach-mobile"
+                      inputMode="numeric"
+                      value={form.mobile}
+                      onChange={(e) => updateField('mobile', normalizeMobile(e.target.value))}
+                      maxLength={10}
+                      className={fieldClass(fieldErrors, 'mobile')}
+                      placeholder="10-digit mobile"
+                    />
+                    {fieldErrors.mobile ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.mobile}</span>
+                    ) : null}
+                  </label>
 
-              <div className="sm:col-span-2 rounded-xl border border-brand/20 bg-brand/5 p-4">
+                  <label className="block text-sm font-medium text-ink">
+                    Email
+                    <input
+                      id="coach-email"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => updateField('email', e.target.value)}
+                      className={fieldClass(fieldErrors, 'email')}
+                    />
+                    {fieldErrors.email ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.email}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block text-sm font-medium text-ink">
+                    Date of Birth *
+                    <input
+                      id="coach-dateOfBirth"
+                      type="date"
+                      value={form.dateOfBirth}
+                      onChange={(e) => updateField('dateOfBirth', e.target.value)}
+                      className={fieldClass(fieldErrors, 'dateOfBirth')}
+                    />
+                    {fieldErrors.dateOfBirth ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.dateOfBirth}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block text-sm font-medium text-ink">
+                    Gender
+                    <select
+                      id="coach-gender"
+                      value={form.gender}
+                      onChange={(e) => updateField('gender', e.target.value)}
+                      className={fieldClass(fieldErrors, 'gender')}
+                    >
+                      <option value="">Select gender</option>
+                      {GENDER_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Identity Information</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-ink">
+                    Aadhaar <span className="font-normal text-muted">(Optional)</span>
+                    <input
+                      id="coach-aadhaarNumber"
+                      inputMode="numeric"
+                      value={form.aadhaarNumber}
+                      onChange={(e) => updateField('aadhaarNumber', normalizeAadhaar(e.target.value))}
+                      maxLength={12}
+                      className={fieldClass(fieldErrors, 'aadhaarNumber')}
+                      placeholder="12-digit Aadhaar"
+                    />
+                    {fieldErrors.aadhaarNumber ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.aadhaarNumber}</span>
+                    ) : null}
+                  </label>
+                  <label className="block text-sm font-medium text-ink">
+                    PAN <span className="font-normal text-muted">(Optional)</span>
+                    <input
+                      id="coach-panNumber"
+                      value={form.panNumber}
+                      onChange={(e) => updateField('panNumber', normalizePan(e.target.value))}
+                      maxLength={10}
+                      className={`${fieldClass(fieldErrors, 'panNumber')} uppercase`}
+                      placeholder="ABCDE1234F"
+                    />
+                    {fieldErrors.panNumber ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.panNumber}</span>
+                    ) : null}
+                  </label>
+                </div>
+              </section>
+
+              <section>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Employment Information</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-ink">
+                    Joining Date *
+                    <input
+                      id="coach-joiningDate"
+                      type="date"
+                      value={form.joiningDate}
+                      onChange={(e) => updateField('joiningDate', e.target.value)}
+                      className={fieldClass(fieldErrors, 'joiningDate')}
+                    />
+                    {fieldErrors.joiningDate ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.joiningDate}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block text-sm font-medium text-ink">
+                    Role *
+                    <select
+                      id="coach-employeeRole"
+                      value={form.employeeRole}
+                      onChange={(e) => updateField('employeeRole', e.target.value)}
+                      className={fieldClass(fieldErrors, 'employeeRole')}
+                    >
+                      <option value="">Select role</option>
+                      {ROLE_OPTIONS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors.employeeRole ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.employeeRole}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block text-sm font-medium text-ink">
+                    Category *
+                    <select
+                      id="coach-category"
+                      value={form.category}
+                      onChange={(e) => updateField('category', e.target.value)}
+                      className={fieldClass(fieldErrors, 'category')}
+                    >
+                      <option value="">Select category</option>
+                      {CATEGORY_OPTIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors.category ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.category}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block text-sm font-medium text-ink">
+                    Status
+                    <select
+                      value={form.status}
+                      onChange={(e) => updateField('status', e.target.value)}
+                      className={fieldClass(fieldErrors, 'status')}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-brand/20 bg-brand/5 p-4">
                 <h4 className="text-sm font-bold text-ink">Login Credentials</h4>
                 <p className="mt-1 text-xs text-muted">
                   {editingId
-                    ? 'Leave password blank to keep the current password. Existing password is never shown.'
-                    : 'Coach uses this username and password to login to the Coach Dashboard.'}
+                    ? 'Leave password blank to keep the current password.'
+                    : 'Employee uses this username and password for the employee portal login.'}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-medium text-ink sm:col-span-2">
@@ -678,9 +818,11 @@ export default function EntryCoachesPanel() {
                       value={form.password}
                       onChange={(e) => updateField('password', e.target.value)}
                       className={fieldClass(fieldErrors, 'password')}
-                      placeholder={editingId ? 'Leave blank to keep current password' : 'Min 8 chars'}
+                      placeholder={editingId ? 'Leave blank to keep' : 'Min 8 chars'}
                     />
-                    {fieldErrors.password ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.password}</span> : null}
+                    {fieldErrors.password ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.password}</span>
+                    ) : null}
                   </label>
                   <label className="block text-sm font-medium text-ink">
                     Confirm Password {!editingId ? '*' : ''}
@@ -697,161 +839,15 @@ export default function EntryCoachesPanel() {
                     ) : null}
                   </label>
                 </div>
-                {editingId && canResetPassword ? (
-                  <button
-                    type="button"
-                    className="mt-3 text-sm font-semibold text-brand hover:underline"
-                    onClick={() =>
-                      setResetModal({
-                        open: true,
-                        coach: { id: editingId, fullName: form.fullName },
-                        password: '',
-                        confirmPassword: '',
-                        loading: false,
-                      })
-                    }
-                  >
-                    Reset Password…
-                  </button>
-                ) : null}
-              </div>
-
-              <label className="block text-sm font-medium text-ink">
-                Specialization
-                <input value={form.specialization} onChange={(e) => updateField('specialization', e.target.value)} className={fieldClass(fieldErrors, 'specialization')} />
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
-                Website Designation
-                <input
-                  value={form.designation}
-                  onChange={(e) => updateField('designation', e.target.value)}
-                  className={fieldClass(fieldErrors, 'designation')}
-                  placeholder="e.g. Head Coach"
-                />
-              </label>
-
-              <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                <input
-                  type="checkbox"
-                  checked={form.showOnWebsite}
-                  onChange={(e) => updateField('showOnWebsite', e.target.checked)}
-                />
-                Show on website
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
-                Website Order
-                <input
-                  type="number"
-                  value={form.websiteOrder}
-                  onChange={(e) => updateField('websiteOrder', Number(e.target.value) || 0)}
-                  className={fieldClass(fieldErrors, 'websiteOrder')}
-                />
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
-                Salary (₹)
-                <input
-                  id="coach-salary"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.salary}
-                  onChange={(e) => updateField('salary', e.target.value)}
-                  className={fieldClass(fieldErrors, 'salary')}
-                  placeholder="e.g. 15000"
-                />
-                {fieldErrors.salary ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.salary}</span> : null}
-              </label>
-
-              <label className="block text-sm font-medium text-ink sm:col-span-2">
-                Biometric Enrollment
-                <span className="mt-0.5 block text-xs font-normal text-muted">
-                  Assign the device user ID used on the fingerprint machine (must be unique across students and coaches).
-                </span>
-                <div className="mt-2 flex flex-wrap items-end gap-2">
-                  <input
-                    value={form.biometricUserId}
-                    onChange={(e) => updateField('biometricUserId', e.target.value)}
-                    className={`${fieldClass(fieldErrors, 'biometricUserId')} max-w-xs`}
-                    placeholder="e.g. 501"
-                  />
-                  {editingId ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="rounded-lg"
-                      onClick={async () => {
-                        try {
-                          await biometricService.setCoachBiometric(editingId, form.biometricUserId.trim() || null);
-                          toast.success('Biometric ID saved');
-                        } catch (err) {
-                          toast.error(getApiErrorMessage(err, 'Failed to save biometric ID'));
-                        }
-                      }}
-                    >
-                      Enroll Biometric
-                    </Button>
-                  ) : null}
-                </div>
-              </label>
-
-              <div className="sm:col-span-2">
-                <p className="text-sm font-medium text-ink">Coach Photo {!editingId ? '*' : ''}</p>
-                <ImageUploader
-                  previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
-                  onChange={(f) => {
-                    if (!canAttachFiles) {
-                      toast.error('You do not have permission to upload coach files');
-                      return;
-                    }
-                    setPhotoFile(f);
-                    setPhotoPreview(URL.createObjectURL(f));
-                    if (fieldErrors.photo) {
-                      setFieldErrors((prev) => {
-                        const next = { ...prev };
-                        delete next.photo;
-                        return next;
-                      });
-                    }
-                  }}
-                  onClear={() => {
-                    setPhotoFile(null);
-                    setPhotoPreview('');
-                  }}
-                  label="Upload coach photo (JPG/PNG/WEBP)"
-                />
-                {fieldErrors.photo ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.photo}</span> : null}
-              </div>
-
-              <label className="block text-sm font-medium text-ink sm:col-span-2">
-                Certificates (Optional)
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  multiple
-                  onChange={(e) => {
-                    if (!canAttachFiles) {
-                      toast.error('You do not have permission to upload coach files');
-                      return;
-                    }
-                    setCertificateFiles([...((e.target.files && Array.from(e.target.files)) || [])]);
-                  }}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
-                />
-                {certificateFiles.length ? (
-                  <p className="mt-1 text-xs text-muted">{certificateFiles.length} file(s) selected</p>
-                ) : null}
-              </label>
+              </section>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+              <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
                 Cancel
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : editingId ? 'Update Coach' : 'Create Coach'}
+                {saving ? 'Saving...' : editingId ? 'Update Employee' : 'Create Employee'}
               </Button>
             </div>
           </form>
@@ -860,8 +856,8 @@ export default function EntryCoachesPanel() {
 
       <ConfirmDialog
         open={confirm.open}
-        title="Are you sure you want to delete this?"
-        message="This will permanently delete the coach record and documents."
+        title="Delete employee?"
+        message="This will permanently delete the employee record and documents."
         confirmLabel="Delete"
         danger
         loading={confirm.loading}
@@ -886,7 +882,7 @@ export default function EntryCoachesPanel() {
                   password: resetModal.password,
                   confirmPassword: resetModal.confirmPassword,
                 });
-                toast.success('Coach password reset successfully');
+                toast.success('Employee password reset successfully');
                 setResetModal({ open: false, coach: null, password: '', confirmPassword: '', loading: false });
               } catch (err) {
                 toast.error(getApiErrorMessage(err, 'Reset failed'));
@@ -894,34 +890,35 @@ export default function EntryCoachesPanel() {
               }
             }}
           >
-            <h3 className="text-lg font-bold text-ink">Reset Coach Password</h3>
-            <p className="mt-1 text-sm text-muted">Coach: {resetModal.coach?.fullName || 0}</p>
-            <p className="mt-2 text-xs text-muted">Existing password cannot be viewed. Set a new password below.</p>
-            <label className="mt-4 block text-sm font-medium">
-              New Password
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={resetModal.password}
-                onChange={(e) => setResetModal((s) => ({ ...s, password: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="mt-3 block text-sm font-medium">
-              Confirm Password
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={resetModal.confirmPassword}
-                onChange={(e) => setResetModal((s) => ({ ...s, confirmPassword: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
-            </label>
+            <h3 className="text-lg font-bold text-ink">Reset Employee Password</h3>
+            <p className="mt-1 text-sm text-muted">Employee: {resetModal.coach?.fullName || '—'}</p>
+            <div className="mt-4 space-y-3">
+              <label className="block text-sm font-medium">
+                New Password
+                <input
+                  type="password"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                  value={resetModal.password}
+                  onChange={(e) => setResetModal((s) => ({ ...s, password: e.target.value }))}
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                Confirm Password
+                <input
+                  type="password"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
+                  value={resetModal.confirmPassword}
+                  onChange={(e) => setResetModal((s) => ({ ...s, confirmPassword: e.target.value }))}
+                />
+              </label>
+            </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setResetModal({ open: false, coach: null, password: '', confirmPassword: '', loading: false })}
+                onClick={() =>
+                  setResetModal({ open: false, coach: null, password: '', confirmPassword: '', loading: false })
+                }
               >
                 Cancel
               </Button>
@@ -933,18 +930,22 @@ export default function EntryCoachesPanel() {
         </div>
       ) : null}
 
+      {profileOpen ? (
+        <EntryCoachProfileModal
+          coach={profile}
+          onClose={() => {
+            setProfileOpen(false);
+            setProfile(null);
+          }}
+        />
+      ) : null}
+
       <ValidationPopup
         open={validationPopup.open}
         title={validationPopup.title}
         message={validationPopup.message}
         onClose={() => setValidationPopup({ open: false, title: '', message: '' })}
       />
-
-      {profileOpen ? (
-        <EntryCoachProfileModal coach={profile} onClose={() => setProfileOpen(false)} />
-      ) : null}
     </div>
   );
 }
-
-

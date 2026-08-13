@@ -10,8 +10,7 @@ import { financeService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { inr, feeStatusClass, MONTHS, currentMonthYear } from '../../utils/financeUi';
-import { toPagination } from '../../utils/financePagination';
+import { inr, feeStatusClass, MONTHS, currentMonthYear, FEE_CATEGORIES, feeCategoryLabel } from '../../utils/financeUi';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -35,16 +34,24 @@ export default function StudentFeesPanel() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
 
   const [editModal, setEditModal] = useState({ open: false, student: null, saving: false });
-  const [defaults, setDefaults] = useState({ monthlyFee: '', admissionFee: '', defaultDiscount: '' });
+  const [defaults, setDefaults] = useState({
+    monthlyFee: '',
+    hostelFee: '',
+    otherFee: '',
+    admissionFee: '',
+    defaultDiscount: '',
+  });
 
   const [historyModal, setHistoryModal] = useState({ open: false, student: null, loading: false, rows: [] });
 
   const cy = currentMonthYear();
   const [genOpen, setGenOpen] = useState(false);
   const [genForm, setGenForm] = useState({
+    category: 'Monthly',
     month: cy.month,
     year: cy.year,
     feeAmount: '',
+    title: '',
     saveAsStudentDefault: true,
   });
   const [genSaving, setGenSaving] = useState(false);
@@ -95,6 +102,8 @@ export default function StudentFeesPanel() {
     if (!canEdit) return;
     setDefaults({
       monthlyFee: student.monthlyFee ?? '',
+      hostelFee: student.hostelFee ?? '',
+      otherFee: student.otherFee ?? '',
       admissionFee: student.admissionFee ?? '',
       defaultDiscount: student.defaultDiscount ?? '',
     });
@@ -108,6 +117,8 @@ export default function StudentFeesPanel() {
     try {
       await financeService.updateStudentDefaults(editModal.student.id || editModal.student._id, {
         monthlyFee: Number(defaults.monthlyFee) || 0,
+        hostelFee: Number(defaults.hostelFee) || 0,
+        otherFee: Number(defaults.otherFee) || 0,
         admissionFee: Number(defaults.admissionFee) || 0,
         defaultDiscount: Number(defaults.defaultDiscount) || 0,
       });
@@ -135,22 +146,24 @@ export default function StudentFeesPanel() {
     e.preventDefault();
     if (!canCreate) return;
     if (genForm.feeAmount === '' || Number(genForm.feeAmount) <= 0) {
-      toast.error('Enter Monthly Fee amount (e.g. 2000), or set fee per student via Set Fee first');
+      toast.error(`Enter ${feeCategoryLabel(genForm.category)} amount, or set fee per student via Set Fee first`);
       return;
     }
     setGenSaving(true);
     try {
       const res = await financeService.generateMonthly({
+        category: genForm.category,
         month: Number(genForm.month),
         year: Number(genForm.year),
         feeAmount: Number(genForm.feeAmount),
+        title: genForm.title || undefined,
         saveAsStudentDefault: Boolean(genForm.saveAsStudentDefault),
       });
-      toast.success(res.data.message || 'Monthly fees generated');
+      toast.success(res.data.message || `${feeCategoryLabel(genForm.category)} generated`);
       setGenOpen(false);
       fetchList(pagination.page);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to generate monthly fees'));
+      toast.error(getApiErrorMessage(err, 'Failed to generate fees'));
     } finally {
       setGenSaving(false);
     }
@@ -167,8 +180,21 @@ export default function StudentFeesPanel() {
           placeholder="Search name, reg no, mobile…"
         />
         {canCreate && (
-          <Button className="rounded-lg text-sm" onClick={() => setGenOpen(true)}>
-            <FaPlus size={12} /> Generate Monthly Fees
+          <Button
+            className="rounded-lg text-sm"
+            onClick={() => {
+              setGenForm({
+                category: 'Monthly',
+                month: cy.month,
+                year: cy.year,
+                feeAmount: '',
+                title: '',
+                saveAsStudentDefault: true,
+              });
+              setGenOpen(true);
+            }}
+          >
+            <FaPlus size={12} /> Generate Fees
           </Button>
         )}
       </div>
@@ -183,8 +209,10 @@ export default function StudentFeesPanel() {
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-muted">
             <tr>
-              <th className="px-4 py-3 font-semibold">Student</th>
-              <th className="px-4 py-3 font-semibold">Monthly fee</th>
+              <th className="px-4 py-3 font-semibold">Player</th>
+              <th className="px-4 py-3 font-semibold">Monthly</th>
+              <th className="px-4 py-3 font-semibold">Hostel</th>
+              <th className="px-4 py-3 font-semibold">Other</th>
               <th className="px-4 py-3 font-semibold">Current due</th>
               <th className="px-4 py-3 font-semibold">Total paid</th>
               <th className="px-4 py-3 font-semibold">Status</th>
@@ -194,13 +222,13 @@ export default function StudentFeesPanel() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                <td colSpan={8} className="px-4 py-10 text-center text-muted">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                <td colSpan={8} className="px-4 py-10 text-center text-muted">
                   No students found
                 </td>
               </tr>
@@ -227,6 +255,8 @@ export default function StudentFeesPanel() {
                     </div>
                   </td>
                   <td className="px-4 py-3 tabular-nums">{inr(s.monthlyFee)}</td>
+                  <td className="px-4 py-3 tabular-nums">{inr(s.hostelFee)}</td>
+                  <td className="px-4 py-3 tabular-nums">{inr(s.otherFee)}</td>
                   <td className="px-4 py-3 tabular-nums">{inr(s.currentDue)}</td>
                   <td className="px-4 py-3 tabular-nums">{inr(s.totalPaid)}</td>
                   <td className="px-4 py-3">
@@ -275,13 +305,13 @@ export default function StudentFeesPanel() {
             onSubmit={saveDefaults}
             className="w-full max-w-md rounded-xl border border-slate-100 bg-white p-6 shadow-xl"
           >
-            <h3 className="text-lg font-bold text-ink">Set Fee</h3>
+            <h3 className="text-lg font-bold text-ink">Set Fee Defaults</h3>
             <p className="mt-1 text-sm text-muted">
-              {editModal.student?.fullName} — is student ki monthly fee manually set/change karein.
+              {editModal.student?.fullName} — Monthly, Hostel and Other fee defaults.
             </p>
             <div className="mt-4 space-y-3">
               <label className="block text-xs font-medium text-muted">
-                Monthly fee
+                Monthly Fees
                 <input
                   type="number"
                   min="0"
@@ -293,14 +323,25 @@ export default function StudentFeesPanel() {
                 />
               </label>
               <label className="block text-xs font-medium text-muted">
-                Admission fee
+                Hostel Fees
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   className={`mt-1 ${inputClass}`}
-                  value={defaults.admissionFee}
-                  onChange={(e) => setDefaults((d) => ({ ...d, admissionFee: e.target.value }))}
+                  value={defaults.hostelFee}
+                  onChange={(e) => setDefaults((d) => ({ ...d, hostelFee: e.target.value }))}
+                />
+              </label>
+              <label className="block text-xs font-medium text-muted">
+                Other Fees
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={`mt-1 ${inputClass}`}
+                  value={defaults.otherFee}
+                  onChange={(e) => setDefaults((d) => ({ ...d, otherFee: e.target.value }))}
                 />
               </label>
               <label className="block text-xs font-medium text-muted">
@@ -359,6 +400,7 @@ export default function StudentFeesPanel() {
                   <thead className="border-b border-slate-100 text-xs uppercase text-muted">
                     <tr>
                       <th className="px-2 py-2">Month</th>
+                      <th className="px-2 py-2">Type</th>
                       <th className="px-2 py-2">Fee</th>
                       <th className="px-2 py-2">Paid</th>
                       <th className="px-2 py-2">Due</th>
@@ -369,6 +411,10 @@ export default function StudentFeesPanel() {
                     {historyModal.rows.map((h) => (
                       <tr key={h.id || h._id} className="border-b border-slate-50">
                         <td className="px-2 py-2">{h.monthLabel}</td>
+                        <td className="px-2 py-2">
+                          {feeCategoryLabel(h.category)}
+                          {h.title ? <span className="block text-[11px] text-muted">{h.title}</span> : null}
+                        </td>
                         <td className="px-2 py-2 tabular-nums">{inr(h.feeAmount)}</td>
                         <td className="px-2 py-2 tabular-nums">{inr(h.paidAmount)}</td>
                         <td className="px-2 py-2 tabular-nums">{inr(h.remainingDue)}</td>
@@ -395,12 +441,25 @@ export default function StudentFeesPanel() {
             onSubmit={handleGenerate}
             className="w-full max-w-md rounded-xl border border-slate-100 bg-white p-6 shadow-xl"
           >
-            <h3 className="text-lg font-bold text-ink">Generate monthly fees</h3>
+            <h3 className="text-lg font-bold text-ink">Generate Fees</h3>
             <p className="mt-1 text-sm text-muted">
-              Enter Monthly Fee here — bills create for all Active students, and fee is saved on each
-              student. Different amount per student? Use <strong>Set Fee</strong> on that row.
+              Create bills for all Active players — Monthly Fees, Hostel Fees, or Other Fees.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
+              <label className="col-span-2 block text-xs font-medium text-muted">
+                Fee type <span className="text-red-500">*</span>
+                <select
+                  className={`mt-1 ${inputClass}`}
+                  value={genForm.category}
+                  onChange={(e) => setGenForm((f) => ({ ...f, category: e.target.value }))}
+                >
+                  {FEE_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="block text-xs font-medium text-muted">
                 Month
                 <select
@@ -427,7 +486,7 @@ export default function StudentFeesPanel() {
                 />
               </label>
               <label className="col-span-2 block text-xs font-medium text-muted">
-                Monthly Fee (₹) <span className="text-red-500">*</span>
+                {feeCategoryLabel(genForm.category)} (₹) <span className="text-red-500">*</span>
                 <input
                   type="number"
                   min="1"
@@ -439,6 +498,17 @@ export default function StudentFeesPanel() {
                   required
                 />
               </label>
+              {genForm.category === 'Other' ? (
+                <label className="col-span-2 block text-xs font-medium text-muted">
+                  Other fee title
+                  <input
+                    className={`mt-1 ${inputClass}`}
+                    value={genForm.title}
+                    onChange={(e) => setGenForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="e.g. Uniform / Kit / Tournament Entry"
+                  />
+                </label>
+              ) : null}
               <label className="col-span-2 flex items-start gap-2 text-xs text-ink">
                 <input
                   type="checkbox"
@@ -449,8 +519,8 @@ export default function StudentFeesPanel() {
                   }
                 />
                 <span>
-                  Save this amount as each student’s Monthly Fee (table me bhi dikhega). Uncheck if you
-                  only want this month’s bill, without changing saved fees.
+                  Save this amount as each player&apos;s {feeCategoryLabel(genForm.category)} default.
+                  Uncheck to bill this month only without changing saved defaults.
                 </span>
               </label>
             </div>

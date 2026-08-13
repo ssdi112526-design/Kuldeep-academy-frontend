@@ -14,6 +14,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Admin = lazy(() => import('./pages/Admin'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const CoachDashboard = lazy(() => import('./pages/CoachDashboard'));
+const ParentDashboard = lazy(() => import('./pages/ParentDashboard'));
 const Terms = lazy(() => import('./pages/Terms'));
 const VideoDetail = lazy(() => import('./pages/VideoDetail'));
 const AttendanceQrLanding = lazy(() => import('./pages/AttendanceQrLanding'));
@@ -36,6 +37,8 @@ export default function App() {
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/student" element={<StudentDashboard />} />
                   <Route path="/student/*" element={<StudentDashboard />} />
+                  <Route path="/parent" element={<ParentDashboard />} />
+                  <Route path="/parent/*" element={<ParentDashboard />} />
                   <Route path="/coach" element={<CoachDashboard />} />
                   <Route path="/coach/*" element={<CoachDashboard />} />
                   <Route path="/terms" element={<Terms />} />

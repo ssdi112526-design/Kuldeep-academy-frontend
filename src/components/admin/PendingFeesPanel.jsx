@@ -12,7 +12,6 @@ import { getApiErrorMessage } from '../../utils/apiError';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { inr, feeStatusClass } from '../../utils/financeUi';
-import { toPagination } from '../../utils/financePagination';
 
 function pagesOf(total, limit) {
   return Math.max(1, Math.ceil((Number(total) || 0) / (Number(limit) || 20)));
@@ -144,6 +143,7 @@ export default function PendingFeesPanel() {
           <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-4 py-3 font-semibold">Student</th>
+              <th className="px-4 py-3 font-semibold">Type</th>
               <th className="px-4 py-3 font-semibold">Month</th>
               <th className="px-4 py-3 font-semibold">Fee</th>
               <th className="px-4 py-3 font-semibold">Paid</th>
@@ -154,13 +154,13 @@ export default function PendingFeesPanel() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                <td colSpan={7} className="px-4 py-10 text-center text-muted">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted">
+                <td colSpan={7} className="px-4 py-10 text-center text-muted">
                   No pending fees
                 </td>
               </tr>
@@ -185,6 +185,12 @@ export default function PendingFeesPanel() {
                         <p className="text-xs text-muted">{r.student?.registrationNumber}</p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {r.categoryLabel ||
+                      (r.category === 'Other' && r.title ? r.title : null) ||
+                      r.category ||
+                      'Monthly Fees'}
                   </td>
                   <td className="px-4 py-3">{r.monthLabel}</td>
                   <td className="px-4 py-3 tabular-nums">{inr(r.feeAmount)}</td>

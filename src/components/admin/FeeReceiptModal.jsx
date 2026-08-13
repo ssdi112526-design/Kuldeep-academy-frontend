@@ -49,6 +49,9 @@ const T = {
     description: 'Description',
     amount: 'Amount',
     monthlyFee: 'Monthly Fee',
+    hostelFee: 'Hostel Fee',
+    otherFee: 'Other Fee',
+    feeType: 'Fee Type',
     previousDue: 'Previous Due',
     discount: 'Discount',
     paidAmount: 'Paid Amount',
@@ -91,6 +94,9 @@ const T = {
     description: 'विवरण',
     amount: 'राशि',
     monthlyFee: 'मासिक शुल्क',
+    hostelFee: 'हॉस्टल शुल्क',
+    otherFee: 'अन्य शुल्क',
+    feeType: 'शुल्क प्रकार',
     previousDue: 'पिछला बकाया',
     discount: 'छूट',
     paidAmount: 'भुगतान राशि',
@@ -165,8 +171,15 @@ export default function FeeReceiptModal({ payment, onClose }) {
     (modeKey === 'UPI' || modeKey === 'BankTransfer') &&
     Boolean(String(payment.transactionReference || '').trim());
 
+  const cat = feeMonth.category || payment.category || 'Monthly';
+  const feeLineKey = cat === 'Hostel' ? 'hostelFee' : cat === 'Other' ? 'otherFee' : 'monthlyFee';
+  const feeLineLabel =
+    cat === 'Other' && feeMonth.title
+      ? feeMonth.title
+      : t[feeLineKey] || t.monthlyFee;
+
   const rows = [
-    { key: 'monthlyFee', amount: payment.feeAmountSnapshot ?? feeMonth.feeAmount },
+    { key: feeLineKey, label: feeLineLabel, amount: payment.feeAmountSnapshot ?? feeMonth.feeAmount },
     { key: 'previousDue', amount: payment.previousDueSnapshot },
     { key: 'discount', amount: payment.discountApplied },
     { key: 'paidAmount', amount: payment.amount, strong: true },
@@ -294,6 +307,18 @@ export default function FeeReceiptModal({ payment, onClose }) {
               <Info label={t.fatherName} value={student.fatherName} />
               <Info label={t.mobile} value={student.mobileNumber} />
               <Info label={t.feeMonth} value={monthLabel} />
+              <Info
+                label={t.feeType}
+                value={
+                  feeMonth.category === 'Other' && feeMonth.title
+                    ? feeMonth.title
+                    : feeMonth.category === 'Hostel'
+                      ? t.hostelFee
+                      : feeMonth.category === 'Other'
+                        ? t.otherFee
+                        : t.monthlyFee
+                }
+              />
             </dl>
           </section>
 
@@ -315,7 +340,7 @@ export default function FeeReceiptModal({ payment, onClose }) {
                     className={`border-b border-slate-100 ${row.strong ? 'bg-[#F8FAFC]' : ''}`}
                   >
                     <td className={`px-3 py-2 ${row.strong ? 'font-bold text-ink' : 'text-slate-700'}`}>
-                      {t[row.key]}
+                      {row.label || t[row.key]}
                     </td>
                     <td
                       className={`px-3 py-2 text-right tabular-nums ${

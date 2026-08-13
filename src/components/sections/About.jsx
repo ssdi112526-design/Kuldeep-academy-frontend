@@ -1,5 +1,6 @@
 ﻿import Reveal from '../ui/Reveal';
-import { images, aboutPillars } from '../../data/akhada';
+import aboutImg from '../../assets/akhada/about-heritage.webp';
+import { aboutPillars } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 
 export default function About() {
@@ -11,11 +12,12 @@ export default function About() {
         <Reveal>
           <div className="relative overflow-hidden rounded-[20px]">
             <img
-              src={images.about}
+              src={aboutImg}
               alt={t('about.imageAlt')}
               width={900}
               height={1100}
               loading="lazy"
+              decoding="async"
               className="aspect-[4/5] w-full object-cover object-center sm:aspect-[5/6]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0C0A09]/50 to-transparent" />

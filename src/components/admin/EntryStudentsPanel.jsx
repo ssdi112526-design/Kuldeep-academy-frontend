@@ -8,7 +8,7 @@ import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { entryService, biometricService } from '../../services';
+import { entryService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
@@ -66,6 +66,8 @@ const EMPTY = {
   chest: '',
   age: '',
   category: '',
+  ageCategory: '',
+  weightCategory: '',
 
   guardianName: '',
   guardianRelation: '',
@@ -80,12 +82,11 @@ const EMPTY = {
   attendanceTotal: 0,
   attendancePresent: 0,
   attendanceAbsent: 0,
-  biometricUserId: '',
   password: '',
   confirmPassword: '',
 };
 
-export default function EntryStudentsPanel() {
+export default function EntryStudentsPanel({ focusId = null, focusToken = null } = {}) {
   const toast = useToast();
   const { can, canModule } = usePermissions();
   const canView = canModule('students');
@@ -134,9 +135,11 @@ export default function EntryStudentsPanel() {
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
 
   const [photoFile, setPhotoFile] = useState(null);
+  const [parentPhotoFile, setParentPhotoFile] = useState(null);
 
   // previews (edit mode)
   const [photoPreview, setPhotoPreview] = useState('');
+  const [parentPhotoPreview, setParentPhotoPreview] = useState('');
 
   const [saving, setSaving] = useState(false);
 
@@ -181,7 +184,7 @@ export default function EntryStudentsPanel() {
     if (pan) errors.panNumber = pan;
     if (joining) errors.joiningDate = joining;
     if (!editingId && !photoFile) {
-      errors.photo = 'Student photo is required';
+      errors.photo = 'Player photo is required';
     }
 
     if (!editingId) {
@@ -237,7 +240,7 @@ export default function EntryStudentsPanel() {
       setItems(students);
       setPagination((prev) => ({ ...prev, ...p }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load students');
+      setError(err.response?.data?.message || 'Failed to load players');
     } finally {
       setLoading(false);
     }
@@ -260,8 +263,6 @@ export default function EntryStudentsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, pagination.limit, filtersKey]);
 
-  if (!canView) return <AccessDenied />;
-
   const openCreate = () => {
     if (!canCreate) return;
     setEditingId(null);
@@ -269,11 +270,13 @@ export default function EntryStudentsPanel() {
     setFieldErrors({});
     setPhotoFile(null);
     setPhotoPreview('');
+    setParentPhotoFile(null);
+    setParentPhotoPreview('');
     setModalOpen(true);
   };
 
   const openEdit = async (id) => {
-    if (!canEdit) return;
+    if (!canView) return;
     setProfileLoading(false);
     try {
       const res = await entryService.students.getOne(id);
@@ -313,6 +316,8 @@ export default function EntryStudentsPanel() {
         chest: student.chest ?? '',
         age: student.age ?? '',
         category: student.category ?? '',
+        ageCategory: student.ageCategory ?? '',
+        weightCategory: student.weightCategory ?? '',
 
         guardianName: student.guardianName ?? '',
         guardianRelation: student.guardianRelation ?? '',
@@ -327,11 +332,14 @@ export default function EntryStudentsPanel() {
         attendanceTotal: student.attendanceTotal ?? 0,
         attendancePresent: student.attendancePresent ?? 0,
         attendanceAbsent: student.attendanceAbsent ?? 0,
-        biometricUserId: student.biometricUserId || '',
+        password: '',
+        confirmPassword: '',
       });
 
       setPhotoFile(null);
       setPhotoPreview(student.photo ? mediaUrl(student.photo) : '');
+      setParentPhotoFile(null);
+      setParentPhotoPreview(student.parentPhoto ? mediaUrl(student.parentPhoto) : '');
 
       setModalOpen(true);
     } catch (err) {
@@ -339,14 +347,22 @@ export default function EntryStudentsPanel() {
     }
   };
 
+  useEffect(() => {
+    if (!canView || !focusId) return;
+    openEdit(focusId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusToken, canView]);
+
+  if (!canView) return <AccessDenied />;
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (editingId && !canEdit) {
-      toast.error('You do not have permission to edit students');
+      toast.error('You do not have permission to edit players');
       return;
     }
     if (!editingId && !canCreate) {
-      toast.error('You do not have permission to create students');
+      toast.error('You do not have permission to create players');
       return;
     }
     if (photoFile && !canUpload) {
@@ -410,6 +426,8 @@ export default function EntryStudentsPanel() {
       chest: form.chest || undefined,
       age: form.age || undefined,
       category: form.category || undefined,
+      ageCategory: form.ageCategory || undefined,
+      weightCategory: form.weightCategory || undefined,
 
       guardianName: form.guardianName || undefined,
       guardianRelation: form.guardianRelation || undefined,
@@ -435,28 +453,15 @@ export default function EntryStudentsPanel() {
       if (editingId) {
         await entryService.students.update(editingId, payload, {
           photo: photoFile || undefined,
+          parentPhoto: parentPhotoFile || undefined,
         });
-        try {
-          await biometricService.setStudentBiometric(editingId, form.biometricUserId.trim() || null);
-        } catch (bioErr) {
-          toast.error(getApiErrorMessage(bioErr, 'Student saved but biometric ID failed'));
-          setSaving(false);
-          return;
-        }
-        toast.success('Student updated');
+        toast.success('Player updated');
       } else {
-        const created = await entryService.students.create(payload, {
+        await entryService.students.create(payload, {
           photo: photoFile,
+          parentPhoto: parentPhotoFile || undefined,
         });
-        const newId = created.data?.data?.student?.id;
-        if (newId && form.biometricUserId.trim()) {
-          try {
-            await biometricService.setStudentBiometric(newId, form.biometricUserId.trim());
-          } catch (bioErr) {
-            toast.error(getApiErrorMessage(bioErr, 'Student created but biometric ID failed'));
-          }
-        }
-        toast.success('Student created');
+        toast.success('Player created');
       }
 
       setModalOpen(false);
@@ -475,7 +480,7 @@ export default function EntryStudentsPanel() {
 
   const handleDelete = async () => {
     if (!canDelete) {
-      toast.error('You do not have permission to delete students');
+      toast.error('You do not have permission to delete players');
       return;
     }
     const deleteId = confirm.id;
@@ -483,7 +488,7 @@ export default function EntryStudentsPanel() {
     try {
       await entryService.students.remove(deleteId);
       setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
-      toast.success('Student deleted');
+      toast.success('Player deleted');
       setConfirm({ open: false, id: null, loading: false });
       await fetchStats();
       await fetchList(pagination.page);
@@ -496,7 +501,7 @@ export default function EntryStudentsPanel() {
 
   const handleExport = async () => {
     if (!canExport) {
-      toast.error('You do not have permission to export students');
+      toast.error('You do not have permission to export players');
       return;
     }
     setExporting(true);
@@ -527,15 +532,15 @@ export default function EntryStudentsPanel() {
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Students</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Total Players</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.totalStudents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Active Students</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Active Players</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.activeStudents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Inactive Students</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Inactive Players</p>
           <p className="mt-1 text-2xl font-bold text-ink">{stats?.inactiveStudents ?? 0}</p>
         </div>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
@@ -546,7 +551,7 @@ export default function EntryStudentsPanel() {
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchBar value={search} onChange={setSearch} placeholder="Search students..." />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search players..." />
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -581,7 +586,7 @@ export default function EntryStudentsPanel() {
           ) : null}
           {canCreate ? (
             <Button onClick={openCreate} className="rounded-lg px-4 py-2.5 text-sm">
-              <FaPlus /> Add Student
+              <FaPlus /> Add Player
             </Button>
           ) : null}
         </div>
@@ -624,14 +629,14 @@ export default function EntryStudentsPanel() {
         ) : error ? (
           <p className="p-6 text-sm text-red-600">{error}</p>
         ) : items.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted">No students found.</p>
+          <p className="p-8 text-center text-sm text-muted">No players found.</p>
         ) : (
           <table className="min-w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-3">Photo</th>
                 <th className="px-4 py-3">Registration No</th>
-                <th className="px-4 py-3">Student</th>
+                <th className="px-4 py-3">Player</th>
                 <th className="px-4 py-3">Coach</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Membership / Batch</th>
@@ -741,7 +746,7 @@ export default function EntryStudentsPanel() {
             noValidate
           >
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-bold text-ink">{editingId ? 'Edit Student' : 'Add Student'}</h3>
+              <h3 className="text-lg font-bold text-ink">{editingId ? 'Edit Player' : 'Add Player'}</h3>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
@@ -905,7 +910,7 @@ export default function EntryStudentsPanel() {
                 <p className="mt-1 text-xs text-muted">
                   {editingId
                     ? 'Leave blank to keep the current password. Username is the Registration ID.'
-                    : 'Username will be the Registration ID (auto-generated). Student uses this to login.'}
+                    : 'Username will be the Registration ID (auto-generated). Player uses this to login.'}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="block text-sm font-medium text-ink">
@@ -940,7 +945,12 @@ export default function EntryStudentsPanel() {
 
               <label className="block text-sm font-medium text-ink">
                 Membership Type
-                <input value={form.membershipType} onChange={(e) => updateField('membershipType', e.target.value)} className={fieldClass(fieldErrors, 'membershipType')} />
+                <input value={form.membershipType} onChange={(e) => updateField('membershipType', e.target.value)} className={fieldClass(fieldErrors, 'membershipType')} placeholder="e.g. General / Khelo India" />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Player Category
+                <input value={form.category} onChange={(e) => updateField('category', e.target.value)} className={fieldClass(fieldErrors, 'category')} placeholder="e.g. Khelo India, Regular, Competitive" />
               </label>
 
               <label className="block text-sm font-medium text-ink">
@@ -967,45 +977,46 @@ export default function EntryStudentsPanel() {
                 </select>
               </label>
 
-              <label className="block text-sm font-medium text-ink sm:col-span-2">
-                Biometric Enrollment
-                <span className="mt-0.5 block text-xs font-normal text-muted">
-                  Assign the device user ID used on the fingerprint machine (must be unique across students and coaches).
-                </span>
-                <div className="mt-2 flex flex-wrap items-end gap-2">
-                  <input
-                    value={form.biometricUserId}
-                    onChange={(e) => updateField('biometricUserId', e.target.value)}
-                    className={`${fieldClass(fieldErrors, 'biometricUserId')} max-w-xs`}
-                    placeholder="e.g. 101"
-                  />
-                  {editingId ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="rounded-lg"
-                      onClick={async () => {
-                        try {
-                          await biometricService.setStudentBiometric(editingId, form.biometricUserId.trim() || null);
-                          toast.success('Biometric ID saved');
-                        } catch (err) {
-                          toast.error(getApiErrorMessage(err, 'Failed to save biometric ID'));
-                        }
-                      }}
-                    >
-                      Enroll Biometric
-                    </Button>
-                  ) : null}
-                </div>
+              <label className="block text-sm font-medium text-ink">
+                Weight (kg)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={form.weightKg}
+                  onChange={(e) => updateField('weightKg', e.target.value)}
+                  className={fieldClass(fieldErrors, 'weightKg')}
+                  placeholder="e.g. 65"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Age Category
+                <input
+                  value={form.ageCategory}
+                  onChange={(e) => updateField('ageCategory', e.target.value)}
+                  className={fieldClass(fieldErrors, 'ageCategory')}
+                  placeholder="e.g. U15, U17, U20, Senior"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-ink">
+                Weight Category
+                <input
+                  value={form.weightCategory}
+                  onChange={(e) => updateField('weightCategory', e.target.value)}
+                  className={fieldClass(fieldErrors, 'weightCategory')}
+                  placeholder="e.g. 57 KG, 65 KG"
+                />
               </label>
 
               <div className="sm:col-span-2">
-                <p className="text-sm font-medium text-ink">Student Photo {!editingId ? '*' : ''}</p>
+                <p className="text-sm font-medium text-ink">Player Photo {!editingId ? '*' : ''}</p>
                 <ImageUploader
                   previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
                   onChange={(f) => {
                     if (!canUpload) {
-                      toast.error('You do not have permission to upload student photos');
+                      toast.error('You do not have permission to upload player photos');
                       return;
                     }
                     setPhotoFile(f);
@@ -1022,9 +1033,29 @@ export default function EntryStudentsPanel() {
                     setPhotoFile(null);
                     setPhotoPreview(editingId ? photoPreview : '');
                   }}
-                  label="Upload student photo (JPG/PNG/WEBP)"
+                  label="Upload player photo (JPG/PNG/WEBP)"
                 />
                 {fieldErrors.photo ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.photo}</span> : null}
+              </div>
+
+              <div className="sm:col-span-2">
+                <p className="text-sm font-medium text-ink">Parent Photo</p>
+                <ImageUploader
+                  previewUrl={parentPhotoFile ? URL.createObjectURL(parentPhotoFile) : parentPhotoPreview || ''}
+                  onChange={(f) => {
+                    if (!canUpload) {
+                      toast.error('You do not have permission to upload parent photos');
+                      return;
+                    }
+                    setParentPhotoFile(f);
+                    setParentPhotoPreview(URL.createObjectURL(f));
+                  }}
+                  onClear={() => {
+                    setParentPhotoFile(null);
+                    setParentPhotoPreview(editingId ? parentPhotoPreview : '');
+                  }}
+                  label="Upload parent photo (JPG/PNG/WEBP)"
+                />
               </div>
             </div>
 
@@ -1033,7 +1064,7 @@ export default function EntryStudentsPanel() {
                 Cancel
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : editingId ? 'Update Student' : 'Create Student'}
+                {saving ? 'Saving...' : editingId ? 'Update Player' : 'Create Player'}
               </Button>
             </div>
           </form>
@@ -1043,7 +1074,7 @@ export default function EntryStudentsPanel() {
       <ConfirmDialog
         open={confirm.open}
         title="Are you sure you want to delete this?"
-        message="This will permanently delete the student record and documents."
+        message="This will permanently delete the player record and documents."
         confirmLabel="Delete"
         danger
         loading={confirm.loading}
@@ -1068,7 +1099,7 @@ export default function EntryStudentsPanel() {
                   password: resetModal.password,
                   confirmPassword: resetModal.confirmPassword,
                 });
-                toast.success('Student password reset successfully');
+                toast.success('Player password reset successfully');
                 setResetModal({ open: false, student: null, password: '', confirmPassword: '', loading: false });
               } catch (err) {
                 toast.error(getApiErrorMessage(err, 'Reset failed'));
@@ -1076,8 +1107,8 @@ export default function EntryStudentsPanel() {
               }
             }}
           >
-            <h3 className="text-lg font-bold text-ink">Reset Student Password</h3>
-            <p className="mt-1 text-sm text-muted">Student: {resetModal.student?.fullName || 0}</p>
+            <h3 className="text-lg font-bold text-ink">Reset Player Password</h3>
+            <p className="mt-1 text-sm text-muted">Player: {resetModal.student?.fullName || '—'}</p>
             <p className="mt-2 text-xs text-muted">Existing password cannot be viewed. Set a new password below.</p>
             <label className="mt-4 block text-sm font-medium">
               New Password

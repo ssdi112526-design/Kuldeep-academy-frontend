@@ -7,9 +7,9 @@ import achievementsCelebration from '../assets/akhada/achievements-celebration.w
 import achievementsPodium from '../assets/akhada/achievements-podium.webp';
 import coachKuldeep from '../assets/akhada/coaches/kuldeep-malik.webp';
 import coachMahavir from '../assets/akhada/coaches/mahavir-singh.webp';
-import wrestlerAthlete1 from '../assets/akhada/wrestlers/athlete-1.png';
-import wrestlerAthlete2 from '../assets/akhada/wrestlers/athlete-2.png';
-import wrestlerAthlete3 from '../assets/akhada/wrestlers/athlete-3.png';
+import wrestlerAthlete1 from '../assets/akhada/wrestlers/athlete-1.webp';
+import wrestlerAthlete2 from '../assets/akhada/wrestlers/athlete-2.webp';
+import wrestlerAthlete3 from '../assets/akhada/wrestlers/athlete-3.webp';
 
 export const images = {
   hero: heroImg,

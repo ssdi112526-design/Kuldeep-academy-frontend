@@ -52,11 +52,15 @@ export function AuthProvider({ children }) {
 
   const isStudent = Boolean(user?.isStudent || user?.role === 'student' || user?.accountType === 'student');
   const isCoach = Boolean(user?.isCoach || user?.role === 'coach' || user?.accountType === 'coach' || user?.coachId);
+  const isParent = Boolean(
+    user?.isParent || user?.role === 'parent' || user?.accountType === 'parent' || user?.roleSlug === 'parent'
+  );
 
   const canAccessAdmin = Boolean(
     user &&
       !isStudent &&
       !isCoach &&
+      !isParent &&
       (user?.canAccessAdmin ||
         user?.isSuperAdmin ||
         user?.role === 'admin' ||
@@ -72,11 +76,12 @@ export function AuthProvider({ children }) {
       logout,
       isAdmin: canAccessAdmin,
       canAccessAdmin,
-      isSuperAdmin: Boolean(user?.isSuperAdmin && !isStudent && !isCoach),
+      isSuperAdmin: Boolean(user?.isSuperAdmin && !isStudent && !isCoach && !isParent),
       isStudent,
       isCoach,
+      isParent,
     }),
-    [user, loading, canAccessAdmin, isStudent, isCoach]
+    [user, loading, canAccessAdmin, isStudent, isCoach, isParent]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -29,6 +29,9 @@ export default function PrestigiousMembers() {
                     src={member.image}
                     alt={t(`members.items.${member.key}.name`)}
                     loading="lazy"
+                    decoding="async"
+                    width={960}
+                    height={660}
                     className={`h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] ${member.objectPosition || 'object-center'}`}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0C0A09] via-[#0C0A09]/20 to-transparent" />

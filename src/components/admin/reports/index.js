@@ -1,0 +1,14 @@
+export { default as ReportsDashboard } from './ReportsDashboard';
+export { default as PlayerReportsPanel } from './PlayerReportsPanel';
+export { default as KheloIndiaReportPanel } from './KheloIndiaReportPanel';
+export { default as AttendanceDashboardPanel } from './AttendanceDashboardPanel';
+export { default as MonthlyAttendanceReportPanel } from './MonthlyAttendanceReportPanel';
+export { default as EmployeeAttendanceReportPanel } from './EmployeeAttendanceReportPanel';
+export { default as AgeCategoryReportPanel } from './AgeCategoryReportPanel';
+export { default as PlayerCategoryReportPanel } from './PlayerCategoryReportPanel';
+export { default as WeightCategoryReportPanel } from './WeightCategoryReportPanel';
+export { default as TournamentRecordsReportPanel } from './TournamentRecordsReportPanel';
+export { default as MedalRecordsReportPanel } from './MedalRecordsReportPanel';
+export { default as PendingFeesReportPanel } from './PendingFeesReportPanel';
+export { default as EmployeeSalaryReportPanel } from './EmployeeSalaryReportPanel';
+export { default as SponsorshipDocumentsReportPanel } from './SponsorshipDocumentsReportPanel';

@@ -9,7 +9,7 @@ import { financeService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { inr, PAYMENT_MODES, MONTHS, currentMonthYear } from '../../utils/financeUi';
+import { inr, PAYMENT_MODES, MONTHS, currentMonthYear, FEE_CATEGORIES, feeCategoryLabel } from '../../utils/financeUi';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -40,6 +40,7 @@ export default function CollectFeesPanel() {
 
   const [month, setMonth] = useState(cy.month);
   const [year, setYear] = useState(cy.year);
+  const [category, setCategory] = useState('Monthly');
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -51,6 +52,7 @@ export default function CollectFeesPanel() {
     paymentMode: 'Cash',
     transactionReference: '',
     remarks: '',
+    title: '',
     paymentDate: todayISO(),
   });
   const [fieldErrors, setFieldErrors] = useState({});
@@ -93,6 +95,7 @@ export default function CollectFeesPanel() {
           studentId: student.id || student._id,
           month,
           year,
+          category,
         });
         if (cancelled) return;
         const data = res.data.data;
@@ -104,6 +107,7 @@ export default function CollectFeesPanel() {
           previousDue: data.previousDue ?? 0,
           discount: data.discount ?? 0,
           paidAmount: data.totalOutstanding > 0 ? data.totalOutstanding : '',
+          title: data.title || f.title || '',
         }));
       } catch (err) {
         if (!cancelled) {
@@ -118,7 +122,7 @@ export default function CollectFeesPanel() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student, month, year]);
+  }, [student, month, year, category]);
 
   const feeAmount = Number(form.feeAmount) || 0;
   const previousDue = Number(form.previousDue) || 0;
@@ -164,6 +168,9 @@ export default function CollectFeesPanel() {
     if (!form.paymentMode) {
       errors.paymentMode = 'Select payment mode';
     }
+    if (category === 'Other' && !String(form.title || '').trim()) {
+      errors.title = 'Enter a title for Other fees';
+    }
     if (
       (form.paymentMode === 'UPI' || form.paymentMode === 'BankTransfer') &&
       !String(form.transactionReference || '').trim()
@@ -205,6 +212,8 @@ export default function CollectFeesPanel() {
         studentId: student.id || student._id,
         month: Number(month),
         year: Number(year),
+        category,
+        title: category === 'Other' ? form.title.trim() || undefined : undefined,
         feeAmount,
         discount,
         paidAmount,
@@ -227,6 +236,7 @@ export default function CollectFeesPanel() {
         studentId: student.id || student._id,
         month,
         year,
+        category,
       });
       setPreview(prev.data.data);
     } catch (err) {
@@ -250,7 +260,9 @@ export default function CollectFeesPanel() {
     <div className="mx-auto max-w-3xl">
       <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-bold text-ink">Collect fees</h2>
-        <p className="mt-1 text-sm text-muted">Manual entry — Cash / UPI / Bank Transfer.</p>
+        <p className="mt-1 text-sm text-muted">
+          Monthly Fees · Hostel Fees · Other Fees — Cash / UPI / Bank Transfer.
+        </p>
 
         <label className="mt-4 block text-xs font-medium text-muted">
           Search student
@@ -321,6 +333,20 @@ export default function CollectFeesPanel() {
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="col-span-2 block text-xs font-medium text-muted">
+            Fee type
+            <select
+              className={`mt-1 ${inputClass}`}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {FEE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block text-xs font-medium text-muted">
             Month
             <select
@@ -353,15 +379,32 @@ export default function CollectFeesPanel() {
         {preview && !previewLoading && (
           <form onSubmit={handleSubmit} className="mt-4 space-y-3" noValidate>
             <p className="text-xs text-muted">
-              {preview.monthLabel} · Status:{' '}
+              {feeCategoryLabel(category)} · {preview.monthLabel} · Status:{' '}
               <span className="font-semibold text-ink">{preview.status}</span>
               {preview.totalOutstanding != null && (
                 <> · Outstanding {inr(preview.totalOutstanding)}</>
               )}
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {category === 'Other' ? (
+                <label className="block text-xs font-medium text-muted sm:col-span-2">
+                  Other fee title
+                  <input
+                    className={`mt-1 ${fieldClass(fieldErrors.title)}`}
+                    value={form.title}
+                    onChange={(e) => {
+                      setForm((f) => ({ ...f, title: e.target.value }));
+                      setFieldErrors((err) => ({ ...err, title: undefined }));
+                    }}
+                    placeholder="e.g. Uniform / Kit / Tournament Entry"
+                  />
+                  {fieldErrors.title ? (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>
+                  ) : null}
+                </label>
+              ) : null}
               <label className="block text-xs font-medium text-muted">
-                Fee amount
+                {feeCategoryLabel(category)} amount
                 <input
                   type="number"
                   min="0"

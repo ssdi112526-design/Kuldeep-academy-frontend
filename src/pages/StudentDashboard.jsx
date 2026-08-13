@@ -7,11 +7,13 @@ import Button from '../components/ui/Button';
 import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { attendanceService, authService } from '../services';
+import { attendanceService, authService, playerPortalService } from '../services';
 import { mediaUrl } from '../utils/mediaUrl';
 import { getApiErrorMessage } from '../utils/apiError';
 import { getCurrentGpsPosition, formatAttendanceScanSuccess } from '../utils/geolocation';
 import { parseAttendanceQrText } from '../utils/attendanceQr';
+import AttendanceStatusBadge, { AttendanceStatusLegend } from '../components/ui/AttendanceStatusBadge';
+import MedalBadge from '../components/ui/MedalBadge';
 
 const SCANNER_ID = 'student-attendance-qr-reader';
 
@@ -50,6 +52,8 @@ export default function StudentDashboard() {
   const [section, setSection] = useState('dashboard');
   const [profile, setProfile] = useState(null);
   const [attendance, setAttendance] = useState({ summary: null, records: [] });
+  const [achievements, setAchievements] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [scanBusy, setScanBusy] = useState(false);
@@ -64,12 +68,19 @@ export default function StudentDashboard() {
   const loadData = useCallback(async () => {
     setDataLoading(true);
     try {
-      const [p, a] = await Promise.all([attendanceService.myProfile(), attendanceService.myAttendance()]);
+      const [p, a, ach, t] = await Promise.all([
+        attendanceService.myProfile(),
+        attendanceService.myAttendance(),
+        playerPortalService.myAchievements(),
+        playerPortalService.myTournaments(),
+      ]);
       setProfile(p.data?.data?.student || null);
       setAttendance({
         summary: a.data?.data?.summary || null,
         records: a.data?.data?.records || [],
       });
+      setAchievements(ach.data?.data?.achievements || []);
+      setTournaments(t.data?.data?.results || []);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Failed to load student data'));
     } finally {
@@ -246,6 +257,9 @@ export default function StudentDashboard() {
   if (!user) return <Navigate to="/login" replace />;
   if (!isStudent) {
     if (user.isCoach || user.accountType === 'coach' || user.coachId) return <Navigate to="/coach" replace />;
+    if (user.isParent || user.accountType === 'parent' || user.role === 'parent') {
+      return <Navigate to="/parent" replace />;
+    }
     if (user.canAccessAdmin || user.isSuperAdmin) return <Navigate to="/admin" replace />;
     return <Navigate to="/" replace />;
   }
@@ -259,7 +273,7 @@ export default function StudentDashboard() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <Logo />
-            <p className="mt-0.5 text-xs font-medium text-muted">Student Dashboard</p>
+            <p className="mt-0.5 text-xs font-medium text-muted">Player Panel</p>
           </div>
           <Button
             variant="secondary"
@@ -267,7 +281,7 @@ export default function StudentDashboard() {
             onClick={async () => {
               await stopScanner();
               await logout();
-              navigate('/login');
+              navigate('/login?portal=player');
             }}
           >
             <FaSignOutAlt className="mr-2" />
@@ -287,15 +301,17 @@ export default function StudentDashboard() {
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-ink">{student.fullName || user.name}</p>
               <p className="truncate text-xs text-muted">{student.registrationNumber || user.username}</p>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Role: Student</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">Role: Player</p>
             </div>
           </div>
           <nav className="flex flex-col gap-1">
             {[
               { id: 'dashboard', label: 'Dashboard' },
+              { id: 'profile', label: 'Profile' },
               { id: 'scan', label: 'Scan Attendance' },
               { id: 'attendance', label: 'My Attendance' },
-              { id: 'profile', label: 'My Profile' },
+              { id: 'achievements', label: 'My Achievements' },
+              { id: 'tournaments', label: 'My Tournaments' },
               { id: 'password', label: 'Change Password' },
             ].map((item) => (
               <button
@@ -344,9 +360,9 @@ export default function StudentDashboard() {
                 <span className="text-sm text-white/80">Open camera and scan the admin QR</span>
               </button>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
-                  <p className="text-xs text-muted">Total Days</p>
+                  <p className="text-xs text-muted">Training Days</p>
                   <p className="mt-1 text-xl font-bold text-ink">{summary.totalDays ?? 0}</p>
                 </div>
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
@@ -356,6 +372,16 @@ export default function StudentDashboard() {
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
                   <p className="text-xs text-muted">Absent</p>
                   <p className="mt-1 text-xl font-bold text-red-600">{summary.absent ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-4">
+                  <p className="text-xs text-muted">Leave</p>
+                  <p className="mt-1 text-xl font-bold text-amber-700">{summary.leave ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-4">
+                  <p className="text-xs text-muted">Medical / Comp.</p>
+                  <p className="mt-1 text-xl font-bold text-purple-700">
+                    {summary.medicalLeave ?? 0} / {summary.competitionLeave ?? 0}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
                   <p className="text-xs text-muted">Attendance %</p>
@@ -418,9 +444,10 @@ export default function StudentDashboard() {
           {section === 'attendance' ? (
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-ink">My Attendance</h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <p className="text-xs text-muted">Monthly summary for the current training month.</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
-                  <p className="text-xs text-muted">Total Days</p>
+                  <p className="text-xs text-muted">Training Days</p>
                   <p className="mt-1 text-xl font-bold">{summary.totalDays ?? 0}</p>
                 </div>
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
@@ -432,36 +459,50 @@ export default function StudentDashboard() {
                   <p className="mt-1 text-xl font-bold text-red-600">{summary.absent ?? 0}</p>
                 </div>
                 <div className="rounded-xl border border-slate-100 bg-white p-4">
-                  <p className="text-xs text-muted">Attendance %</p>
-                  <p className="mt-1 text-xl font-bold">{summary.attendanceRate ?? 0}%</p>
+                  <p className="text-xs text-muted">Leave</p>
+                  <p className="mt-1 text-xl font-bold text-amber-700">{summary.leave ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-4">
+                  <p className="text-xs text-muted">Medical Leave</p>
+                  <p className="mt-1 text-xl font-bold text-purple-700">{summary.medicalLeave ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-white p-4">
+                  <p className="text-xs text-muted">Competition Leave</p>
+                  <p className="mt-1 text-xl font-bold text-orange-700">{summary.competitionLeave ?? 0}</p>
                 </div>
               </div>
+              <div className="rounded-xl border border-slate-100 bg-white p-4">
+                <p className="text-xs text-muted">Attendance %</p>
+                <p className="mt-1 text-2xl font-bold text-ink">{summary.attendanceRate ?? 0}%</p>
+                <p className="mt-1 text-xs text-muted">
+                  Present ÷ (Present + Absent). Leave types are excused and excluded from the percentage.
+                </p>
+              </div>
+              <AttendanceStatusLegend />
               <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-surface text-xs uppercase text-muted">
                     <tr>
                       <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Time</th>
                       <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Time</th>
                     </tr>
                   </thead>
                   <tbody>
                     {attendance.records.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="px-4 py-8 text-center text-muted">
-                          No attendance marked yet.
+                          No attendance records for this month yet.
                         </td>
                       </tr>
                     ) : (
                       attendance.records.map((r) => (
                         <tr key={r.id} className="border-t border-slate-100">
                           <td className="px-4 py-3">{r.date}</td>
-                          <td className="px-4 py-3">{r.time}</td>
                           <td className="px-4 py-3">
-                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                              Present
-                            </span>
+                            <AttendanceStatusBadge status={r.status || r.statusLabel} />
                           </td>
+                          <td className="px-4 py-3">{r.time || '—'}</td>
                         </tr>
                       ))
                     )}
@@ -479,16 +520,19 @@ export default function StudentDashboard() {
                   <h2 className="text-lg font-bold text-ink">{student.fullName}</h2>
                   <p className="text-sm text-muted">{student.registrationNumber}</p>
                   <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand">
-                    <FaUser /> Student
+                    <FaUser /> Player
                   </p>
                 </div>
               </div>
               <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
+                  ['Registration Number', student.registrationNumber],
+                  ['Date of Birth', student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : ''],
                   ['Father Name', student.fatherName],
                   ['Mother Name', student.motherName],
                   ['Mobile', student.mobileNumber],
                   ['Email', student.email],
+                  ['Weight (kg)', student.weightKg],
                   ['Batch', student.batch],
                   ['Membership', student.membershipType],
                   ['Training Level', student.trainingLevel],
@@ -496,11 +540,85 @@ export default function StudentDashboard() {
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-lg border border-slate-100 p-3">
                     <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
-                    <dd className="mt-1 text-sm font-medium text-ink">{value || 0}</dd>
+                    <dd className="mt-1 text-sm font-medium text-ink">{value || '—'}</dd>
                   </div>
                 ))}
               </dl>
             </div>
+          ) : null}
+
+          {section === 'achievements' ? (
+            !achievements.length ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-muted">
+                No achievements recorded for you yet.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {achievements.map((item) => (
+                  <article key={item._id || item.id} className="rounded-xl border border-slate-100 bg-white p-4">
+                    {item.image ? (
+                      <div className="relative mb-3 overflow-hidden rounded-lg">
+                        <img src={mediaUrl(item.image)} alt="" className="h-36 w-full object-cover" />
+                        <MedalBadge medal={item.medal} size="sm" />
+                      </div>
+                    ) : item.medal ? (
+                      <div className="mb-3">
+                        <MedalBadge medal={item.medal} position="inline" size="sm" />
+                      </div>
+                    ) : null}
+                    <h3 className="font-bold text-ink">{item.title}</h3>
+                    <p className="mt-1 text-sm text-muted">
+                      {[item.tournamentName, item.result].filter(Boolean).join(' · ')}
+                    </p>
+                    <p className="mt-2 text-xs text-muted">
+                      {item.achievedOn
+                        ? new Date(item.achievedOn).toLocaleDateString()
+                        : item.year || ''}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )
+          ) : null}
+
+          {section === 'tournaments' ? (
+            !tournaments.length ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-muted">
+                No tournament records yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tournaments.map((item) => (
+                  <article key={item._id || item.id} className="rounded-xl border border-slate-100 bg-white p-4">
+                    <h3 className="font-bold text-ink">{item.tournament?.name || 'Tournament'}</h3>
+                    <p className="mt-1 text-sm text-muted">
+                      {item.tournament?.eventDate
+                        ? new Date(item.tournament.eventDate).toLocaleDateString()
+                        : '—'}
+                      {item.tournament?.location ? ` · ${item.tournament.location}` : ''}
+                    </p>
+                    <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                      <div>
+                        <dt className="text-muted">Category</dt>
+                        <dd className="font-medium">{item.category || item.tournament?.category || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Result</dt>
+                        <dd className="font-medium">{item.result || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Position</dt>
+                        <dd className="font-medium">{item.position || '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Medal</dt>
+                        <dd className="font-medium">{item.medal || '—'}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </div>
+            )
           ) : null}
 
           {section === 'password' ? (

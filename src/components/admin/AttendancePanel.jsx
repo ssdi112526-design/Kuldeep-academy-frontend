@@ -21,6 +21,11 @@ import { usePermissions } from '../../context/PermissionContext';
 import { attendanceService } from '../../services';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
+import { ATTENDANCE_STATUSES } from '../../utils/attendanceStatus';
+import AttendanceStatusBadge, {
+  AttendanceStatusCount,
+  AttendanceStatusLegend,
+} from '../ui/AttendanceStatusBadge';
 
 function todayISO() {
   const d = new Date();
@@ -90,7 +95,7 @@ export default function AttendancePanel() {
   const [statsLoading, setStatsLoading] = useState(false);
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all | present | absent
+  const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all'); // all | QR | BIOMETRIC
   const [locationFilter, setLocationFilter] = useState('all'); // all | verified | not_verified
   const [periodMode, setPeriodMode] = useState('month'); // month | select | custom | all
@@ -110,6 +115,7 @@ export default function AttendancePanel() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyData, setHistoryData] = useState(null);
+  const [markingKey, setMarkingKey] = useState('');
 
   const periodParams = useCallback(() => {
     const params = {
@@ -322,13 +328,33 @@ export default function AttendancePanel() {
     }
   };
 
+  const handleMarkStatus = async (row, status) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to mark attendance');
+      return;
+    }
+    const studentId = row.student?.id || row.studentId;
+    if (!studentId || !row.date || !status) return;
+    const key = `${studentId}_${row.date}`;
+    setMarkingKey(key);
+    try {
+      await attendanceService.markStatus({ studentId, date: row.date, status });
+      toast.success('Attendance status updated');
+      await Promise.all([loadRecords(pagination.page), loadStats()]);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to update attendance status'));
+    } finally {
+      setMarkingKey('');
+    }
+  };
+
   const periodBtn = (id, label) => (
     <button
       key={id}
       type="button"
       onClick={() => setPeriodMode(id)}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold sm:px-4 sm:text-sm ${
-        periodMode === id ? 'bg-brand text-white' : 'bg-slate-100 text-ink'
+      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:px-3.5 sm:text-sm ${
+        periodMode === id ? 'bg-brand text-white shadow-sm' : 'text-ink hover:bg-white'
       }`}
     >
       {label}
@@ -370,42 +396,80 @@ export default function AttendancePanel() {
     <div className="space-y-5">
       <FormErrorBanner message={error} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Total Students" value={stats?.totalStudents ?? 0} icon={FaUsers} loading={statsLoading} />
-        <StatCard label="Present Today" value={stats?.present ?? 0} icon={FaUserCheck} loading={statsLoading} />
-        <StatCard label="Absent Today" value={stats?.absent ?? 0} icon={FaUserTimes} loading={statsLoading} />
-        <StatCard label="Attendance %" value={stats ? `${stats.attendanceRate ?? 0}%` : '0%'} icon={FaCheck} loading={statsLoading} />
-        <StatCard label="QR Attendance" value={stats?.qrAttendance ?? 0} icon={FaQrcode} loading={statsLoading} />
-        <StatCard label="Biometric" value={stats?.biometricAttendance ?? 0} icon={FaUserCheck} loading={statsLoading} />
-      </div>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block text-xs font-medium text-muted">Stats date</span>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTab('qr')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === 'qr' ? 'bg-brand text-white' : 'bg-slate-100 text-ink'}`}
-          >
-            QR Session
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('records')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === 'records' ? 'bg-brand text-white' : 'bg-slate-100 text-ink'}`}
-          >
-            Records
-          </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-ink">Player Attendance</h2>
+          <p className="mt-0.5 text-sm text-muted">Mark status, review records, and download reports.</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium text-muted">Today&apos;s date</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => setTab('qr')}
+              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+                tab === 'qr' ? 'bg-brand text-white shadow-sm' : 'text-ink hover:bg-white'
+              }`}
+            >
+              QR Session
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('records')}
+              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+                tab === 'records' ? 'bg-brand text-white shadow-sm' : 'text-ink hover:bg-white'
+              }`}
+            >
+              Records
+            </button>
+          </div>
         </div>
       </div>
+
+      {tab === 'qr' ? (
+        <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-ink">Today at a glance</h3>
+            <AttendanceStatusLegend />
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard label="Total Players" value={stats?.totalStudents ?? 0} icon={FaUsers} loading={statsLoading} />
+            <StatCard label="Present" value={stats?.present ?? 0} icon={FaUserCheck} loading={statsLoading} />
+            <StatCard label="Absent" value={stats?.absent ?? 0} icon={FaUserTimes} loading={statsLoading} />
+            <StatCard
+              label="Attendance %"
+              value={stats ? `${stats.attendanceRate ?? 0}%` : '0%'}
+              icon={FaCheck}
+              loading={statsLoading}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            <AttendanceStatusCount statusKey="present" label="Present" value={stats?.present ?? 0} loading={statsLoading} />
+            <AttendanceStatusCount statusKey="absent" label="Absent" value={stats?.absent ?? 0} loading={statsLoading} />
+            <AttendanceStatusCount statusKey="leave" label="Leave" value={stats?.leave ?? 0} loading={statsLoading} />
+            <AttendanceStatusCount
+              statusKey="medical_leave"
+              label="Medical Leave"
+              value={stats?.medicalLeave ?? 0}
+              loading={statsLoading}
+            />
+            <AttendanceStatusCount
+              statusKey="competition_leave"
+              label="Competition Leave"
+              value={stats?.competitionLeave ?? 0}
+              loading={statsLoading}
+            />
+          </div>
+        </div>
+      ) : null}
 
       {tab === 'qr' ? (
         <div className="space-y-4">
@@ -437,23 +501,28 @@ export default function AttendancePanel() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-100 bg-white p-4">
-            <h3 className="text-sm font-bold text-ink">Attendance Records</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {periodBtn('month', 'This Month')}
-              {periodBtn('select', 'Select Month')}
-              {periodBtn('custom', 'Custom Range')}
-              {periodBtn('all', 'All Time')}
+          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-ink">Attendance Records</h3>
+                <p className="mt-0.5 text-xs text-muted">Filter by period, player, and status</p>
+              </div>
+              <div className="inline-flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+                {periodBtn('month', 'This Month')}
+                {periodBtn('select', 'Select Month')}
+                {periodBtn('custom', 'Custom Range')}
+                {periodBtn('all', 'All Time')}
+              </div>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {periodMode === 'select' ? (
-                <label className="text-sm">
+                <label className="text-sm sm:col-span-1">
                   <span className="mb-1 block text-xs text-muted">Month</span>
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   >
                     {availableMonths.length === 0 ? <option value="">No months yet</option> : null}
                     {availableMonths.map((m) => {
@@ -472,16 +541,27 @@ export default function AttendancePanel() {
                 <>
                   <label className="text-sm">
                     <span className="mb-1 block text-xs text-muted">From</span>
-                    <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                    <input
+                      type="date"
+                      value={from}
+                      onChange={(e) => setFrom(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
                   </label>
                   <label className="text-sm">
                     <span className="mb-1 block text-xs text-muted">To</span>
-                    <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                    <input
+                      type="date"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
                   </label>
                 </>
               ) : null}
 
-              <div className="min-w-[200px] flex-1">
+              <div className="sm:col-span-2 lg:col-span-2">
+                <span className="mb-1 block text-xs text-muted">Search player</span>
                 <SearchBar value={search} onChange={setSearch} placeholder="Name / Reg ID / Father Name" />
               </div>
               <label className="text-sm">
@@ -489,11 +569,14 @@ export default function AttendancePanel() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
                   <option value="all">All</option>
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
+                  {ATTENDANCE_STATUSES.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="text-sm">
@@ -501,7 +584,7 @@ export default function AttendancePanel() {
                 <select
                   value={methodFilter}
                   onChange={(e) => setMethodFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
                   <option value="all">All</option>
                   <option value="QR">QR</option>
@@ -513,52 +596,106 @@ export default function AttendancePanel() {
                 <select
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
                   <option value="all">All</option>
                   <option value="verified">Verified</option>
                   <option value="not_verified">Not Verified</option>
                 </select>
               </label>
-              <Button variant="secondary" onClick={() => loadRecords(1)} className="rounded-lg">
-                Apply
-              </Button>
-              {canExport ? (
-                <>
-                  <Button onClick={() => handleExport('matrix')} disabled={exporting} className="rounded-lg">
-                    <FaDownload className="mr-2" />
-                    {exporting ? 'Generating Excelâ€¦' : 'Download Excel'}
-                  </Button>
-                  <Button variant="secondary" onClick={() => handleExport('summary')} disabled={exporting} className="rounded-lg">
-                    Summary Excel
-                  </Button>
-                </>
-              ) : null}
+              <div className="flex items-end">
+                <Button variant="secondary" onClick={() => loadRecords(1)} className="w-full rounded-lg">
+                  Apply filters
+                </Button>
+              </div>
+            </div>
+
+            {canExport ? (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                <Button onClick={() => handleExport('matrix')} disabled={exporting} className="rounded-lg">
+                  <FaDownload className="mr-2" />
+                  {exporting ? 'Generating Excel…' : 'Download Excel'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => handleExport('summary')}
+                  disabled={exporting}
+                  className="rounded-lg"
+                >
+                  Summary Excel
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+              <div className="flex min-w-[10rem] flex-col justify-center rounded-xl border border-brand/15 bg-gradient-to-br from-[#FFF8F0] to-white px-5 py-4 lg:w-44">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Attendance %</p>
+                <p className="mt-1 text-4xl font-bold tabular-nums text-ink">
+                  {recordsLoading
+                    ? '…'
+                    : `${recordsSummary?.attendancePercentage ?? recordsSummary?.attendanceRate ?? 0}%`}
+                </p>
+                <p className="mt-2 text-[11px] leading-snug text-muted">
+                  Present ÷ (Present + Absent). Leave types are excused.
+                </p>
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                    <span>
+                      <span className="font-semibold text-ink">{recordsSummary?.totalStudents ?? 0}</span> players
+                    </span>
+                    <span>
+                      <span className="font-semibold text-ink">{recordsSummary?.trainingDays ?? 0}</span> training
+                      days
+                    </span>
+                  </div>
+                  <AttendanceStatusLegend />
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                  <AttendanceStatusCount
+                    statusKey="present"
+                    label="Present"
+                    value={recordsSummary?.presentStudentDays ?? recordsSummary?.present ?? 0}
+                    loading={recordsLoading}
+                  />
+                  <AttendanceStatusCount
+                    statusKey="absent"
+                    label="Absent"
+                    value={recordsSummary?.absentStudentDays ?? recordsSummary?.absent ?? 0}
+                    loading={recordsLoading}
+                  />
+                  <AttendanceStatusCount
+                    statusKey="leave"
+                    label="Leave"
+                    value={recordsSummary?.leaveStudentDays ?? recordsSummary?.leave ?? 0}
+                    loading={recordsLoading}
+                  />
+                  <AttendanceStatusCount
+                    statusKey="medical_leave"
+                    label="Medical Leave"
+                    value={recordsSummary?.medicalLeaveStudentDays ?? recordsSummary?.medicalLeave ?? 0}
+                    loading={recordsLoading}
+                  />
+                  <AttendanceStatusCount
+                    statusKey="competition_leave"
+                    label="Competition Leave"
+                    value={
+                      recordsSummary?.competitionLeaveStudentDays ?? recordsSummary?.competitionLeave ?? 0
+                    }
+                    loading={recordsLoading}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard label="Students" value={recordsSummary?.totalStudents ?? 0} icon={FaUsers} loading={recordsLoading} />
-            <StatCard label="Training Days" value={recordsSummary?.trainingDays ?? 0} icon={FaCheck} loading={recordsLoading} />
-            <StatCard label="Present" value={recordsSummary?.presentStudentDays ?? recordsSummary?.present ?? 0} icon={FaUserCheck} loading={recordsLoading} />
-            <StatCard label="Absent" value={recordsSummary?.absentStudentDays ?? recordsSummary?.absent ?? 0} icon={FaUserTimes} loading={recordsLoading} />
-            <StatCard
-              label="Attendance %"
-              value={recordsSummary ? `${recordsSummary.attendancePercentage ?? recordsSummary.attendanceRate ?? 0}%` : '0%'}
-              icon={FaCheck}
-              loading={recordsLoading}
-            />
-            <StatCard
-              label="Raw Scan Records"
-              value={recordsSummary?.rawScanRecords ?? recordsSummary?.totalRecords ?? 0}
-              icon={FaQrcode}
-              loading={recordsLoading}
-            />
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white shadow-sm">
             <div className="border-b border-slate-100 px-4 py-3">
-              <h4 className="text-sm font-bold text-ink">Student Attendance Summary</h4>
+              <h4 className="text-sm font-bold text-ink">Player Attendance Summary</h4>
               <p className="text-xs text-muted">
                 Based on scheduled Academy training days (joining date respected; future days excluded)
               </p>
@@ -567,24 +704,27 @@ export default function AttendancePanel() {
               <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-3">Registration ID</th>
-                  <th className="px-4 py-3">Student</th>
+                  <th className="px-4 py-3">Player</th>
                   <th className="px-4 py-3">Training Days</th>
                   <th className="px-4 py-3">Present</th>
                   <th className="px-4 py-3">Absent</th>
+                  <th className="px-4 py-3">Leave</th>
+                  <th className="px-4 py-3">Medical</th>
+                  <th className="px-4 py-3">Competition</th>
                   <th className="px-4 py-3">%</th>
                 </tr>
               </thead>
               <tbody>
                 {recordsLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-muted">
-                      Loadingâ€¦
+                    <td colSpan={9} className="px-4 py-6 text-center text-muted">
+                      Loading…
                     </td>
                   </tr>
                 ) : studentSummary.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-muted">
-                      No student summary for this period.
+                    <td colSpan={9} className="px-4 py-6 text-center text-muted">
+                      No player summary for this period.
                     </td>
                   </tr>
                 ) : (
@@ -603,6 +743,9 @@ export default function AttendancePanel() {
                       <td className="px-4 py-3">{s.trainingDays}</td>
                       <td className="px-4 py-3 text-emerald-700">{s.present}</td>
                       <td className="px-4 py-3 text-red-600">{s.absent}</td>
+                      <td className="px-4 py-3 text-amber-700">{s.leave ?? 0}</td>
+                      <td className="px-4 py-3 text-purple-700">{s.medicalLeave ?? 0}</td>
+                      <td className="px-4 py-3 text-orange-700">{s.competitionLeave ?? 0}</td>
                       <td className="px-4 py-3 font-semibold">{s.attendanceRate}%</td>
                     </tr>
                   ))
@@ -615,7 +758,7 @@ export default function AttendancePanel() {
             <div className="border-b border-slate-100 px-4 py-3">
               <h4 className="text-sm font-bold text-ink">Date-wise Attendance</h4>
               <p className="text-xs text-muted">
-                All active students for each training day — missing scan = Absent
+                All active players for each training day — unmarked = Absent. Use Status to mark leave types.
               </p>
             </div>
             <table className="min-w-full text-left text-sm">
@@ -623,9 +766,10 @@ export default function AttendancePanel() {
                 <tr>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Registration ID</th>
-                  <th className="px-4 py-3">Student</th>
+                  <th className="px-4 py-3">Player</th>
                   <th className="px-4 py-3">Father</th>
                   <th className="px-4 py-3">Status</th>
+                  {canEdit ? <th className="px-4 py-3">Mark / Edit</th> : null}
                   <th className="px-4 py-3">Check-in</th>
                   <th className="px-4 py-3">Source</th>
                   <th className="px-4 py-3">Distance</th>
@@ -635,46 +779,56 @@ export default function AttendancePanel() {
               <tbody>
                 {recordsLoading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={canEdit ? 10 : 9} className="px-4 py-8 text-center text-muted">
                       Loading…
                     </td>
                   </tr>
                 ) : records.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={canEdit ? 10 : 9} className="px-4 py-8 text-center text-muted">
                       No attendance records found.
                     </td>
                   </tr>
                 ) : (
                   records.map((r) => {
-                    const isPresent = (r.statusLabel || r.status) === 'Present' || r.status === 'present';
+                    const studentId = r.student?.id || r.studentId;
+                    const rowKey = `${studentId}_${r.date}`;
+                    const isPresent = r.status === 'present';
                     return (
-                      <tr key={r.id} className="border-t border-slate-100">
+                      <tr key={r.id || rowKey} className="border-t border-slate-100">
                         <td className="px-4 py-3">{formatDate(r.date)}</td>
                         <td className="px-4 py-3 font-medium">{r.registrationId}</td>
                         <td className="px-4 py-3">
                           <button
                             type="button"
                             className="text-left text-brand hover:underline"
-                            onClick={() => openStudentHistory(r.student?.id || r.studentId)}
+                            onClick={() => openStudentHistory(studentId)}
                           >
-                            {r.student?.fullName || 0}
+                            {r.student?.fullName || '—'}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-muted">{r.student?.fatherName || 0}</td>
+                        <td className="px-4 py-3 text-muted">{r.student?.fatherName || '—'}</td>
                         <td className="px-4 py-3">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              isPresent
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-red-50 text-red-700'
-                            }`}
-                          >
-                            {isPresent ? 'Present' : 'Absent'}
-                          </span>
+                          <AttendanceStatusBadge status={r.status || r.statusLabel} />
                         </td>
+                        {canEdit ? (
+                          <td className="px-4 py-3">
+                            <select
+                              className="max-w-[11rem] rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
+                              value={r.status || 'absent'}
+                              disabled={markingKey === rowKey}
+                              onChange={(e) => handleMarkStatus(r, e.target.value)}
+                            >
+                              {ATTENDANCE_STATUSES.map((s) => (
+                                <option key={s.key} value={s.key}>
+                                  {s.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        ) : null}
                         <td className="px-4 py-3">{r.checkIn ? r.checkIn : formatTime(r.markedAt)}</td>
-                        <td className="px-4 py-3">{isPresent ? r.sourceLabel || r.method || 'QR' : '—'}</td>
+                        <td className="px-4 py-3">{isPresent ? r.sourceLabel || r.method || 'QR' : r.sourceLabel || '—'}</td>
                         <td className="px-4 py-3">{r.distanceLabel || '—'}</td>
                         <td className="px-4 py-3">{r.locationLabel || '—'}</td>
                       </tr>
@@ -729,7 +883,7 @@ export default function AttendancePanel() {
                 <p className="text-sm text-muted">Loadingâ€¦</p>
               ) : historyData ? (
                 <>
-                  <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
                     <div className="rounded-lg bg-surface p-3 text-sm">
                       <p className="text-xs text-muted">Training Days</p>
                       <p className="font-bold">{historyData.summary?.trainingDays ?? 0}</p>
@@ -743,10 +897,21 @@ export default function AttendancePanel() {
                       <p className="font-bold text-red-600">{historyData.summary?.absentDays ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-surface p-3 text-sm">
+                      <p className="text-xs text-muted">Leave</p>
+                      <p className="font-bold text-amber-700">{historyData.summary?.leaveDays ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-surface p-3 text-sm">
+                      <p className="text-xs text-muted">Medical / Competition</p>
+                      <p className="font-bold text-purple-700">
+                        {historyData.summary?.medicalLeaveDays ?? 0} / {historyData.summary?.competitionLeaveDays ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-surface p-3 text-sm">
                       <p className="text-xs text-muted">Attendance %</p>
                       <p className="font-bold">{historyData.summary?.attendancePercentage ?? 0}%</p>
                     </div>
                   </div>
+                  <AttendanceStatusLegend className="mb-3" />
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-surface text-xs uppercase text-muted">
                       <tr>
@@ -757,20 +922,12 @@ export default function AttendancePanel() {
                     </thead>
                     <tbody>
                       {(historyData.history || []).map((h) => (
-                        <tr key={`${h.date}-${h.status}`} className="border-t border-slate-100">
+                        <tr key={`${h.date}-${h.statusKey || h.status}`} className="border-t border-slate-100">
                           <td className="px-3 py-2">{formatDate(h.date)}</td>
                           <td className="px-3 py-2">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                h.status === 'Present'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-red-50 text-red-700'
-                              }`}
-                            >
-                              {h.status}
-                            </span>
+                            <AttendanceStatusBadge status={h.statusKey || h.status} />
                           </td>
-                          <td className="px-3 py-2">{h.checkIn || 0}</td>
+                          <td className="px-3 py-2">{h.checkIn || '—'}</td>
                         </tr>
                       ))}
                     </tbody>

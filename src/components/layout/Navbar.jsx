@@ -64,7 +64,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-[60]">
+      <header className="fixed inset-x-0 top-0 z-[60] pt-[env(safe-area-inset-top,0px)]">
         <div
           className={`border-b transition-all duration-300 ${
             scrolled || open

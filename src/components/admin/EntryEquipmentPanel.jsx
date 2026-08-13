@@ -13,6 +13,7 @@ import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { fieldClass, firstErrorMessage, requiredText, validateDate } from '../../utils/formValidation';
+import { clearPublicCache } from '../../utils/publicCache';
 import EntryEquipmentProfileModal from './EntryEquipmentProfileModal';
 import AccessDenied from './AccessDenied';
 
@@ -274,11 +275,12 @@ export default function EntryEquipmentPanel() {
     try {
       if (editingId) {
         await entryService.equipment.update(editingId, payload, { image: imageFile || undefined });
-        toast.success('Equipment updated');
+        toast.success('Equipment updated — public website refreshed');
       } else {
         await entryService.equipment.create(payload, { image: imageFile });
-        toast.success('Equipment created');
+        toast.success('Equipment created — now visible on the public website');
       }
+      clearPublicCache();
       setModalOpen(false);
       setEditingId(null);
       setFieldErrors({});
@@ -302,8 +304,9 @@ export default function EntryEquipmentPanel() {
     setConfirm((s) => ({ ...s, loading: true }));
     try {
       await entryService.equipment.remove(deleteId);
+      clearPublicCache();
       setItems((prev) => prev.filter((item) => (item._id || item.id) !== deleteId));
-      toast.success('Equipment deleted');
+      toast.success('Equipment deleted — removed from public website');
       setConfirm({ open: false, id: null, loading: false });
       await fetchStats();
       await fetchList(pagination.page);

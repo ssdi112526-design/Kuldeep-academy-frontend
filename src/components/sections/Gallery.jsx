@@ -6,7 +6,7 @@ import useTranslation from '../../hooks/useTranslation';
 import { galleryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
-import { wrestlingFallbacks } from '../../utils/wrestlingImages';
+import { galleryImageFallback } from '../../utils/galleryFallback';
 import { resolveAchievement } from '../../utils/galleryAchievements';
 
 export default function Gallery() {
@@ -143,7 +143,7 @@ export default function Gallery() {
                         decoding="async"
                         className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-[1.06]"
                         onError={(e) => {
-                          e.currentTarget.src = wrestlingFallbacks.gallery;
+                          e.currentTarget.src = galleryImageFallback;
                         }}
                       />
 

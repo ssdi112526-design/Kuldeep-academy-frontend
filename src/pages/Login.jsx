@@ -70,6 +70,8 @@ export default function Login() {
         navigate('/student');
       } else if (user.isCoach || user.role === 'coach' || user.accountType === 'coach' || user.coachId) {
         navigate('/coach');
+      } else if (user.isParent || user.role === 'parent' || user.accountType === 'parent' || user.roleSlug === 'parent') {
+        navigate('/parent');
       } else if (
         user.canAccessAdmin ||
         user.isSuperAdmin ||

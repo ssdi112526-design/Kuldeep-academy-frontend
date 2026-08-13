@@ -4,9 +4,9 @@ import mudImg from '../assets/akhada/programs-mud-hd.png';
 import advancedImg from '../assets/akhada/programs-advanced.png';
 import yogaImg from '../assets/akhada/programs-yoga.png';
 import facilitiesMud from '../assets/akhada/facilities-mud.png';
-import galleryAction from '../assets/akhada/gallery-action-1.png';
+import { galleryImageFallback } from './galleryFallback';
 
-/** Local premium wrestling fallbacks when CMS/media URLs fail */
+/** Local premium wrestling fallbacks when CMS/media URLs fail (programs/facilities) */
 export const wrestlingFallbacks = {
   beginner: beginnerImg,
   strength: strengthImg,
@@ -14,7 +14,7 @@ export const wrestlingFallbacks = {
   advanced: advancedImg,
   yoga: yogaImg,
   facilities: facilitiesMud,
-  gallery: galleryAction,
+  gallery: galleryImageFallback,
   default: mudImg,
 };
 

@@ -1,17 +1,28 @@
 import { displayZero } from '../../utils/zeroEmpty';
 
-export default function StatCard({ label, value, icon: Icon, loading }) {
+export default function StatCard({
+  label,
+  value,
+  icon: Icon,
+  loading,
+  iconClass = 'bg-brand-light text-brand',
+  className = '',
+}) {
   const shown = loading ? '...' : displayZero(value);
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+    <div
+      className={`flex h-full items-center gap-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:gap-4 sm:p-5 ${className}`}
+    >
       {Icon && (
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand">
-          <Icon size={20} />
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${iconClass}`}
+        >
+          <Icon size={18} />
         </div>
       )}
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-ink">{shown}</p>
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+        <p className="mt-0.5 text-xl font-bold text-ink sm:text-2xl">{shown}</p>
       </div>
     </div>
   );

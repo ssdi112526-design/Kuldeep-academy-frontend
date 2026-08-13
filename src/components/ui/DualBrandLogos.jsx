@@ -23,6 +23,10 @@ export default function DualBrandLogos({
       <img
         src={kuldeepLogo}
         alt={t('brand.name')}
+        width={56}
+        height={56}
+        decoding="async"
+        fetchPriority="low"
         className={`${box} shrink-0 rounded-full object-cover object-top shadow-[0_2px_10px_rgba(0,0,0,0.25)] ring-1 ring-white/25`}
       />
       {showText ? (

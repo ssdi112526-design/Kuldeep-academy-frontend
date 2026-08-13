@@ -45,7 +45,7 @@ export default function EntryStudentProfileModal({ student, onClose }) {
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-[#FFFaf0] to-white px-6 py-4">
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold text-ink">Student Profile</h2>
+            <h2 className="truncate text-lg font-bold text-ink">Player Profile</h2>
             <p className="mt-1 text-sm text-muted">
               Registration: <span className="font-semibold text-ink">{student.registrationNumber}</span>
             </p>
@@ -79,6 +79,16 @@ export default function EntryStudentProfileModal({ student, onClose }) {
                 <p className="mt-1 text-xs text-muted">Status: {quick?.status}</p>
               </div>
             </div>
+            {student.parentPhoto ? (
+              <div className="mt-4 border-t border-slate-100 pt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Parent Photo</p>
+                <img
+                  src={mediaUrl(student.parentPhoto)}
+                  alt="Parent"
+                  className="h-20 w-20 rounded-xl object-cover shadow-sm"
+                />
+              </div>
+            ) : null}
 
             <div className="mt-4 space-y-0">
               <Row label="Father Name" value={student.fatherName} />
@@ -100,6 +110,7 @@ export default function EntryStudentProfileModal({ student, onClose }) {
                 <Row label="Membership Type" value={student.membershipType} />
                 <Row label="Batch" value={student.batch} />
                 <Row label="Training Level" value={student.trainingLevel} />
+                <Row label="Weight (kg)" value={student.weightKg} />
               </div>
             </div>
 

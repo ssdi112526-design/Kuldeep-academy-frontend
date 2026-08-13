@@ -47,6 +47,18 @@ export function LanguageProvider({ children }) {
     document.body.classList.toggle('lang-hi', language === 'hi');
     document.body.classList.toggle('lang-en', language === 'en');
 
+    if (language === 'hi') {
+      let link = document.getElementById('font-hi');
+      if (!link) {
+        link = document.createElement('link');
+        link.id = 'font-hi';
+        link.rel = 'stylesheet';
+        link.href =
+          'https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&display=swap';
+        document.head.appendChild(link);
+      }
+    }
+
     const title =
       language === 'hi'
         ? 'कुलदीप मलिक स्पोर्ट्स अकादमी | सोनीपत'
