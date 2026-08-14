@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FaEdit, FaHistory, FaPlus } from 'react-icons/fa';
 import Button from '../ui/Button';
 import SearchBar from './SearchBar';
@@ -20,11 +20,33 @@ function pagesOf(total, limit) {
   return Math.max(1, Math.ceil((Number(total) || 0) / (Number(limit) || 20)));
 }
 
+/** Keep only a valid money string (digits + optional .xx). */
+function sanitizeMoneyInput(value) {
+  let raw = String(value ?? '').replace(/,/g, '').replace(/[^\d.]/g, '');
+  const dot = raw.indexOf('.');
+  if (dot !== -1) {
+    raw = `${raw.slice(0, dot + 1)}${raw.slice(dot + 1).replace(/\./g, '').slice(0, 2)}`;
+  }
+  // avoid leading zeros like 00012 → keep as typed except empty
+  if (raw.length > 1 && raw.startsWith('0') && raw[1] !== '.') {
+    raw = raw.replace(/^0+/, '') || '0';
+  }
+  return raw;
+}
+
 function parseAmountOrZero(value) {
-  const raw = String(value ?? '').trim().replace(/,/g, '');
-  if (!raw) return 0;
+  const raw = sanitizeMoneyInput(value);
+  if (!raw || raw === '.') return 0;
   const n = Number(raw);
   return Number.isFinite(n) ? n : 0;
+}
+
+function feeDefaultToInput(value) {
+  if (value == null || value === '') return '';
+  const n = Number(String(value).replace(/,/g, ''));
+  if (!Number.isFinite(n) || n <= 0) return '';
+  // plain number string — never use comma placeholders as values
+  return String(Math.round(n * 100) / 100);
 }
 
 export default function StudentFeesPanel() {
@@ -65,13 +87,10 @@ export default function StudentFeesPanel() {
   const [genErrors, setGenErrors] = useState({});
   const [genSaving, setGenSaving] = useState(false);
 
-  const genTotal = useMemo(() => {
-    return (
-      parseAmountOrZero(genForm.monthlyFee) +
-      parseAmountOrZero(genForm.hostelFee) +
-      parseAmountOrZero(genForm.otherFee)
-    );
-  }, [genForm.monthlyFee, genForm.hostelFee, genForm.otherFee]);
+  const genTotal =
+    parseAmountOrZero(genForm.monthlyFee) +
+    parseAmountOrZero(genForm.hostelFee) +
+    parseAmountOrZero(genForm.otherFee);
 
   const filtersKey = JSON.stringify({ debouncedSearch });
   const prevFiltersKeyRef = useRef(filtersKey);
@@ -160,14 +179,13 @@ export default function StudentFeesPanel() {
   };
 
   const openGenerate = () => {
-    // Prefill from first listed player's defaults when available
     const sample = rows[0];
     setGenForm({
       month: cy.month,
       year: cy.year,
-      monthlyFee: sample?.monthlyFee != null && Number(sample.monthlyFee) > 0 ? String(sample.monthlyFee) : '',
-      hostelFee: sample?.hostelFee != null && Number(sample.hostelFee) > 0 ? String(sample.hostelFee) : '',
-      otherFee: sample?.otherFee != null && Number(sample.otherFee) > 0 ? String(sample.otherFee) : '',
+      monthlyFee: feeDefaultToInput(sample?.monthlyFee),
+      hostelFee: feeDefaultToInput(sample?.hostelFee),
+      otherFee: feeDefaultToInput(sample?.otherFee),
       saveAsStudentDefault: true,
     });
     setGenErrors({});
@@ -530,9 +548,9 @@ export default function StudentFeesPanel() {
 
               <div className="overflow-hidden rounded-xl border border-slate-200">
                 {[
-                  { key: 'monthlyFee', label: 'Monthly Fees', hint: 'Training / academy', placeholder: '2,000' },
-                  { key: 'hostelFee', label: 'Hostel Fees', hint: 'Accommodation', placeholder: '5,000' },
-                  { key: 'otherFee', label: 'Other Fees', hint: 'Extra charges', placeholder: '1,000' },
+                  { key: 'monthlyFee', label: 'Monthly Fees', hint: 'Training / academy' },
+                  { key: 'hostelFee', label: 'Hostel Fees', hint: 'Accommodation' },
+                  { key: 'otherFee', label: 'Other Fees', hint: 'Extra charges' },
                 ].map((row, idx) => (
                   <label
                     key={row.key}
@@ -545,24 +563,24 @@ export default function StudentFeesPanel() {
                         <span className="mt-0.5 block text-[11px] text-red-600">{genErrors[row.key]}</span>
                       ) : null}
                     </span>
-                    <span className="relative w-[7.75rem] shrink-0">
+                    <span className="relative w-[8.25rem] shrink-0">
                       <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">
                         ₹
                       </span>
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        type="text"
                         inputMode="decimal"
-                        placeholder={row.placeholder}
-                        className={`w-full rounded-lg border py-2 pl-6 pr-2 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-brand/20 ${
+                        autoComplete="off"
+                        placeholder="0"
+                        className={`w-full rounded-lg border py-2 pl-6 pr-2 text-right text-sm font-semibold tabular-nums text-ink outline-none placeholder:font-normal placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 ${
                           genErrors[row.key]
                             ? 'border-red-400 focus:border-red-500'
                             : 'border-slate-200 focus:border-brand'
                         }`}
                         value={genForm[row.key]}
                         onChange={(e) => {
-                          setGenForm((f) => ({ ...f, [row.key]: e.target.value }));
+                          const next = sanitizeMoneyInput(e.target.value);
+                          setGenForm((f) => ({ ...f, [row.key]: next }));
                           setGenErrors((err) => ({ ...err, [row.key]: undefined, total: undefined }));
                         }}
                       />
@@ -576,7 +594,7 @@ export default function StudentFeesPanel() {
                     {genErrors.total ? (
                       <p className="text-[11px] text-red-600">{genErrors.total}</p>
                     ) : (
-                      <p className="text-[11px] text-muted">Monthly + Hostel + Other</p>
+                      <p className="text-[11px] text-muted">Updates as you type</p>
                     )}
                   </div>
                   <p className="text-xl font-extrabold tabular-nums text-brand">{inr(genTotal)}</p>
