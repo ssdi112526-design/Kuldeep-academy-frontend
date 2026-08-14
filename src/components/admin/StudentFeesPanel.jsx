@@ -92,6 +92,15 @@ export default function StudentFeesPanel() {
     parseAmountOrZero(genForm.hostelFee) +
     parseAmountOrZero(genForm.otherFee);
 
+  useEffect(() => {
+    if (!genOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [genOpen]);
+
   const filtersKey = JSON.stringify({ debouncedSearch });
   const prevFiltersKeyRef = useRef(filtersKey);
 
@@ -507,120 +516,157 @@ export default function StudentFeesPanel() {
       )}
 
       {genOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-3 sm:p-4">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
+          role="presentation"
+        >
+          <button
+            type="button"
+            aria-label="Close dialog backdrop"
+            className="absolute inset-0 bg-ink/45"
+            disabled={genSaving}
+            onClick={() => !genSaving && setGenOpen(false)}
+          />
           <form
             onSubmit={handleGenerate}
-            className="flex max-h-[min(92dvh,38rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="generate-fees-title"
+            className="relative flex max-h-[min(85dvh,36rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl"
           >
-            <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
-              <h3 className="text-lg font-bold text-ink">Generate Fees</h3>
-              <p className="mt-0.5 text-sm text-muted">One bill per active player for the selected month</p>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-xs font-semibold text-ink">
-                  Month
-                  <select
-                    className={`mt-1 ${inputClass}`}
-                    value={genForm.month}
-                    onChange={(e) => setGenForm((f) => ({ ...f, month: Number(e.target.value) }))}
-                  >
-                    {MONTHS.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-xs font-semibold text-ink">
-                  Year
-                  <input
-                    type="number"
-                    min="2000"
-                    className={`mt-1 ${inputClass}`}
-                    value={genForm.year}
-                    onChange={(e) => setGenForm((f) => ({ ...f, year: Number(e.target.value) }))}
-                    required
-                  />
-                </label>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                {[
-                  { key: 'monthlyFee', label: 'Monthly Fees', hint: 'Training / academy' },
-                  { key: 'hostelFee', label: 'Hostel Fees', hint: 'Accommodation' },
-                  { key: 'otherFee', label: 'Other Fees', hint: 'Extra charges' },
-                ].map((row, idx) => (
-                  <label
-                    key={row.key}
-                    className={`flex items-center gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-slate-100' : ''}`}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-ink">{row.label}</span>
-                      <span className="block text-[11px] text-muted">{row.hint}</span>
-                      {genErrors[row.key] ? (
-                        <span className="mt-0.5 block text-[11px] text-red-600">{genErrors[row.key]}</span>
-                      ) : null}
-                    </span>
-                    <span className="relative w-[8.25rem] shrink-0">
-                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">
-                        ₹
-                      </span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        placeholder="0"
-                        className={`w-full rounded-lg border py-2 pl-6 pr-2 text-right text-sm font-semibold tabular-nums text-ink outline-none placeholder:font-normal placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 ${
-                          genErrors[row.key]
-                            ? 'border-red-400 focus:border-red-500'
-                            : 'border-slate-200 focus:border-brand'
-                        }`}
-                        value={genForm[row.key]}
-                        onChange={(e) => {
-                          const next = sanitizeMoneyInput(e.target.value);
-                          setGenForm((f) => ({ ...f, [row.key]: next }));
-                          setGenErrors((err) => ({ ...err, [row.key]: undefined, total: undefined }));
-                        }}
-                      />
-                    </span>
-                  </label>
-                ))}
-
-                <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-3 py-3">
-                  <div>
-                    <p className="text-sm font-bold text-ink">Total Fees</p>
-                    {genErrors.total ? (
-                      <p className="text-[11px] text-red-600">{genErrors.total}</p>
-                    ) : (
-                      <p className="text-[11px] text-muted">Updates as you type</p>
-                    )}
-                  </div>
-                  <p className="text-xl font-extrabold tabular-nums text-brand">{inr(genTotal)}</p>
+            {/* Fixed header — never scrolls */}
+            <div className="shrink-0 border-b border-slate-100 px-5 pb-3 pt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 id="generate-fees-title" className="text-lg font-bold text-ink">
+                    Generate Fees
+                  </h3>
+                  <p className="mt-1 text-sm leading-snug text-muted">
+                    Create monthly bills for active players — Monthly Fees, Hostel Fees, or Other Fees.
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 text-muted transition hover:bg-slate-100 hover:text-ink"
+                  aria-label="Close"
+                  disabled={genSaving}
+                  onClick={() => setGenOpen(false)}
+                >
+                  <span className="block text-lg leading-none">×</span>
+                </button>
               </div>
-
-              <label className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2.5 text-xs leading-snug text-ink">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 shrink-0"
-                  checked={genForm.saveAsStudentDefault}
-                  onChange={(e) =>
-                    setGenForm((f) => ({ ...f, saveAsStudentDefault: e.target.checked }))
-                  }
-                />
-                <span>
-                  <span className="font-semibold">Save as player defaults</span>
-                  <span className="mt-0.5 block text-muted">
-                    Also update each player&apos;s Monthly / Hostel / Other defaults. Leave amounts
-                    empty to use existing defaults.
-                  </span>
-                </span>
-              </label>
             </div>
 
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-3">
+            {/* Scrollable body only */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block text-xs font-semibold text-ink">
+                    Month
+                    <select
+                      className={`mt-1.5 ${inputClass}`}
+                      value={genForm.month}
+                      onChange={(e) => setGenForm((f) => ({ ...f, month: Number(e.target.value) }))}
+                    >
+                      {MONTHS.map((m) => (
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-xs font-semibold text-ink">
+                    Year
+                    <input
+                      type="number"
+                      min="2000"
+                      className={`mt-1.5 ${inputClass}`}
+                      value={genForm.year}
+                      onChange={(e) => setGenForm((f) => ({ ...f, year: Number(e.target.value) }))}
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  {[
+                    { key: 'monthlyFee', label: 'Monthly Fees', hint: 'Training / academy' },
+                    { key: 'hostelFee', label: 'Hostel Fees', hint: 'Accommodation' },
+                    { key: 'otherFee', label: 'Other Fees', hint: 'Extra charges' },
+                  ].map((row, idx) => (
+                    <label
+                      key={row.key}
+                      className={`flex items-center gap-3 px-3.5 py-3 ${
+                        idx > 0 ? 'border-t border-slate-100' : ''
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">{row.label}</span>
+                        <span className="block text-[11px] text-muted">{row.hint}</span>
+                        {genErrors[row.key] ? (
+                          <span className="mt-0.5 block text-[11px] text-red-600">{genErrors[row.key]}</span>
+                        ) : null}
+                      </span>
+                      <span className="relative w-[8.5rem] shrink-0">
+                        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">
+                          ₹
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          placeholder="0"
+                          className={`w-full rounded-lg border py-2 pl-6 pr-2.5 text-right text-sm font-semibold tabular-nums text-ink outline-none placeholder:font-normal placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 ${
+                            genErrors[row.key]
+                              ? 'border-red-400 focus:border-red-500'
+                              : 'border-slate-200 focus:border-brand'
+                          }`}
+                          value={genForm[row.key]}
+                          onChange={(e) => {
+                            const next = sanitizeMoneyInput(e.target.value);
+                            setGenForm((f) => ({ ...f, [row.key]: next }));
+                            setGenErrors((err) => ({ ...err, [row.key]: undefined, total: undefined }));
+                          }}
+                        />
+                      </span>
+                    </label>
+                  ))}
+
+                  <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-3.5 py-3.5">
+                    <div>
+                      <p className="text-sm font-bold text-ink">Total Fees</p>
+                      {genErrors.total ? (
+                        <p className="text-[11px] text-red-600">{genErrors.total}</p>
+                      ) : (
+                        <p className="text-[11px] text-muted">Monthly + Hostel + Other</p>
+                      )}
+                    </div>
+                    <p className="text-xl font-extrabold tabular-nums text-brand">{inr(genTotal)}</p>
+                  </div>
+                </div>
+
+                <label className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/70 px-3.5 py-3 text-xs leading-snug text-ink">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 shrink-0"
+                    checked={genForm.saveAsStudentDefault}
+                    onChange={(e) =>
+                      setGenForm((f) => ({ ...f, saveAsStudentDefault: e.target.checked }))
+                    }
+                  />
+                  <span>
+                    <span className="font-semibold">Save as player defaults</span>
+                    <span className="mt-0.5 block text-muted">
+                      Also update each player&apos;s Monthly / Hostel / Other defaults. Leave amounts
+                      empty to use existing defaults.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Fixed footer — never scrolls */}
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-3.5">
               <Button
                 type="button"
                 variant="secondary"
