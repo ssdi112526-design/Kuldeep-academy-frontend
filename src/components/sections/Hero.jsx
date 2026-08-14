@@ -16,25 +16,25 @@ export default function Hero() {
       className="relative flex flex-col overflow-hidden bg-[#0C0A09] pt-[calc(4.25rem+env(safe-area-inset-top,0px))] md:block md:min-h-[85svh] lg:min-h-[90svh]"
       aria-label={t('brand.name')}
     >
-      {/* 1 · First image (LCP) */}
-      <div className="relative order-1 aspect-[4/5] w-full overflow-hidden md:absolute md:inset-y-0 md:left-0 md:top-[4.25rem] md:aspect-auto md:h-[calc(100%-4.25rem)] md:w-1/2">
+      {/* 1 · First image (LCP) — shorter on mobile so face fills frame (less empty black) */}
+      <div className="relative order-1 h-[min(46svh,22rem)] w-full overflow-hidden sm:h-[min(50svh,26rem)] md:absolute md:inset-y-0 md:left-0 md:top-[4.25rem] md:h-[calc(100%-4.25rem)] md:w-1/2">
         <img
           src={coachKuldeep}
           alt={t('coaches.items.kuldeep.name')}
-          className="h-full w-full object-cover object-[center_18%] md:object-[center_12%]"
+          className="h-full w-full object-cover object-[center_8%] md:object-[center_12%]"
           fetchPriority="high"
           decoding="async"
           width={900}
           height={1200}
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0C0A09]/30 via-transparent to-[#0C0A09]/80 md:hidden"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0C0A09]/20 via-transparent to-[#0C0A09]/75 md:hidden"
           aria-hidden
         />
       </div>
 
-      {/* 2 · Title + CTAs */}
-      <div className="relative z-10 order-2 flex flex-col items-center px-4 py-8 md:min-h-[calc(85svh-4.25rem)] md:justify-center md:py-0 lg:min-h-[calc(90svh-4.25rem)]">
+      {/* 2 · Title + CTAs — pulled up under image fade on mobile */}
+      <div className="relative z-10 order-2 -mt-6 flex flex-col items-center px-4 pb-6 pt-2 sm:-mt-8 sm:pb-8 md:mt-0 md:min-h-[calc(85svh-4.25rem)] md:justify-center md:py-0 lg:min-h-[calc(90svh-4.25rem)]">
         {reduceMotion ? (
           <h1
             className="w-full px-1 text-center font-display text-[clamp(1.5rem,calc(0.7rem+5.8vw),6rem)] font-extrabold uppercase leading-[0.98] tracking-[0.03em] sm:text-[clamp(2.25rem,5.5vw,6rem)] sm:leading-[1.05] sm:tracking-[0.1em] md:tracking-[0.12em]"
@@ -68,7 +68,7 @@ export default function Hero() {
           </motion.h1>
         )}
 
-        <div className="mt-5 flex w-full max-w-sm flex-col items-stretch gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:items-center sm:justify-center sm:gap-4 md:mt-10">
+        <div className="mt-4 flex w-full max-w-sm flex-col items-stretch gap-2.5 sm:mt-8 sm:max-w-none sm:flex-row sm:items-center sm:justify-center sm:gap-4 md:mt-10">
           <Link
             to="/#inquire"
             className="inline-flex h-11 items-center justify-center rounded-full bg-[#C9A227] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-[#0C0A09] shadow-[0_8px_24px_rgba(201,162,39,0.28)] transition hover:bg-[#b8911f] hover:shadow-[0_10px_28px_rgba(201,162,39,0.4)] sm:h-12 sm:px-8 sm:text-[12px]"
