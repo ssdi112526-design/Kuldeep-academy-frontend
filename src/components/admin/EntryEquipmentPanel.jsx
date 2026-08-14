@@ -111,8 +111,15 @@ export default function EntryEquipmentPanel() {
       errors.availableQuantity = 'Available quantity cannot exceed total quantity';
     }
     if (form.purchaseCost !== '' && form.purchaseCost !== null && form.purchaseCost !== undefined) {
-      const cost = Number(form.purchaseCost);
-      if (!Number.isFinite(cost) || cost < 0) errors.purchaseCost = 'Purchase cost must be 0 or more';
+      const raw = String(form.purchaseCost).trim().replace(/,/g, '');
+      if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+        errors.purchaseCost = 'Purchase cost must be a valid amount (max 2 decimals)';
+      } else {
+        const [whole] = raw.split('.');
+        if (whole.length > 12) {
+          errors.purchaseCost = 'Purchase cost is too large';
+        }
+      }
     }
     if (!editingId && !imageFile) errors.image = 'Equipment image is required';
     return errors;
@@ -526,9 +533,17 @@ export default function EntryEquipmentPanel() {
               </label>
 
               <label className="block text-sm font-medium text-ink">
-                Purchase Cost
-                <input id="equipment-purchaseCost" value={form.purchaseCost} onChange={(e) => updateField('purchaseCost', e.target.value)} className={fieldClass(fieldErrors, 'purchaseCost')} />
+                Purchase Cost (INR)
+                <input
+                  id="equipment-purchaseCost"
+                  inputMode="decimal"
+                  placeholder="e.g. 25000.00"
+                  value={form.purchaseCost}
+                  onChange={(e) => updateField('purchaseCost', e.target.value)}
+                  className={fieldClass(fieldErrors, 'purchaseCost')}
+                />
                 {fieldErrors.purchaseCost ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.purchaseCost}</span> : null}
+                <span className="mt-1 block text-[11px] text-muted">Use barcode field for serial/asset numbers — not purchase cost</span>
               </label>
 
               <label className="block text-sm font-medium text-ink sm:col-span-2">

@@ -318,10 +318,13 @@ export default function SponsorshipsPanel() {
                 <input
                   type="number"
                   min="0"
+                  max="9999999999999999.99"
+                  step="0.01"
                   className={`mt-1 ${inputClass}`}
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 />
+                <p className="mt-1 text-[11px] text-muted">INR amount · up to 2 decimal places</p>
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-xs font-medium text-muted">

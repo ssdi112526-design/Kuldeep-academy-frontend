@@ -241,14 +241,31 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
           {items.map((item) => (
             <article key={item._id || item.id} className="rounded-xl border border-slate-100 bg-white p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-ink">{item.name}</h3>
-                  <p className="mt-1 text-sm text-muted">
-                    {item.eventDate ? new Date(item.eventDate).toLocaleDateString() : '—'}
-                    {item.location ? ` · ${item.location}` : ''}
-                    {item.category ? ` · ${item.category}` : ''}
-                  </p>
-                  {item.remarks ? <p className="mt-2 text-sm text-ink/80">{item.remarks}</p> : null}
+                <div className="flex min-w-0 gap-3">
+                  {item.image ? (
+                    <img
+                      src={mediaUrl(item.image)}
+                      alt=""
+                      className="h-20 w-28 shrink-0 rounded-lg object-cover bg-slate-100"
+                      onError={(e) => {
+                        e.currentTarget.src = '';
+                        e.currentTarget.classList.add('hidden');
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-[11px] text-muted">
+                      No image
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold text-ink">{item.name}</h3>
+                    <p className="mt-1 text-sm text-muted">
+                      {item.eventDate ? new Date(item.eventDate).toLocaleDateString() : '—'}
+                      {item.location ? ` · ${item.location}` : ''}
+                      {item.category ? ` · ${item.category}` : ''}
+                    </p>
+                    {item.remarks ? <p className="mt-2 text-sm text-ink/80">{item.remarks}</p> : null}
+                  </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
                   {canEdit ? (
@@ -289,7 +306,21 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
                     <tbody>
                       {item.results.map((r) => (
                         <tr key={r._id || r.id} className="border-t border-slate-50">
-                          <td className="py-2 pr-3 font-medium text-ink">{r.student?.fullName || '—'}</td>
+                          <td className="py-2 pr-3 font-medium text-ink">
+                            <div className="flex items-center gap-2">
+                              {r.image ? (
+                                <img
+                                  src={mediaUrl(r.image)}
+                                  alt=""
+                                  className="h-8 w-8 rounded object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.classList.add('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              {r.student?.fullName || '—'}
+                            </div>
+                          </td>
                           <td className="py-2 pr-3">{r.category || '—'}</td>
                           <td className="py-2 pr-3">{r.result || '—'}</td>
                           <td className="py-2 pr-3">{r.position || '—'}</td>
@@ -382,7 +413,8 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
                 label="Tournament image"
                 value={imageFile}
                 onChange={setImageFile}
-                previewUrl={editing?.image ? mediaUrl(editing.image) : null}
+                onClear={() => setImageFile(null)}
+                previewUrl={!imageFile && editing?.image ? mediaUrl(editing.image) : null}
               />
             </div>
             <div className="mt-5 flex justify-end gap-2">
@@ -462,7 +494,12 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
                   onChange={(e) => setResultForm((f) => ({ ...f, remarks: e.target.value }))}
                 />
               </label>
-              <ImageUploader label="Result image" value={resultImage} onChange={setResultImage} />
+              <ImageUploader
+                label="Result image"
+                value={resultImage}
+                onChange={setResultImage}
+                onClear={() => setResultImage(null)}
+              />
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={() => setResultModal({ open: false, tournament: null })}>

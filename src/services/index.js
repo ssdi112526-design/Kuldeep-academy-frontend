@@ -474,6 +474,21 @@ export const parentAdminService = {
     if (isBrowserFile(file)) form.append('image', file);
     return api.post('/admin/parents', form);
   },
+  update: (id, data, file) => {
+    const form = new FormData();
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      if (key === 'studentIds' && Array.isArray(value)) {
+        value.forEach((sid) => form.append('studentIds', String(sid)));
+        return;
+      }
+      if (key === 'password' && !String(value).trim()) return;
+      form.append(key, String(value));
+    });
+    if (isBrowserFile(file)) form.append('image', file);
+    return api.put(`/admin/parents/${id}`, form);
+  },
+  remove: (id) => api.delete(`/admin/parents/${id}`),
 };
 
 export const parentPortalService = {

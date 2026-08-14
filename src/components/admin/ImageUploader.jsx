@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FaCloudUploadAlt, FaTimes } from 'react-icons/fa';
 import { mediaUrl } from '../../utils/mediaUrl';
 
@@ -16,6 +16,7 @@ export default function ImageUploader({
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState('');
+  const [objectUrl, setObjectUrl] = useState('');
 
   const validate = useCallback((file) => {
     if (!ACCEPT.split(',').includes(file.type) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
@@ -24,6 +25,16 @@ export default function ImageUploader({
     if (file.size > MAX) return 'Image must be 10 MB or smaller';
     return '';
   }, []);
+
+  useEffect(() => {
+    if (!value || typeof value === 'string' || Array.isArray(value) || !(value instanceof File)) {
+      setObjectUrl('');
+      return undefined;
+    }
+    const url = URL.createObjectURL(value);
+    setObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [value]);
 
   const handleFiles = (fileList) => {
     const files = [...fileList];
@@ -39,7 +50,10 @@ export default function ImageUploader({
     onChange(multiple ? files : files[0]);
   };
 
-  const preview = previewUrl || (value && typeof value === 'string' ? mediaUrl(value) : null);
+  const preview =
+    objectUrl ||
+    previewUrl ||
+    (value && typeof value === 'string' ? mediaUrl(value) : null);
 
   return (
     <div>
@@ -76,7 +90,14 @@ export default function ImageUploader({
 
       {preview ? (
         <div className="relative mt-3 inline-block">
-          <img src={preview} alt="Preview" className="h-28 w-40 rounded-lg object-cover shadow-sm" />
+          <img
+            src={preview}
+            alt="Preview"
+            className="h-28 w-40 rounded-lg object-cover shadow-sm"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
           {onClear ? (
             <button
               type="button"

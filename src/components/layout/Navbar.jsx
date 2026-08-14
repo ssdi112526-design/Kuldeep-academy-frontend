@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { HiMenuAlt3, HiX } from 'react-icons/hi';
+import { HiChevronDown, HiMenuAlt3, HiX } from 'react-icons/hi';
 import DualBrandLogos from '../ui/DualBrandLogos';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { publicNavLinks } from '../../data/akhada';
@@ -15,30 +15,105 @@ function useHashActive() {
   return { isActive, pathname, hash };
 }
 
-const loginBtnBase =
-  'inline-flex h-8 items-center justify-center rounded-full px-2.5 text-[10px] font-bold uppercase tracking-[0.06em] transition xl:h-9 xl:px-3.5 xl:text-[11px]';
-
 const loginLinks = [
-  { to: '/login?portal=admin', labelKey: 'nav.adminLogin', variant: 'outline' },
-  { to: '/login?portal=parent', labelKey: 'nav.parentsLogin', variant: 'outline' },
-  { to: '/login?portal=player', labelKey: 'nav.playerLogin', variant: 'gold' },
+  { to: '/login?portal=admin', labelKey: 'nav.adminLogin' },
+  { to: '/login?portal=parent', labelKey: 'nav.parentsLogin' },
+  { to: '/login?portal=player', labelKey: 'nav.playerLogin' },
 ];
 
-function LoginButton({ to, label, variant, className = '', onClick }) {
-  const styles =
-    variant === 'gold'
-      ? 'bg-[#C9A227] text-[#0C0A09] hover:bg-[#b8911f]'
-      : 'border border-white/30 bg-transparent text-white/90 hover:border-[#C9A227] hover:text-[#C9A227]';
+function LoginMenu({ onNavigate, className = '' }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const closeTimer = useRef(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const openMenu = () => {
+    clearCloseTimer();
+    setOpen(true);
+  };
+
+  const scheduleClose = () => {
+    clearCloseTimer();
+    closeTimer.current = setTimeout(() => setOpen(false), 120);
+  };
+
+  useEffect(() => () => clearCloseTimer(), []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   return (
-    <Link to={to} onClick={onClick} className={`${loginBtnBase} ${styles} ${className}`}>
-      {label}
-    </Link>
+    <div
+      ref={rootRef}
+      className={`relative ${className}`}
+      onMouseEnter={openMenu}
+      onMouseLeave={scheduleClose}
+    >
+      <button
+        type="button"
+        className="inline-flex h-8 items-center justify-center gap-1 rounded-full border border-white/30 bg-transparent px-3 text-[10px] font-bold uppercase tracking-[0.06em] text-white/90 transition hover:border-[#C9A227] hover:text-[#C9A227] xl:h-9 xl:px-3.5 xl:text-[11px]"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls="navbar-login-menu"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {t('nav.login')}
+        <HiChevronDown className={`transition ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+
+      <div
+        id="navbar-login-menu"
+        role="menu"
+        aria-label={t('nav.login')}
+        className={`absolute right-0 top-full z-[70] min-w-[12.5rem] pt-2 transition ${
+          open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#141110] shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
+          {loginLinks.map((item) => (
+            <Link
+              key={item.to}
+              role="menuitem"
+              to={item.to}
+              onClick={() => {
+                setOpen(false);
+                onNavigate?.();
+              }}
+              className="block border-b border-white/5 px-4 py-3 text-[12px] font-semibold tracking-[0.04em] text-white/85 transition last:border-b-0 hover:bg-white/5 hover:text-[#C9A227]"
+            >
+              {t(item.labelKey)}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mobileLoginOpen, setMobileLoginOpen] = useState(false);
   const { t } = useTranslation();
   const { isActive, pathname, hash } = useHashActive();
 
@@ -51,6 +126,7 @@ export default function Navbar() {
 
   useEffect(() => {
     setOpen(false);
+    setMobileLoginOpen(false);
   }, [pathname, hash]);
 
   useEffect(() => {
@@ -97,7 +173,6 @@ export default function Navbar() {
               })}
             </nav>
 
-            {/* lg–2xl: compact nav links without taking full desktop space */}
             <nav className="hidden items-center gap-4 lg:flex 2xl:hidden" aria-label="Primary compact">
               {publicNavLinks.map((item) => {
                 const active = isActive(item.href);
@@ -116,15 +191,8 @@ export default function Navbar() {
             </nav>
 
             <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
-              <div className="hidden items-center gap-1.5 lg:flex xl:gap-2">
-                {loginLinks.map((item) => (
-                  <LoginButton
-                    key={item.to}
-                    to={item.to}
-                    label={t(item.labelKey)}
-                    variant={item.variant}
-                  />
-                ))}
+              <div className="hidden lg:block">
+                <LoginMenu />
               </div>
               <LanguageSwitcher invert />
               <Link
@@ -170,17 +238,31 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
-              {loginLinks.map((item) => (
-                <LoginButton
-                  key={item.to}
-                  to={item.to}
-                  label={t(item.labelKey)}
-                  variant={item.variant}
-                  onClick={() => setOpen(false)}
-                  className="h-11 w-full text-[12px]"
-                />
-              ))}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-xl px-3 py-3.5 text-left text-[15px] font-semibold text-white"
+                aria-expanded={mobileLoginOpen}
+                onClick={() => setMobileLoginOpen((v) => !v)}
+              >
+                {t('nav.login')}
+                <HiChevronDown className={`transition ${mobileLoginOpen ? 'rotate-180' : ''}`} aria-hidden />
+              </button>
+              {mobileLoginOpen ? (
+                <div className="mt-1 space-y-1 pb-2 pl-2" role="menu">
+                  {loginLinks.map((item) => (
+                    <Link
+                      key={item.to}
+                      role="menuitem"
+                      to={item.to}
+                      onClick={() => setOpen(false)}
+                      className="block rounded-xl px-3 py-3 text-[14px] font-medium text-[#D6D3D1] hover:bg-white/5 hover:text-[#C9A227]"
+                    >
+                      {t(item.labelKey)}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 px-3 py-3">
