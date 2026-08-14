@@ -22,7 +22,6 @@ import {
   FaImages,
   FaHandshake,
   FaRunning,
-  FaDatabase,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -53,7 +52,6 @@ import EntryEquipmentPanel from '../components/admin/EntryEquipmentPanel';
 import GalleryPanel from '../components/admin/GalleryPanel';
 import AthletesPanel from '../components/admin/AthletesPanel';
 import SponsorshipsPanel from '../components/admin/SponsorshipsPanel';
-import MediaRestorePanel from '../components/admin/MediaRestorePanel';
 import AccessDenied from '../components/admin/AccessDenied';
 import GlobalSearch from '../components/admin/GlobalSearch';
 
@@ -116,7 +114,6 @@ const NAV = [
     children: [
       { id: 'users', label: 'Users', icon: FaUserShield, module: 'users', permission: 'users.view' },
       { id: 'roles', label: 'Roles & Permissions', icon: FaUserLock, module: 'roles', permission: 'roles.view' },
-      { id: 'media-restore', label: 'Media Restore', icon: FaDatabase, superAdminOnly: true },
     ],
   },
 ];
@@ -341,10 +338,6 @@ export default function Admin() {
     },
     users: { title: 'Users', subtitle: 'Create accounts and manage staff access.' },
     roles: { title: 'Roles & Permissions', subtitle: 'Configure role-based access across the admin panel.' },
-    'media-restore': {
-      title: 'Media Restore',
-      subtitle: 'Restore missing /uploads files from PostgreSQL backup after a disk wipe.',
-    },
   };
 
   const meta = titles[section] || titles.dashboard;
@@ -354,7 +347,6 @@ export default function Admin() {
     !sectionModule ||
     canModule(sectionModule) ||
     (section === 'achievements' && canModule('achievements')) ||
-    (section === 'media-restore' && isSuperAdmin) ||
     (section === 'reports' &&
       (canModule('finance') || canModule('students') || canModule('attendance') || canModule('tournaments')));
 
@@ -560,7 +552,6 @@ export default function Admin() {
                 {section === 'receipts' && <ReceiptsPanel />}
                 {section === 'users' && <UsersPanel />}
                 {section === 'roles' && <RolesPanel />}
-                {section === 'media-restore' && <MediaRestorePanel />}
               </>
             )}
           </div>

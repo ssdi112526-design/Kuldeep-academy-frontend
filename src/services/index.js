@@ -675,11 +675,6 @@ export const reportsService = {
     api.post(`/admin/reports/export/${reportKey}`, payload, { responseType: 'blob' }),
 };
 
-export const mediaRestoreService = {
-  status: () => api.get('/admin/media/status'),
-  restore: (mode = 'referenced') => api.post('/admin/media/restore', { mode }),
-};
-
 export const sponsorshipService = {
   list: (params) => api.get('/admin/sponsorships', { params }),
   getOne: (id) => api.get(`/admin/sponsorships/${id}`),

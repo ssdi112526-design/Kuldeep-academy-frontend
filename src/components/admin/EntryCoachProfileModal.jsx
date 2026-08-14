@@ -70,6 +70,14 @@ export default function EntryCoachProfileModal({ coach, onClose }) {
               <Row label="Joining Date" value={formatDisplayDate(coach.joiningDate)} />
               <Row label="Role" value={coach.employeeRole} />
               <Row label="Category" value={coach.category} />
+              <Row
+                label="Salary"
+                value={
+                  coach.salary != null && Number(coach.salary) > 0
+                    ? `₹${Number(coach.salary).toLocaleString('en-IN')} / month`
+                    : '—'
+                }
+              />
             </div>
           </div>
         </div>

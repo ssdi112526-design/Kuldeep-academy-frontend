@@ -23,6 +23,7 @@ import {
   validateDate,
   validateEmail,
   validateIndianMobile,
+  validateInt4,
   validatePan,
 } from '../../utils/formValidation';
 import { clearPublicCache } from '../../utils/publicCache';
@@ -56,6 +57,7 @@ const EMPTY = {
   joiningDate: '',
   employeeRole: '',
   category: '',
+  salary: '',
   status: 'Active',
   loginUsername: '',
   password: '',
@@ -140,6 +142,8 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
     if (dob) errors.dateOfBirth = dob;
     if (joining) errors.joiningDate = joining;
     if (!form.employeeRole?.trim()) errors.employeeRole = 'Role is required';
+    const salaryErr = validateInt4(form.salary, 'Salary', { required: false, min: 0 });
+    if (salaryErr) errors.salary = salaryErr;
     if (!form.category) errors.category = 'Category is required';
     else if (!CATEGORY_OPTIONS.includes(form.category)) errors.category = 'Select a valid category';
     if (aadhaar) errors.aadhaarNumber = aadhaar;
@@ -234,6 +238,7 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
         joiningDate: coach.joiningDate ? String(coach.joiningDate).slice(0, 10) : '',
         employeeRole: coach.employeeRole || '',
         category: coach.category || '',
+        salary: coach.salary != null && coach.salary !== '' ? String(coach.salary) : '',
         status: coach.status || 'Active',
         loginUsername: coach.username || coach.loginAccount?.username || '',
         password: '',
@@ -284,6 +289,7 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
         'joiningDate',
         'employeeRole',
         'category',
+        'salary',
         'loginUsername',
         'password',
         'confirmPassword',
@@ -306,6 +312,7 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
       joiningDate: form.joiningDate,
       employeeRole: form.employeeRole.trim(),
       category: form.category,
+      salary: form.salary === '' || form.salary == null ? 0 : Number(form.salary),
       status: form.status,
       loginUsername: form.loginUsername?.trim() || undefined,
       ...(form.password ? { password: form.password, confirmPassword: form.confirmPassword } : {}),
@@ -461,6 +468,7 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
                 <th className="px-4 py-3">Employee</th>
                 <th className="px-4 py-3">Role</th>
                 <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Salary</th>
                 <th className="px-4 py-3">Joining Date</th>
                 <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -484,6 +492,11 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
                   </td>
                   <td className="px-4 py-3 text-ink">{c.employeeRole || '—'}</td>
                   <td className="px-4 py-3 text-ink">{c.category || '—'}</td>
+                  <td className="px-4 py-3 text-ink whitespace-nowrap">
+                    {c.salary != null && Number(c.salary) > 0
+                      ? `₹${Number(c.salary).toLocaleString('en-IN')}`
+                      : '—'}
+                  </td>
                   <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDisplayDate(c.joiningDate)}</td>
                   <td className="px-4 py-3">
                     <p className="text-ink">{c.mobile || '—'}</p>
@@ -738,6 +751,28 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
                     {fieldErrors.category ? (
                       <span className="mt-1 block text-xs text-red-500">{fieldErrors.category}</span>
                     ) : null}
+                  </label>
+
+                  <label className="block text-sm font-medium text-ink">
+                    Salary (₹ / month)
+                    <input
+                      id="coach-salary"
+                      type="text"
+                      inputMode="numeric"
+                      value={form.salary}
+                      onChange={(e) =>
+                        updateField('salary', e.target.value.replace(/[^\d]/g, '').slice(0, 9))
+                      }
+                      className={fieldClass(fieldErrors, 'salary')}
+                      placeholder="e.g. 25000"
+                    />
+                    {fieldErrors.salary ? (
+                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.salary}</span>
+                    ) : (
+                      <span className="mt-1 block text-[11px] text-muted">
+                        Used as default base salary for Employee Payments.
+                      </span>
+                    )}
                   </label>
 
                   <label className="block text-sm font-medium text-ink">
