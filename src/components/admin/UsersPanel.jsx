@@ -378,22 +378,6 @@ export default function UsersPanel() {
             <FormErrorBanner message={formError} />
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted">Profile Photo</label>
-                <div className="mt-2 flex items-center gap-4">
-                  <img src={preview || '/favicon.png'} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-slate-100" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      setFile(f || null);
-                      setPreview(f ? URL.createObjectURL(f) : '');
-                    }}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
               <label className="text-sm">
                 Full Name *
                 <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
@@ -474,6 +458,22 @@ export default function UsersPanel() {
                 />
                 Send Welcome Email
               </label>
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-muted">Profile Photo</label>
+                <div className="mt-2 flex items-center gap-4">
+                  <img src={preview || '/favicon.png'} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-slate-100" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      setFile(f || null);
+                      setPreview(f ? URL.createObjectURL(f) : '');
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">

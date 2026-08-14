@@ -50,9 +50,14 @@ export default function ImageUploader({
     onChange(multiple ? files : files[0]);
   };
 
+  const resolvedPreviewUrl =
+    typeof previewUrl === 'string' && previewUrl
+      ? mediaUrl(previewUrl)
+      : previewUrl || null;
+
   const preview =
     objectUrl ||
-    previewUrl ||
+    resolvedPreviewUrl ||
     (value && typeof value === 'string' ? mediaUrl(value) : null);
 
   return (

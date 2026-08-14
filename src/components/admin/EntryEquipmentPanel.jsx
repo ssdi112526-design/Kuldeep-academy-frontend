@@ -12,7 +12,7 @@ import { entryService } from '../../services';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { fieldClass, firstErrorMessage, requiredText, validateDate } from '../../utils/formValidation';
+import { fieldClass, firstErrorMessage, requiredText, validateDate, validateMoney, MONEY_MAX_EQUIPMENT } from '../../utils/formValidation';
 import { clearPublicCache } from '../../utils/publicCache';
 import EntryEquipmentProfileModal from './EntryEquipmentProfileModal';
 import AccessDenied from './AccessDenied';
@@ -111,15 +111,11 @@ export default function EntryEquipmentPanel() {
       errors.availableQuantity = 'Available quantity cannot exceed total quantity';
     }
     if (form.purchaseCost !== '' && form.purchaseCost !== null && form.purchaseCost !== undefined) {
-      const raw = String(form.purchaseCost).trim().replace(/,/g, '');
-      if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
-        errors.purchaseCost = 'Purchase cost must be a valid amount (max 2 decimals)';
-      } else {
-        const [whole] = raw.split('.');
-        if (whole.length > 12) {
-          errors.purchaseCost = 'Purchase cost is too large';
-        }
-      }
+      const purchaseCost = validateMoney(form.purchaseCost, 'Purchase cost', {
+        required: false,
+        max: MONEY_MAX_EQUIPMENT,
+      });
+      if (purchaseCost) errors.purchaseCost = purchaseCost;
     }
     if (!editingId && !imageFile) errors.image = 'Equipment image is required';
     return errors;

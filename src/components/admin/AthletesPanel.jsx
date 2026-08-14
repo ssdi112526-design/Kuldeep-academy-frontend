@@ -14,6 +14,12 @@ import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
+import {
+  fieldClass,
+  firstErrorMessage,
+  requiredText,
+  validateInt4,
+} from '../../utils/formValidation';
 
 const EMPTY = {
   name: '',
@@ -48,12 +54,24 @@ export default function AthletesPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -91,6 +109,7 @@ export default function AthletesPanel() {
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setFile(null);
     setPreview('');
     setFormError('');
@@ -107,6 +126,7 @@ export default function AthletesPanel() {
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive !== false,
     });
+    setFieldErrors({});
     setFile(null);
     setPreview(item.image ? mediaUrl(item.image) : '');
     setFormError('');
@@ -115,18 +135,21 @@ export default function AthletesPanel() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.category.trim()) {
-      const message = 'Name and category are required';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
     if (file && !canUpload) {
       toast.error('You do not have permission to upload images');
       return;
     }
-    if (!editing && !file) {
-      const message = 'Please upload an athlete image';
+    const errors = {};
+    const name = requiredText(form.name, 'Athlete name');
+    const category = requiredText(form.category, 'Category');
+    const displayOrder = validateInt4(form.displayOrder, 'Display order', { required: false });
+    if (name) errors.name = name;
+    if (category) errors.category = category;
+    if (displayOrder) errors.displayOrder = displayOrder;
+    if (!editing && !file) errors.image = 'Please upload an athlete image';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, ['name', 'category', 'displayOrder', 'image']);
       setFormError(message);
       toast.error(message);
       return;
@@ -138,7 +161,7 @@ export default function AthletesPanel() {
         name: form.name.trim(),
         category: form.category.trim(),
         objectPosition: form.objectPosition || 'top',
-        displayOrder: form.displayOrder,
+        displayOrder: Number(form.displayOrder) || 0,
         isActive: form.isActive,
       };
       if (editing) await athleteService.update(editing._id || editing.id, payload, file);
@@ -322,22 +345,26 @@ export default function AthletesPanel() {
               <label className="block text-sm font-medium text-ink">
                 Athlete name *
                 <input
-                  required
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('name', e.target.value)}
+                  className={fieldClass(fieldErrors, 'name')}
                   placeholder="e.g. Hemant Kashyap"
                 />
+                {fieldErrors.name ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.name}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Category label *
                 <input
-                  required
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('category', e.target.value)}
+                  className={fieldClass(fieldErrors, 'category')}
                   placeholder="Wrestling / Training / Competition"
                 />
+                {fieldErrors.category ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.category}</span>
+                ) : null}
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-ink">
@@ -345,16 +372,19 @@ export default function AthletesPanel() {
                   <input
                     type="number"
                     value={form.displayOrder}
-                    onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) || 0 })}
-                    className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                    onChange={(e) => updateField('displayOrder', e.target.value)}
+                    className={fieldClass(fieldErrors, 'displayOrder')}
                   />
+                  {fieldErrors.displayOrder ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.displayOrder}</span>
+                  ) : null}
                 </label>
                 <label className="block text-sm font-medium text-ink">
                   Image focus
                   <select
                     value={form.objectPosition}
-                    onChange={(e) => setForm({ ...form, objectPosition: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                    onChange={(e) => updateField('objectPosition', e.target.value)}
+                    className={fieldClass(fieldErrors, 'objectPosition')}
                   >
                     {POSITION_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -364,25 +394,37 @@ export default function AthletesPanel() {
                   </select>
                 </label>
               </div>
+              <label className="flex items-center gap-2 text-sm font-medium text-ink">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => updateField('isActive', e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                Show on website
+              </label>
               <ImageUploader
                 label="Athlete photo *"
                 value={file}
-                onChange={setFile}
+                onChange={(f) => {
+                  setFile(f);
+                  if (fieldErrors.image) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.image;
+                      return next;
+                    });
+                  }
+                }}
                 previewUrl={preview}
                 onClear={() => {
                   setFile(null);
                   if (!editing?.image) setPreview('');
                 }}
               />
-              <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="rounded border-slate-300"
-                />
-                Show on website
-              </label>
+              {fieldErrors.image ? (
+                <span className="block text-xs text-red-500">{fieldErrors.image}</span>
+              ) : null}
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>

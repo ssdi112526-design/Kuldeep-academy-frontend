@@ -28,6 +28,12 @@ import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
+import {
+  fieldClass,
+  firstErrorMessage,
+  requiredText,
+  validateInt4,
+} from '../../utils/formValidation';
 
 const ICON_OPTIONS = [
   'FaUsers',
@@ -78,12 +84,24 @@ export default function FeaturesPanel({ onChanged }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -121,6 +139,7 @@ export default function FeaturesPanel({ onChanged }) {
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setFile(null);
     setPreview('');
     setFormError('');
@@ -139,6 +158,7 @@ export default function FeaturesPanel({ onChanged }) {
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive,
     });
+    setFieldErrors({});
     setFile(null);
     setPreview(item.image ? mediaUrl(item.image) : '');
     setFormError('');
@@ -159,18 +179,32 @@ export default function FeaturesPanel({ onChanged }) {
       toast.error('You do not have permission to upload images');
       return;
     }
-    if (
-      !form.titleEn.trim() ||
-      !form.titleHi.trim() ||
-      !form.descriptionEn.trim() ||
-      !form.descriptionHi.trim()
-    ) {
-      const message = 'English and Hindi titles and descriptions are required';
+    const errors = {};
+    const titleEn = requiredText(form.titleEn, 'Title (English)');
+    const titleHi = requiredText(form.titleHi, 'Title (Hindi)');
+    const descriptionEn = requiredText(form.descriptionEn, 'Description (English)', 1, 5000);
+    const descriptionHi = requiredText(form.descriptionHi, 'Description (Hindi)', 1, 5000);
+    const displayOrder = validateInt4(form.displayOrder, 'Display order', { required: false });
+    if (titleEn) errors.titleEn = titleEn;
+    if (titleHi) errors.titleHi = titleHi;
+    if (descriptionEn) errors.descriptionEn = descriptionEn;
+    if (descriptionHi) errors.descriptionHi = descriptionHi;
+    if (displayOrder) errors.displayOrder = displayOrder;
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, [
+        'titleEn',
+        'titleHi',
+        'descriptionEn',
+        'descriptionHi',
+        'displayOrder',
+      ]);
       setFormError(message);
       toast.error(message);
       return;
     }
     setSaving(true);
+    setFormError('');
     try {
       const payload = {
         titleEn: form.titleEn.trim(),
@@ -178,7 +212,7 @@ export default function FeaturesPanel({ onChanged }) {
         descriptionEn: form.descriptionEn.trim(),
         descriptionHi: form.descriptionHi.trim(),
         icon: form.icon.trim(),
-        displayOrder: form.displayOrder,
+        displayOrder: Number(form.displayOrder) || 0,
         isActive: form.isActive,
       };
       if (editing) await featureService.update(editing._id || editing.id, payload, file);
@@ -373,47 +407,55 @@ export default function FeaturesPanel({ onChanged }) {
               <label className="block text-sm font-medium text-ink">
                 Title (English)
                 <input
-                  required
                   value={form.titleEn}
-                  onChange={(e) => setForm({ ...form, titleEn: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('titleEn', e.target.value)}
+                  className={fieldClass(fieldErrors, 'titleEn')}
                 />
+                {fieldErrors.titleEn ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.titleEn}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Title (Hindi)
                 <input
-                  required
                   value={form.titleHi}
-                  onChange={(e) => setForm({ ...form, titleHi: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('titleHi', e.target.value)}
+                  className={fieldClass(fieldErrors, 'titleHi')}
                 />
+                {fieldErrors.titleHi ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.titleHi}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Description (English)
                 <textarea
-                  required
                   rows={3}
                   value={form.descriptionEn}
-                  onChange={(e) => setForm({ ...form, descriptionEn: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('descriptionEn', e.target.value)}
+                  className={fieldClass(fieldErrors, 'descriptionEn')}
                 />
+                {fieldErrors.descriptionEn ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.descriptionEn}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Description (Hindi)
                 <textarea
-                  required
                   rows={3}
                   value={form.descriptionHi}
-                  onChange={(e) => setForm({ ...form, descriptionHi: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('descriptionHi', e.target.value)}
+                  className={fieldClass(fieldErrors, 'descriptionHi')}
                 />
+                {fieldErrors.descriptionHi ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.descriptionHi}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Icon
                 <select
                   value={form.icon}
-                  onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('icon', e.target.value)}
+                  className={fieldClass(fieldErrors, 'icon')}
                 >
                   {ICON_OPTIONS.map((name) => (
                     <option key={name} value={name}>
@@ -427,15 +469,18 @@ export default function FeaturesPanel({ onChanged }) {
                 <input
                   type="number"
                   value={form.displayOrder}
-                  onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) || 0 })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('displayOrder', e.target.value)}
+                  className={fieldClass(fieldErrors, 'displayOrder')}
                 />
+                {fieldErrors.displayOrder ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.displayOrder}</span>
+                ) : null}
               </label>
               <label className="flex items-center gap-2 text-sm font-medium text-ink">
                 <input
                   type="checkbox"
                   checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                  onChange={(e) => updateField('isActive', e.target.checked)}
                 />
                 Active
               </label>

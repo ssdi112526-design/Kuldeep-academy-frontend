@@ -5,6 +5,7 @@ import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import AccessDenied from './AccessDenied';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import FormErrorBanner from './FormErrorBanner';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
 import { sponsorshipService } from '../../services';
@@ -12,9 +13,13 @@ import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
 import { inr } from '../../utils/financeUi';
-
-const inputClass =
-  'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
+import {
+  fieldClass,
+  firstErrorMessage,
+  requiredText,
+  validateDate,
+  validateMoney,
+} from '../../utils/formValidation';
 
 const EMPTY = {
   sponsorName: '',
@@ -63,9 +68,22 @@ export default function SponsorshipsPanel() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const load = async (page = pagination.page) => {
     setLoading(true);
@@ -103,6 +121,8 @@ export default function SponsorshipsPanel() {
 
   const openCreate = () => {
     setForm(EMPTY);
+    setFieldErrors({});
+    setFormError('');
     setFile(null);
     setModal('create');
   };
@@ -117,13 +137,46 @@ export default function SponsorshipsPanel() {
       status: row.status || 'Active',
       notes: row.notes || '',
     });
+    setFieldErrors({});
+    setFormError('');
     setFile(null);
     setModal(row);
   };
 
+  const validateSponsorshipForm = () => {
+    const errors = {};
+    const sponsorName = requiredText(form.sponsorName, 'Sponsor / Company');
+    const sponsorshipType = requiredText(form.sponsorshipType, 'Type');
+    const startDate = validateDate(form.startDate, 'Start date', { required: true });
+    const endDate = validateDate(form.endDate, 'End date', { required: false });
+    const amount = validateMoney(form.amount, 'Amount', { required: false });
+
+    if (sponsorName) errors.sponsorName = sponsorName;
+    if (sponsorshipType) errors.sponsorshipType = sponsorshipType;
+    if (startDate) errors.startDate = startDate;
+    if (endDate) errors.endDate = endDate;
+    if (amount) errors.amount = amount;
+    return errors;
+  };
+
   const save = async (e) => {
     e.preventDefault();
+    const errors = validateSponsorshipForm();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, [
+        'sponsorName',
+        'sponsorshipType',
+        'amount',
+        'startDate',
+        'endDate',
+      ]);
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
     setSaving(true);
+    setFormError('');
     try {
       if (modal === 'create') {
         await sponsorshipService.create(form, file);
@@ -135,7 +188,9 @@ export default function SponsorshipsPanel() {
       setModal(null);
       load(pagination.page);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Save failed'));
+      const message = getApiErrorMessage(err, 'Save failed');
+      setFormError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -171,7 +226,11 @@ export default function SponsorshipsPanel() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchBar value={search} onChange={setSearch} placeholder="Search sponsors…" />
         <div className="flex flex-wrap gap-2">
-          <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select
+            className={fieldClass({}, 'statusFilter', 'text-sm')}
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
             <option value="">All statuses</option>
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -179,7 +238,11 @@ export default function SponsorshipsPanel() {
               </option>
             ))}
           </select>
-          <select className={inputClass} value={expiry} onChange={(e) => setExpiry(e.target.value)}>
+          <select
+            className={fieldClass({}, 'expiryFilter', 'text-sm')}
+            value={expiry}
+            onChange={(e) => setExpiry(e.target.value)}
+          >
             <option value="">All expiry</option>
             <option value="expired">Expired</option>
             <option value="upcoming">Expiring / Upcoming</option>
@@ -293,66 +356,80 @@ export default function SponsorshipsPanel() {
             <h3 className="text-lg font-bold text-ink">
               {modal === 'create' ? 'Add Sponsorship' : 'Edit Sponsorship'}
             </h3>
+            <div className="mt-3">
+              <FormErrorBanner message={formError} />
+            </div>
             <div className="mt-4 space-y-3">
               <label className="block text-xs font-medium text-muted">
                 Sponsor / Company *
                 <input
-                  required
-                  className={`mt-1 ${inputClass}`}
+                  className={fieldClass(fieldErrors, 'sponsorName')}
                   value={form.sponsorName}
-                  onChange={(e) => setForm((f) => ({ ...f, sponsorName: e.target.value }))}
+                  onChange={(e) => updateField('sponsorName', e.target.value)}
                 />
+                {fieldErrors.sponsorName ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.sponsorName}</span>
+                ) : null}
               </label>
               <label className="block text-xs font-medium text-muted">
                 Type *
                 <input
-                  required
-                  className={`mt-1 ${inputClass}`}
+                  className={fieldClass(fieldErrors, 'sponsorshipType')}
                   value={form.sponsorshipType}
-                  onChange={(e) => setForm((f) => ({ ...f, sponsorshipType: e.target.value }))}
+                  onChange={(e) => updateField('sponsorshipType', e.target.value)}
                   placeholder="Cash / Kit / Venue / Other"
                 />
+                {fieldErrors.sponsorshipType ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.sponsorshipType}</span>
+                ) : null}
               </label>
               <label className="block text-xs font-medium text-muted">
                 Amount
                 <input
-                  type="number"
-                  min="0"
-                  max="9999999999999999.99"
-                  step="0.01"
-                  className={`mt-1 ${inputClass}`}
+                  type="text"
+                  inputMode="decimal"
+                  className={fieldClass(fieldErrors, 'amount')}
                   value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  onChange={(e) => updateField('amount', e.target.value)}
                 />
-                <p className="mt-1 text-[11px] text-muted">INR amount · up to 2 decimal places</p>
+                {fieldErrors.amount ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.amount}</span>
+                ) : (
+                  <p className="mt-1 text-[11px] text-muted">INR amount · up to 2 decimal places</p>
+                )}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-xs font-medium text-muted">
                   Start date *
                   <input
                     type="date"
-                    required
-                    className={`mt-1 ${inputClass}`}
+                    className={fieldClass(fieldErrors, 'startDate')}
                     value={form.startDate}
-                    onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                    onChange={(e) => updateField('startDate', e.target.value)}
                   />
+                  {fieldErrors.startDate ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.startDate}</span>
+                  ) : null}
                 </label>
                 <label className="block text-xs font-medium text-muted">
                   End date
                   <input
                     type="date"
-                    className={`mt-1 ${inputClass}`}
+                    className={fieldClass(fieldErrors, 'endDate')}
                     value={form.endDate}
-                    onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                    onChange={(e) => updateField('endDate', e.target.value)}
                   />
+                  {fieldErrors.endDate ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.endDate}</span>
+                  ) : null}
                 </label>
               </div>
               <label className="block text-xs font-medium text-muted">
                 Status
                 <select
-                  className={`mt-1 ${inputClass}`}
+                  className={fieldClass(fieldErrors, 'status')}
                   value={form.status}
-                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                  onChange={(e) => updateField('status', e.target.value)}
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
@@ -362,20 +439,20 @@ export default function SponsorshipsPanel() {
                 </select>
               </label>
               <label className="block text-xs font-medium text-muted">
-                Document (PDF / Word / Image)
-                <input
-                  type="file"
-                  className={`mt-1 ${inputClass}`}
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                Notes
+                <textarea
+                  className={fieldClass(fieldErrors, 'notes')}
+                  rows={2}
+                  value={form.notes}
+                  onChange={(e) => updateField('notes', e.target.value)}
                 />
               </label>
               <label className="block text-xs font-medium text-muted">
-                Notes
-                <textarea
-                  className={`mt-1 ${inputClass}`}
-                  rows={2}
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                Document (PDF / Word / Image)
+                <input
+                  type="file"
+                  className={fieldClass({}, 'document')}
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
                 />
               </label>
             </div>

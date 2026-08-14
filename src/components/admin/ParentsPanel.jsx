@@ -10,6 +10,14 @@ import { usePermissions } from '../../context/PermissionContext';
 import { entryService, parentAdminService } from '../../services';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { mediaUrl } from '../../utils/mediaUrl';
+import {
+  fieldClass,
+  firstErrorMessage,
+  requiredText,
+  validateEmail,
+  validateOptionalPhone,
+  validatePassword,
+} from '../../utils/formValidation';
 
 const EMPTY = {
   fullName: '',
@@ -36,11 +44,23 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [photoFile, setPhotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [highlightedId, setHighlightedId] = useState(null);
   const [confirm, setConfirm] = useState({ open: false, id: null, name: '', loading: false });
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -83,11 +103,19 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
         ? f.studentIds.filter((x) => x !== id)
         : [...f.studentIds, id],
     }));
+    if (fieldErrors.studentIds) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.studentIds;
+        return next;
+      });
+    }
   };
 
   const openCreate = () => {
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setPhotoFile(null);
     setFormError('');
     setModalOpen(true);
@@ -105,28 +133,39 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
       studentIds: (parent.links || []).map((l) => l.studentId || l.student?.id || l.student?._id).filter(Boolean),
       isActive: parent.user?.isActive !== false,
     });
+    setFieldErrors({});
     setPhotoFile(null);
     setFormError('');
     setModalOpen(true);
   };
 
+  const validateParentForm = () => {
+    const errors = {};
+    const fullName = requiredText(form.fullName, 'Full name');
+    const email = validateEmail(form.email, { required: true });
+    const phone = validateOptionalPhone(form.phone, 'Phone');
+    const password = validatePassword(form.password, { required: !editing, min: 6 });
+
+    if (fullName) errors.fullName = fullName;
+    if (email) errors.email = email;
+    if (phone) errors.phone = phone;
+    if (password) errors.password = password;
+    if (!form.studentIds.length) errors.studentIds = 'Select at least one linked player';
+    return errors;
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
-    const needsPassword = !editing;
-    if (!form.fullName.trim() || !form.email.trim() || !form.studentIds.length) {
-      const message = 'Name, email and at least one linked player are required';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    if (needsPassword && !form.password) {
-      const message = 'Temporary password is required';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    if (form.password && form.password.length < 6) {
-      const message = 'Password must be at least 6 characters';
+    const errors = validateParentForm();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, [
+        'fullName',
+        'email',
+        'password',
+        'phone',
+        'studentIds',
+      ]);
       setFormError(message);
       toast.error(message);
       return;
@@ -318,34 +357,28 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
               <FormErrorBanner message={formError} />
             </div>
             <div className="mt-4 grid gap-3">
-              <div>
-                <p className="mb-2 text-sm font-medium text-ink">Parent Image</p>
-                <ImageUploader
-                  label="Upload parent image (JPG/PNG/WEBP)"
-                  value={photoFile}
-                  previewUrl={!photoFile ? existingPhoto : ''}
-                  onChange={setPhotoFile}
-                  onClear={() => setPhotoFile(null)}
-                />
-              </div>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Full name *</span>
                 <input
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'fullName')}
                   value={form.fullName}
-                  onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-                  required
+                  onChange={(e) => updateField('fullName', e.target.value)}
                 />
+                {fieldErrors.fullName ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.fullName}</span>
+                ) : null}
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Email (login) *</span>
                 <input
                   type="email"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'email')}
                   value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  required
+                  onChange={(e) => updateField('email', e.target.value)}
                 />
+                {fieldErrors.email ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.email}</span>
+                ) : null}
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">
@@ -353,29 +386,33 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
                 </span>
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'password')}
                   value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  required={!editing}
-                  minLength={editing ? undefined : 6}
+                  onChange={(e) => updateField('password', e.target.value)}
                   placeholder={editing ? 'Leave blank to keep current password' : ''}
                 />
+                {fieldErrors.password ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.password}</span>
+                ) : null}
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Phone</span>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'phone')}
                     value={form.phone}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                    onChange={(e) => updateField('phone', e.target.value)}
                   />
+                  {fieldErrors.phone ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.phone}</span>
+                  ) : null}
                 </label>
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Relation</span>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'relation')}
                     value={form.relation}
-                    onChange={(e) => setForm((f) => ({ ...f, relation: e.target.value }))}
+                    onChange={(e) => updateField('relation', e.target.value)}
                   />
                 </label>
               </div>
@@ -384,14 +421,18 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                    onChange={(e) => updateField('isActive', e.target.checked)}
                   />
                   <span className="font-medium text-ink">Account active</span>
                 </label>
               ) : null}
               <div>
                 <p className="mb-2 text-sm font-medium text-ink">Link players *</p>
-                <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
+                <div
+                  className={`max-h-48 space-y-1 overflow-y-auto rounded-lg border p-2 ${
+                    fieldErrors.studentIds ? 'border-red-400' : 'border-slate-200'
+                  }`}
+                >
                   {players.map((p) => {
                     const id = p._id || p.id;
                     return (
@@ -411,6 +452,19 @@ export default function ParentsPanel({ focusId = null, focusToken = null } = {})
                     );
                   })}
                 </div>
+                {fieldErrors.studentIds ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.studentIds}</span>
+                ) : null}
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-medium text-ink">Parent Image</p>
+                <ImageUploader
+                  label="Upload parent image (JPG/PNG/WEBP)"
+                  value={photoFile}
+                  previewUrl={!photoFile ? existingPhoto : ''}
+                  onChange={setPhotoFile}
+                  onClear={() => setPhotoFile(null)}
+                />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">

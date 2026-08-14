@@ -14,6 +14,12 @@ import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
+import {
+  fieldClass,
+  firstErrorMessage,
+  requiredText,
+  validateInt4,
+} from '../../utils/formValidation';
 
 const EMPTY = { name: '', description: '', icon: '', displayOrder: 0, isActive: true };
 
@@ -34,12 +40,24 @@ export default function FacilitiesPanel({ onChanged }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -77,6 +95,7 @@ export default function FacilitiesPanel({ onChanged }) {
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setFile(null);
     setPreview('');
     setFormError('');
@@ -93,6 +112,7 @@ export default function FacilitiesPanel({ onChanged }) {
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive,
     });
+    setFieldErrors({});
     setFile(null);
     setPreview(item.image ? mediaUrl(item.image) : '');
     setFormError('');
@@ -113,25 +133,29 @@ export default function FacilitiesPanel({ onChanged }) {
       toast.error('You do not have permission to upload images');
       return;
     }
-    if (!form.name.trim() || !form.description.trim()) {
-      const message = 'Name and description are required';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    if (!editing && !file) {
-      const message = 'Please upload an image';
+    const errors = {};
+    const name = requiredText(form.name, 'Facility name');
+    const description = requiredText(form.description, 'Description', 1, 5000);
+    const displayOrder = validateInt4(form.displayOrder, 'Display order', { required: false });
+    if (name) errors.name = name;
+    if (description) errors.description = description;
+    if (displayOrder) errors.displayOrder = displayOrder;
+    if (!editing && !file) errors.image = 'Please upload an image';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, ['name', 'description', 'displayOrder', 'image']);
       setFormError(message);
       toast.error(message);
       return;
     }
     setSaving(true);
+    setFormError('');
     try {
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
         icon: form.icon.trim(),
-        displayOrder: form.displayOrder,
+        displayOrder: Number(form.displayOrder) || 0,
         isActive: form.isActive,
       };
       if (editing) await facilityService.update(editing._id, payload, file);
@@ -311,29 +335,33 @@ export default function FacilitiesPanel({ onChanged }) {
               <label className="block text-sm font-medium text-ink">
                 Facility Name
                 <input
-                  required
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('name', e.target.value)}
+                  className={fieldClass(fieldErrors, 'name')}
                 />
+                {fieldErrors.name ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.name}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Description
                 <textarea
-                  required
                   rows={3}
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('description', e.target.value)}
+                  className={fieldClass(fieldErrors, 'description')}
                 />
+                {fieldErrors.description ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.description}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Icon (optional)
                 <input
                   value={form.icon}
-                  onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                  onChange={(e) => updateField('icon', e.target.value)}
                   placeholder="e.g. FaDumbbell"
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  className={fieldClass(fieldErrors, 'icon')}
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
@@ -341,15 +369,18 @@ export default function FacilitiesPanel({ onChanged }) {
                 <input
                   type="number"
                   value={form.displayOrder}
-                  onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) || 0 })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('displayOrder', e.target.value)}
+                  className={fieldClass(fieldErrors, 'displayOrder')}
                 />
+                {fieldErrors.displayOrder ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.displayOrder}</span>
+                ) : null}
               </label>
               <label className="flex items-center gap-2 text-sm font-medium text-ink">
                 <input
                   type="checkbox"
                   checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                  onChange={(e) => updateField('isActive', e.target.checked)}
                 />
                 Active
               </label>
@@ -362,8 +393,18 @@ export default function FacilitiesPanel({ onChanged }) {
                   }
                   setFile(f);
                   setPreview(URL.createObjectURL(f));
+                  if (fieldErrors.image) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.image;
+                      return next;
+                    });
+                  }
                 }}
               />
+              {fieldErrors.image ? (
+                <span className="block text-xs text-red-500">{fieldErrors.image}</span>
+              ) : null}
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>

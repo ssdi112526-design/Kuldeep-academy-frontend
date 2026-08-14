@@ -13,6 +13,13 @@ import { entryService, tournamentService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { getApiErrorMessage } from '../../utils/apiError';
+import {
+  fieldClass,
+  firstErrorMessage,
+  optionalText,
+  requiredText,
+  validateDate,
+} from '../../utils/formValidation';
 
 const EMPTY_TOURNAMENT = {
   name: '',
@@ -49,6 +56,7 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_TOURNAMENT);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [imageFile, setImageFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -58,6 +66,17 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
   const [resultImage, setResultImage] = useState(null);
   const [resultSaving, setResultSaving] = useState(false);
   const searchRef = useRef(debouncedSearch);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -100,6 +119,7 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY_TOURNAMENT);
+    setFieldErrors({});
     setImageFile(null);
     setFormError('');
     setModalOpen(true);
@@ -115,6 +135,7 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
       category: item.category || '',
       remarks: item.remarks || '',
     });
+    setFieldErrors({});
     setImageFile(null);
     setFormError('');
     setModalOpen(true);
@@ -131,8 +152,20 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.eventDate) {
-      const message = 'Tournament name and date are required';
+    const errors = {};
+    const name = requiredText(form.name, 'Tournament name');
+    const eventDate = validateDate(form.eventDate, 'Date', { required: true });
+    const location = optionalText(form.location, 'Location', 500);
+    const remarks = optionalText(form.remarks, 'Remarks', 2000);
+    const category = optionalText(form.category, 'Category', 200);
+    if (name) errors.name = name;
+    if (eventDate) errors.eventDate = eventDate;
+    if (location) errors.location = location;
+    if (remarks) errors.remarks = remarks;
+    if (category) errors.category = category;
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, ['name', 'eventDate', 'category', 'location', 'remarks']);
       setFormError(message);
       toast.error(message);
       return;
@@ -366,48 +399,61 @@ export default function TournamentRecordsPanel({ focusId = null, focusToken = nu
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Tournament name *</span>
                 <input
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'name')}
                   value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  required
+                  onChange={(e) => updateField('name', e.target.value)}
                 />
+                {fieldErrors.name ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.name}</span>
+                ) : null}
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Date *</span>
                   <input
                     type="date"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'eventDate')}
                     value={form.eventDate}
-                    onChange={(e) => setForm((f) => ({ ...f, eventDate: e.target.value }))}
-                    required
+                    onChange={(e) => updateField('eventDate', e.target.value)}
                   />
+                  {fieldErrors.eventDate ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.eventDate}</span>
+                  ) : null}
                 </label>
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Category</span>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'category')}
                     value={form.category}
-                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    onChange={(e) => updateField('category', e.target.value)}
                   />
+                  {fieldErrors.category ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.category}</span>
+                  ) : null}
                 </label>
               </div>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Location</span>
                 <input
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'location')}
                   value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  onChange={(e) => updateField('location', e.target.value)}
                 />
+                {fieldErrors.location ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.location}</span>
+                ) : null}
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Remarks</span>
                 <textarea
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'remarks')}
                   rows={3}
                   value={form.remarks}
-                  onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))}
+                  onChange={(e) => updateField('remarks', e.target.value)}
                 />
+                {fieldErrors.remarks ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.remarks}</span>
+                ) : null}
               </label>
               <ImageUploader
                 label="Tournament image"

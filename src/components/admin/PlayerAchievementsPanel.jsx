@@ -17,6 +17,15 @@ import { mediaUrl } from '../../utils/mediaUrl';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
 import { MEDAL_OPTIONS } from '../../utils/medals';
+import {
+  fieldClass,
+  firstErrorMessage,
+  optionalText,
+  requiredText,
+  validateDate,
+  validateInt4,
+  validateRequiredSelect,
+} from '../../utils/formValidation';
 
 const EMPTY = {
   playerName: '',
@@ -56,11 +65,23 @@ export default function PlayerAchievementsPanel({
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [imageFile, setImageFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -105,6 +126,7 @@ export default function PlayerAchievementsPanel({
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setImageFile(null);
     setFormError('');
     setModalOpen(true);
@@ -130,6 +152,7 @@ export default function PlayerAchievementsPanel({
       result: item.result || '',
       showOnWebsite: item.showOnWebsite !== false,
     });
+    setFieldErrors({});
     setImageFile(null);
     setFormError('');
     setModalOpen(true);
@@ -152,18 +175,42 @@ export default function PlayerAchievementsPanel({
       tournamentName: t?.name || f.tournamentName,
       year: f.year || (t?.eventDate ? String(new Date(t.eventDate).getUTCFullYear()) : f.year),
     }));
+    if (fieldErrors.tournamentId) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.tournamentId;
+        return next;
+      });
+    }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.playerName.trim() || !form.title.trim()) {
-      const message = 'Player name and title are required';
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    if (!form.medal) {
-      const message = 'Please select a medal';
+    const errors = {};
+    const playerName = requiredText(form.playerName, 'Player name');
+    const title = requiredText(form.title, 'Title');
+    const medal = validateRequiredSelect(form.medal, 'Medal');
+    const description = optionalText(form.description, 'Description', 5000);
+    const achievedOn = validateDate(form.achievedOn, 'Date', { required: false });
+    const year = form.year === '' || form.year === null || form.year === undefined
+      ? ''
+      : validateInt4(form.year, 'Year', { required: false, min: 1900, max: 2100 });
+    if (playerName) errors.playerName = playerName;
+    if (title) errors.title = title;
+    if (medal) errors.medal = medal;
+    if (description) errors.description = description;
+    if (achievedOn) errors.achievedOn = achievedOn;
+    if (year) errors.year = year;
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, [
+        'playerName',
+        'title',
+        'medal',
+        'description',
+        'achievedOn',
+        'year',
+      ]);
       setFormError(message);
       toast.error(message);
       return;
@@ -468,35 +515,42 @@ export default function PlayerAchievementsPanel({
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Player name *</span>
                 <input
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'playerName')}
                   value={form.playerName}
-                  onChange={(e) => setForm((f) => ({ ...f, playerName: e.target.value }))}
+                  onChange={(e) => updateField('playerName', e.target.value)}
                   placeholder="Enter player name"
-                  required
                 />
+                {fieldErrors.playerName ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.playerName}</span>
+                ) : null}
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Title *</span>
                 <input
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'title')}
                   value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  required
+                  onChange={(e) => updateField('title', e.target.value)}
                 />
+                {fieldErrors.title ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.title}</span>
+                ) : null}
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Description</span>
                 <textarea
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'description')}
                   rows={3}
                   value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) => updateField('description', e.target.value)}
                 />
+                {fieldErrors.description ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.description}</span>
+                ) : null}
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Tournament</span>
                 <select
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                  className={fieldClass(fieldErrors, 'tournamentId')}
                   value={form.tournamentId}
                   onChange={(e) => handleTournamentSelect(e.target.value)}
                 >
@@ -512,9 +566,9 @@ export default function PlayerAchievementsPanel({
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Custom tournament name</span>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'tournamentName')}
                     value={form.tournamentName}
-                    onChange={(e) => setForm((f) => ({ ...f, tournamentName: e.target.value }))}
+                    onChange={(e) => updateField('tournamentName', e.target.value)}
                     placeholder="If not in Tournament Records"
                   />
                 </label>
@@ -523,10 +577,9 @@ export default function PlayerAchievementsPanel({
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Medal *</span>
                   <select
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'medal')}
                     value={form.medal}
-                    onChange={(e) => setForm((f) => ({ ...f, medal: e.target.value }))}
-                    required
+                    onChange={(e) => updateField('medal', e.target.value)}
                   >
                     {MEDAL_OPTIONS.map((m) => (
                       <option key={m.key} value={m.key}>
@@ -534,6 +587,9 @@ export default function PlayerAchievementsPanel({
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.medal ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.medal}</span>
+                  ) : null}
                   <div className="mt-2">
                     <MedalBadge medal={form.medal} position="inline" size="sm" />
                   </div>
@@ -541,9 +597,9 @@ export default function PlayerAchievementsPanel({
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Result</span>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'result')}
                     value={form.result}
-                    onChange={(e) => setForm((f) => ({ ...f, result: e.target.value }))}
+                    onChange={(e) => updateField('result', e.target.value)}
                     placeholder="1st Position / Champion"
                   />
                 </label>
@@ -551,26 +607,32 @@ export default function PlayerAchievementsPanel({
                   <span className="mb-1 block font-medium text-ink">Date</span>
                   <input
                     type="date"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'achievedOn')}
                     value={form.achievedOn}
-                    onChange={(e) => setForm((f) => ({ ...f, achievedOn: e.target.value }))}
+                    onChange={(e) => updateField('achievedOn', e.target.value)}
                   />
+                  {fieldErrors.achievedOn ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.achievedOn}</span>
+                  ) : null}
                 </label>
                 <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Year</span>
                   <input
                     type="number"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'year')}
                     value={form.year}
-                    onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
+                    onChange={(e) => updateField('year', e.target.value)}
                   />
+                  {fieldErrors.year ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.year}</span>
+                  ) : null}
                 </label>
                 <label className="text-sm sm:col-span-2">
                   <span className="mb-1 block font-medium text-ink">Type</span>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2"
+                    className={fieldClass(fieldErrors, 'achievementType')}
                     value={form.achievementType}
-                    onChange={(e) => setForm((f) => ({ ...f, achievementType: e.target.value }))}
+                    onChange={(e) => updateField('achievementType', e.target.value)}
                     placeholder="Medal / Title / Certificate"
                   />
                 </label>
@@ -579,7 +641,7 @@ export default function PlayerAchievementsPanel({
                 <input
                   type="checkbox"
                   checked={form.showOnWebsite}
-                  onChange={(e) => setForm((f) => ({ ...f, showOnWebsite: e.target.checked }))}
+                  onChange={(e) => updateField('showOnWebsite', e.target.checked)}
                   className="mt-0.5 rounded border-slate-300"
                 />
                 <span>

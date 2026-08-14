@@ -585,36 +585,6 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
                     ) : null}
                   </label>
 
-                  <div className="sm:col-span-2">
-                    <p className="text-sm font-medium text-ink">Profile Image {!editingId ? '*' : ''}</p>
-                    <ImageUploader
-                      previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
-                      onChange={(f) => {
-                        if (!canAttachFiles) {
-                          toast.error('You do not have permission to upload employee files');
-                          return;
-                        }
-                        setPhotoFile(f);
-                        setPhotoPreview(URL.createObjectURL(f));
-                        if (fieldErrors.photo) {
-                          setFieldErrors((prev) => {
-                            const next = { ...prev };
-                            delete next.photo;
-                            return next;
-                          });
-                        }
-                      }}
-                      onClear={() => {
-                        setPhotoFile(null);
-                        setPhotoPreview('');
-                      }}
-                      label="Upload employee photo (JPG/PNG/WEBP)"
-                    />
-                    {fieldErrors.photo ? (
-                      <span className="mt-1 block text-xs text-red-500">{fieldErrors.photo}</span>
-                    ) : null}
-                  </div>
-
                   <label className="block text-sm font-medium text-ink">
                     Mobile Number *
                     <input
@@ -838,6 +808,39 @@ export default function EntryCoachesPanel({ focusId = null, focusToken = null } 
                       <span className="mt-1 block text-xs text-red-500">{fieldErrors.confirmPassword}</span>
                     ) : null}
                   </label>
+                </div>
+              </section>
+
+              <section>
+                <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Profile Image</h4>
+                <div>
+                  <p className="text-sm font-medium text-ink">Profile Image {!editingId ? '*' : ''}</p>
+                  <ImageUploader
+                    previewUrl={photoFile ? URL.createObjectURL(photoFile) : photoPreview || ''}
+                    onChange={(f) => {
+                      if (!canAttachFiles) {
+                        toast.error('You do not have permission to upload employee files');
+                        return;
+                      }
+                      setPhotoFile(f);
+                      setPhotoPreview(URL.createObjectURL(f));
+                      if (fieldErrors.photo) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev };
+                          delete next.photo;
+                          return next;
+                        });
+                      }
+                    }}
+                    onClear={() => {
+                      setPhotoFile(null);
+                      setPhotoPreview('');
+                    }}
+                    label="Upload employee photo (JPG/PNG/WEBP)"
+                  />
+                  {fieldErrors.photo ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.photo}</span>
+                  ) : null}
                 </div>
               </section>
             </div>

@@ -14,6 +14,12 @@ import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { clearPublicCache } from '../../utils/publicCache';
+import {
+  fieldClass,
+  firstErrorMessage,
+  requiredText,
+  validateInt4,
+} from '../../utils/formValidation';
 
 const EMPTY = {
   name: '',
@@ -60,12 +66,24 @@ export default function MembershipPanel({ onChanged }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState({ open: false, id: null, loading: false });
   const searchRef = useRef(debouncedSearch);
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const fetchList = async (page = pagination.page) => {
     setLoading(true);
@@ -103,6 +121,7 @@ export default function MembershipPanel({ onChanged }) {
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setFile(null);
     setPreview('');
     setFormError('');
@@ -120,6 +139,7 @@ export default function MembershipPanel({ onChanged }) {
       displayOrder: item.displayOrder ?? 0,
       isActive: item.isActive,
     });
+    setFieldErrors({});
     setFile(null);
     setPreview(item.image ? mediaUrl(item.image) : '');
     setFormError('');
@@ -140,20 +160,29 @@ export default function MembershipPanel({ onChanged }) {
       toast.error('You do not have permission to upload images');
       return;
     }
-    if (!form.name.trim() || !form.description.trim()) {
-      const message = 'Name and description are required';
+    const errors = {};
+    const name = requiredText(form.name, 'Plan name');
+    const description = requiredText(form.description, 'Description', 1, 5000);
+    const displayOrder = validateInt4(form.displayOrder, 'Display order', { required: false });
+    if (name) errors.name = name;
+    if (description) errors.description = description;
+    if (displayOrder) errors.displayOrder = displayOrder;
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, ['name', 'description', 'displayOrder']);
       setFormError(message);
       toast.error(message);
       return;
     }
     setSaving(true);
+    setFormError('');
     try {
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
         priceLabel: form.priceLabel.trim(),
         benefits: benefitsFromTextarea(form.benefits),
-        displayOrder: form.displayOrder,
+        displayOrder: Number(form.displayOrder) || 0,
         isActive: form.isActive,
       };
       if (editing) await membershipService.update(editing._id || editing.id, payload, file);
@@ -348,29 +377,33 @@ export default function MembershipPanel({ onChanged }) {
               <label className="block text-sm font-medium text-ink">
                 Plan Name
                 <input
-                  required
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('name', e.target.value)}
+                  className={fieldClass(fieldErrors, 'name')}
                 />
+                {fieldErrors.name ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.name}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Description
                 <textarea
-                  required
                   rows={3}
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('description', e.target.value)}
+                  className={fieldClass(fieldErrors, 'description')}
                 />
+                {fieldErrors.description ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.description}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Price Label
                 <input
                   value={form.priceLabel}
-                  onChange={(e) => setForm({ ...form, priceLabel: e.target.value })}
+                  onChange={(e) => updateField('priceLabel', e.target.value)}
                   placeholder="e.g. ₹2,000 / month"
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  className={fieldClass(fieldErrors, 'priceLabel')}
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
@@ -378,8 +411,8 @@ export default function MembershipPanel({ onChanged }) {
                 <textarea
                   rows={4}
                   value={form.benefits}
-                  onChange={(e) => setForm({ ...form, benefits: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('benefits', e.target.value)}
+                  className={fieldClass(fieldErrors, 'benefits')}
                 />
               </label>
               <label className="block text-sm font-medium text-ink">
@@ -387,15 +420,18 @@ export default function MembershipPanel({ onChanged }) {
                 <input
                   type="number"
                   value={form.displayOrder}
-                  onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) || 0 })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('displayOrder', e.target.value)}
+                  className={fieldClass(fieldErrors, 'displayOrder')}
                 />
+                {fieldErrors.displayOrder ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.displayOrder}</span>
+                ) : null}
               </label>
               <label className="flex items-center gap-2 text-sm font-medium text-ink">
                 <input
                   type="checkbox"
                   checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                  onChange={(e) => updateField('isActive', e.target.checked)}
                 />
                 Active
               </label>

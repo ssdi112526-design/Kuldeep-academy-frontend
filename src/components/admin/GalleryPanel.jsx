@@ -16,6 +16,13 @@ import ImageUploader from './ImageUploader';
 import AccessDenied from './AccessDenied';
 import FormErrorBanner from './FormErrorBanner';
 import GalleryAchievementBadge from '../ui/GalleryAchievementBadge';
+import {
+  fieldClass,
+  firstErrorMessage,
+  optionalText,
+  requiredText,
+  validateInt4,
+} from '../../utils/formValidation';
 
 const EMPTY = { title: '', category: 'General', displayOrder: 0, achievementType: 'none' };
 
@@ -38,6 +45,7 @@ export default function GalleryPanel({ onChanged }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [files, setFiles] = useState([]);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
@@ -46,6 +54,17 @@ export default function GalleryPanel({ onChanged }) {
   const searchRef = useRef(debouncedSearch);
 
   const allowFilePick = canUpload || canCreate || canEdit;
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const showError = (message) => {
     setFormError(message);
@@ -88,6 +107,7 @@ export default function GalleryPanel({ onChanged }) {
     if (!canCreate) return;
     setEditing(null);
     setForm(EMPTY);
+    setFieldErrors({});
     setFiles([]);
     setFile(null);
     setPreview('');
@@ -104,6 +124,7 @@ export default function GalleryPanel({ onChanged }) {
       displayOrder: item.displayOrder ?? 0,
       achievementType: item.achievementType || 'none',
     });
+    setFieldErrors({});
     setFiles([]);
     setFile(null);
     setPreview(mediaUrl(item.image));
@@ -126,8 +147,20 @@ export default function GalleryPanel({ onChanged }) {
       showError('You do not have permission to upload images');
       return;
     }
+    const errors = {};
+    const title = requiredText(form.title, 'Title');
+    const category = optionalText(form.category, 'Category', 200);
+    const displayOrder = validateInt4(form.displayOrder, 'Display order', { required: false });
+    if (title) errors.title = title;
+    if (category) errors.category = category;
+    if (displayOrder) errors.displayOrder = displayOrder;
     if (!editing && (!files || files.length === 0)) {
-      showError('Please upload at least one image');
+      errors.images = 'Please upload at least one image';
+    }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = firstErrorMessage(errors, ['title', 'category', 'displayOrder', 'images']);
+      showError(message);
       return;
     }
     setSaving(true);
@@ -135,7 +168,7 @@ export default function GalleryPanel({ onChanged }) {
       const payload = {
         title: form.title.trim(),
         category: form.category.trim() || 'General',
-        displayOrder: form.displayOrder,
+        displayOrder: Number(form.displayOrder) || 0,
         achievementType: form.achievementType || 'none',
       };
       if (editing) await galleryService.update(editing._id, payload, file);
@@ -263,27 +296,33 @@ export default function GalleryPanel({ onChanged }) {
             <div className="mt-4 space-y-4">
               <FormErrorBanner message={formError} />
               <label className="block text-sm font-medium text-ink">
-                Title (optional)
+                Title *
                 <input
                   value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('title', e.target.value)}
+                  className={fieldClass(fieldErrors, 'title')}
                 />
+                {fieldErrors.title ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.title}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Category
                 <input
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('category', e.target.value)}
+                  className={fieldClass(fieldErrors, 'category')}
                 />
+                {fieldErrors.category ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.category}</span>
+                ) : null}
               </label>
               <label className="block text-sm font-medium text-ink">
                 Achievement / Medal
                 <select
                   value={form.achievementType || 'none'}
-                  onChange={(e) => setForm({ ...form, achievementType: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('achievementType', e.target.value)}
+                  className={fieldClass(fieldErrors, 'achievementType')}
                 >
                   {GALLERY_ACHIEVEMENTS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -297,9 +336,12 @@ export default function GalleryPanel({ onChanged }) {
                 <input
                   type="number"
                   value={form.displayOrder}
-                  onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) || 0 })}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
+                  onChange={(e) => updateField('displayOrder', e.target.value)}
+                  className={fieldClass(fieldErrors, 'displayOrder')}
                 />
+                {fieldErrors.displayOrder ? (
+                  <span className="mt-1 block text-xs text-red-500">{fieldErrors.displayOrder}</span>
+                ) : null}
               </label>
               {editing ? (
                 <ImageUploader
@@ -325,10 +367,20 @@ export default function GalleryPanel({ onChanged }) {
                     }
                     setFormError('');
                     setFiles(list);
+                    if (fieldErrors.images) {
+                      setFieldErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.images;
+                        return next;
+                      });
+                    }
                   }}
                   label="Drag & drop images or click to browse"
                 />
               )}
+              {fieldErrors.images ? (
+                <span className="block text-xs text-red-500">{fieldErrors.images}</span>
+              ) : null}
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
