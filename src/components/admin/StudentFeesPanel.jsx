@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaEdit, FaHistory, FaPlus } from 'react-icons/fa';
 import Button from '../ui/Button';
 import SearchBar from './SearchBar';
@@ -10,13 +10,21 @@ import { financeService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { mediaUrl } from '../../utils/mediaUrl';
-import { inr, feeStatusClass, MONTHS, currentMonthYear, FEE_CATEGORIES, feeCategoryLabel } from '../../utils/financeUi';
+import { inr, feeStatusClass, MONTHS, currentMonthYear, feeCategoryLabel } from '../../utils/financeUi';
+import { validateMoney, fieldClass } from '../../utils/formValidation';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 function pagesOf(total, limit) {
   return Math.max(1, Math.ceil((Number(total) || 0) / (Number(limit) || 20)));
+}
+
+function parseAmountOrZero(value) {
+  const raw = String(value ?? '').trim().replace(/,/g, '');
+  if (!raw) return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
 }
 
 export default function StudentFeesPanel() {
@@ -47,14 +55,23 @@ export default function StudentFeesPanel() {
   const cy = currentMonthYear();
   const [genOpen, setGenOpen] = useState(false);
   const [genForm, setGenForm] = useState({
-    category: 'Monthly',
     month: cy.month,
     year: cy.year,
-    feeAmount: '',
-    title: '',
+    monthlyFee: '',
+    hostelFee: '',
+    otherFee: '',
     saveAsStudentDefault: true,
   });
+  const [genErrors, setGenErrors] = useState({});
   const [genSaving, setGenSaving] = useState(false);
+
+  const genTotal = useMemo(() => {
+    return (
+      parseAmountOrZero(genForm.monthlyFee) +
+      parseAmountOrZero(genForm.hostelFee) +
+      parseAmountOrZero(genForm.otherFee)
+    );
+  }, [genForm.monthlyFee, genForm.hostelFee, genForm.otherFee]);
 
   const filtersKey = JSON.stringify({ debouncedSearch });
   const prevFiltersKeyRef = useRef(filtersKey);
@@ -142,24 +159,63 @@ export default function StudentFeesPanel() {
     }
   };
 
+  const openGenerate = () => {
+    // Prefill from first listed player's defaults when available
+    const sample = rows[0];
+    setGenForm({
+      month: cy.month,
+      year: cy.year,
+      monthlyFee: sample?.monthlyFee != null && Number(sample.monthlyFee) > 0 ? String(sample.monthlyFee) : '',
+      hostelFee: sample?.hostelFee != null && Number(sample.hostelFee) > 0 ? String(sample.hostelFee) : '',
+      otherFee: sample?.otherFee != null && Number(sample.otherFee) > 0 ? String(sample.otherFee) : '',
+      saveAsStudentDefault: true,
+    });
+    setGenErrors({});
+    setGenOpen(true);
+  };
+
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!canCreate) return;
-    if (genForm.feeAmount === '' || Number(genForm.feeAmount) <= 0) {
-      toast.error(`Enter ${feeCategoryLabel(genForm.category)} amount, or set fee per student via Set Fee first`);
+
+    const errors = {};
+    const monthlyErr = validateMoney(genForm.monthlyFee, 'Monthly Fees', { required: false });
+    const hostelErr = validateMoney(genForm.hostelFee, 'Hostel Fees', { required: false });
+    const otherErr = validateMoney(genForm.otherFee, 'Other Fees', { required: false });
+    if (monthlyErr) errors.monthlyFee = monthlyErr;
+    if (hostelErr) errors.hostelFee = hostelErr;
+    if (otherErr) errors.otherFee = otherErr;
+
+    const anyFilled =
+      String(genForm.monthlyFee).trim() !== '' ||
+      String(genForm.hostelFee).trim() !== '' ||
+      String(genForm.otherFee).trim() !== '';
+
+    if (anyFilled && genTotal <= 0) {
+      errors.total = 'Enter at least one fee amount greater than zero';
+    }
+    if (!anyFilled) {
+      // Allowed: use each player's saved defaults — no client total required
+    }
+
+    if (Object.keys(errors).length) {
+      setGenErrors(errors);
+      toast.error(errors.total || errors.monthlyFee || errors.hostelFee || errors.otherFee || 'Please check fee amounts');
       return;
     }
+
     setGenSaving(true);
+    setGenErrors({});
     try {
       const res = await financeService.generateMonthly({
-        category: genForm.category,
         month: Number(genForm.month),
         year: Number(genForm.year),
-        feeAmount: Number(genForm.feeAmount),
-        title: genForm.title || undefined,
+        monthlyFee: genForm.monthlyFee,
+        hostelFee: genForm.hostelFee,
+        otherFee: genForm.otherFee,
         saveAsStudentDefault: Boolean(genForm.saveAsStudentDefault),
       });
-      toast.success(res.data.message || `${feeCategoryLabel(genForm.category)} generated`);
+      toast.success(res.data.message || 'Fees generated');
       setGenOpen(false);
       fetchList(pagination.page);
     } catch (err) {
@@ -180,20 +236,7 @@ export default function StudentFeesPanel() {
           placeholder="Search name, reg no, mobile…"
         />
         {canCreate && (
-          <Button
-            className="rounded-lg text-sm"
-            onClick={() => {
-              setGenForm({
-                category: 'Monthly',
-                month: cy.month,
-                year: cy.year,
-                feeAmount: '',
-                title: '',
-                saveAsStudentDefault: true,
-              });
-              setGenOpen(true);
-            }}
-          >
+          <Button className="rounded-lg text-sm" onClick={openGenerate}>
             <FaPlus size={12} /> Generate Fees
           </Button>
         )}
@@ -415,7 +458,17 @@ export default function StudentFeesPanel() {
                           {feeCategoryLabel(h.category)}
                           {h.title ? <span className="block text-[11px] text-muted">{h.title}</span> : null}
                         </td>
-                        <td className="px-2 py-2 tabular-nums">{inr(h.feeAmount)}</td>
+                        <td className="px-2 py-2 tabular-nums">
+                          {inr(h.feeAmount)}
+                          {(Number(h.monthlyAmount) > 0 ||
+                            Number(h.hostelAmount) > 0 ||
+                            Number(h.otherAmount) > 0) && (
+                            <span className="mt-0.5 block text-[10px] text-muted">
+                              M {inr(h.monthlyAmount || 0)} · H {inr(h.hostelAmount || 0)} · O{' '}
+                              {inr(h.otherAmount || 0)}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-2 py-2 tabular-nums">{inr(h.paidAmount)}</td>
                         <td className="px-2 py-2 tabular-nums">{inr(h.remainingDue)}</td>
                         <td className="px-2 py-2">
@@ -443,23 +496,10 @@ export default function StudentFeesPanel() {
           >
             <h3 className="text-lg font-bold text-ink">Generate Fees</h3>
             <p className="mt-1 text-sm text-muted">
-              Create bills for all Active players — Monthly Fees, Hostel Fees, or Other Fees.
+              Create one monthly bill per active player with Monthly, Hostel and Other fees.
             </p>
+
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <label className="col-span-2 block text-xs font-medium text-muted">
-                Fee type <span className="text-red-500">*</span>
-                <select
-                  className={`mt-1 ${inputClass}`}
-                  value={genForm.category}
-                  onChange={(e) => setGenForm((f) => ({ ...f, category: e.target.value }))}
-                >
-                  {FEE_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <label className="block text-xs font-medium text-muted">
                 Month
                 <select
@@ -485,31 +525,92 @@ export default function StudentFeesPanel() {
                   required
                 />
               </label>
-              <label className="col-span-2 block text-xs font-medium text-muted">
-                {feeCategoryLabel(genForm.category)} (₹) <span className="text-red-500">*</span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <label className="block text-xs font-medium text-muted">
+                Monthly Fees (₹)
+                <span className="mt-0.5 block font-normal text-[11px] text-slate-400">
+                  Monthly training / academy fee
+                </span>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   step="0.01"
-                  className={`mt-1 ${inputClass}`}
-                  value={genForm.feeAmount}
-                  onChange={(e) => setGenForm((f) => ({ ...f, feeAmount: e.target.value }))}
+                  inputMode="decimal"
                   placeholder="e.g. 2000"
-                  required
+                  className={`mt-1 ${fieldClass(genErrors, 'monthlyFee')}`}
+                  value={genForm.monthlyFee}
+                  onChange={(e) => {
+                    setGenForm((f) => ({ ...f, monthlyFee: e.target.value }));
+                    setGenErrors((err) => ({ ...err, monthlyFee: undefined, total: undefined }));
+                  }}
                 />
+                {genErrors.monthlyFee ? (
+                  <p className="mt-1 text-xs text-red-600">{genErrors.monthlyFee}</p>
+                ) : null}
               </label>
-              {genForm.category === 'Other' ? (
-                <label className="col-span-2 block text-xs font-medium text-muted">
-                  Other fee title
-                  <input
-                    className={`mt-1 ${inputClass}`}
-                    value={genForm.title}
-                    onChange={(e) => setGenForm((f) => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Uniform / Kit / Tournament Entry"
-                  />
-                </label>
-              ) : null}
-              <label className="col-span-2 flex items-start gap-2 text-xs text-ink">
+
+              <label className="block text-xs font-medium text-muted">
+                Hostel Fees (₹)
+                <span className="mt-0.5 block font-normal text-[11px] text-slate-400">
+                  Hostel accommodation fee
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="e.g. 5000"
+                  className={`mt-1 ${fieldClass(genErrors, 'hostelFee')}`}
+                  value={genForm.hostelFee}
+                  onChange={(e) => {
+                    setGenForm((f) => ({ ...f, hostelFee: e.target.value }));
+                    setGenErrors((err) => ({ ...err, hostelFee: undefined, total: undefined }));
+                  }}
+                />
+                {genErrors.hostelFee ? (
+                  <p className="mt-1 text-xs text-red-600">{genErrors.hostelFee}</p>
+                ) : null}
+              </label>
+
+              <label className="block text-xs font-medium text-muted">
+                Other Fees (₹)
+                <span className="mt-0.5 block font-normal text-[11px] text-slate-400">
+                  Additional charges
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="e.g. 1000"
+                  className={`mt-1 ${fieldClass(genErrors, 'otherFee')}`}
+                  value={genForm.otherFee}
+                  onChange={(e) => {
+                    setGenForm((f) => ({ ...f, otherFee: e.target.value }));
+                    setGenErrors((err) => ({ ...err, otherFee: undefined, total: undefined }));
+                  }}
+                />
+                {genErrors.otherFee ? (
+                  <p className="mt-1 text-xs text-red-600">{genErrors.otherFee}</p>
+                ) : null}
+              </label>
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted">Total Fees</p>
+                    <p className="mt-0.5 text-[11px] text-slate-400">Monthly + Hostel + Other</p>
+                  </div>
+                  <p className="text-xl font-bold tabular-nums text-ink">{inr(genTotal)}</p>
+                </div>
+                {genErrors.total ? (
+                  <p className="mt-2 text-xs text-red-600">{genErrors.total}</p>
+                ) : null}
+              </div>
+
+              <label className="flex items-start gap-2 text-xs text-ink">
                 <input
                   type="checkbox"
                   className="mt-0.5"
@@ -519,11 +620,15 @@ export default function StudentFeesPanel() {
                   }
                 />
                 <span>
-                  Save this amount as each player&apos;s {feeCategoryLabel(genForm.category)} default.
+                  Save these amounts as each player&apos;s Monthly / Hostel / Other fee defaults.
                   Uncheck to bill this month only without changing saved defaults.
                 </span>
               </label>
+              <p className="text-[11px] text-muted">
+                Leave all amounts empty to bill each player using their saved fee defaults.
+              </p>
             </div>
+
             <div className="mt-6 flex justify-end gap-2">
               <Button
                 type="button"

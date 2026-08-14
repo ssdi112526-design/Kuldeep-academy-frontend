@@ -172,6 +172,11 @@ export default function FeeReceiptModal({ payment, onClose }) {
     Boolean(String(payment.transactionReference || '').trim());
 
   const cat = feeMonth.category || payment.category || 'Monthly';
+  const hasBreakdown =
+    Number(feeMonth.monthlyAmount) > 0 ||
+    Number(feeMonth.hostelAmount) > 0 ||
+    Number(feeMonth.otherAmount) > 0;
+
   const feeLineKey = cat === 'Hostel' ? 'hostelFee' : cat === 'Other' ? 'otherFee' : 'monthlyFee';
   const feeLineLabel =
     cat === 'Other' && feeMonth.title
@@ -179,7 +184,37 @@ export default function FeeReceiptModal({ payment, onClose }) {
       : t[feeLineKey] || t.monthlyFee;
 
   const rows = [
-    { key: feeLineKey, label: feeLineLabel, amount: payment.feeAmountSnapshot ?? feeMonth.feeAmount },
+    ...(hasBreakdown
+      ? [
+          ...(Number(feeMonth.monthlyAmount) > 0
+            ? [{ key: 'monthlyFee', label: t.monthlyFee, amount: feeMonth.monthlyAmount }]
+            : []),
+          ...(Number(feeMonth.hostelAmount) > 0
+            ? [{ key: 'hostelFee', label: t.hostelFee, amount: feeMonth.hostelAmount }]
+            : []),
+          ...(Number(feeMonth.otherAmount) > 0
+            ? [
+                {
+                  key: 'otherFee',
+                  label: feeMonth.title || t.otherFee,
+                  amount: feeMonth.otherAmount,
+                },
+              ]
+            : []),
+          {
+            key: 'feeTotal',
+            label: lang === 'hi' ? 'कुल शुल्क' : 'Total Fee',
+            amount: payment.feeAmountSnapshot ?? feeMonth.feeAmount,
+            strong: true,
+          },
+        ]
+      : [
+          {
+            key: feeLineKey,
+            label: feeLineLabel,
+            amount: payment.feeAmountSnapshot ?? feeMonth.feeAmount,
+          },
+        ]),
     { key: 'previousDue', amount: payment.previousDueSnapshot },
     { key: 'discount', amount: payment.discountApplied },
     { key: 'paidAmount', amount: payment.amount, strong: true },
