@@ -11,7 +11,7 @@ import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { inr, feeStatusClass, MONTHS, currentMonthYear, feeCategoryLabel } from '../../utils/financeUi';
-import { validateMoney, fieldClass } from '../../utils/formValidation';
+import { validateMoney } from '../../utils/formValidation';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -489,147 +489,120 @@ export default function StudentFeesPanel() {
       )}
 
       {genOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-3 sm:p-4">
           <form
             onSubmit={handleGenerate}
-            className="w-full max-w-md rounded-xl border border-slate-100 bg-white p-6 shadow-xl"
+            className="flex max-h-[min(92dvh,38rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl"
           >
-            <h3 className="text-lg font-bold text-ink">Generate Fees</h3>
-            <p className="mt-1 text-sm text-muted">
-              Create one monthly bill per active player with Monthly, Hostel and Other fees.
-            </p>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <label className="block text-xs font-medium text-muted">
-                Month
-                <select
-                  className={`mt-1 ${inputClass}`}
-                  value={genForm.month}
-                  onChange={(e) => setGenForm((f) => ({ ...f, month: Number(e.target.value) }))}
-                >
-                  {MONTHS.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-xs font-medium text-muted">
-                Year
-                <input
-                  type="number"
-                  min="2000"
-                  className={`mt-1 ${inputClass}`}
-                  value={genForm.year}
-                  onChange={(e) => setGenForm((f) => ({ ...f, year: Number(e.target.value) }))}
-                  required
-                />
-              </label>
+            <div className="shrink-0 border-b border-slate-100 px-5 py-3.5">
+              <h3 className="text-lg font-bold text-ink">Generate Fees</h3>
+              <p className="mt-0.5 text-sm text-muted">One bill per active player for the selected month</p>
             </div>
 
-            <div className="mt-4 space-y-3">
-              <label className="block text-xs font-medium text-muted">
-                Monthly Fees (₹)
-                <span className="mt-0.5 block font-normal text-[11px] text-slate-400">
-                  Monthly training / academy fee
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="e.g. 2000"
-                  className={`mt-1 ${fieldClass(genErrors, 'monthlyFee')}`}
-                  value={genForm.monthlyFee}
-                  onChange={(e) => {
-                    setGenForm((f) => ({ ...f, monthlyFee: e.target.value }));
-                    setGenErrors((err) => ({ ...err, monthlyFee: undefined, total: undefined }));
-                  }}
-                />
-                {genErrors.monthlyFee ? (
-                  <p className="mt-1 text-xs text-red-600">{genErrors.monthlyFee}</p>
-                ) : null}
-              </label>
-
-              <label className="block text-xs font-medium text-muted">
-                Hostel Fees (₹)
-                <span className="mt-0.5 block font-normal text-[11px] text-slate-400">
-                  Hostel accommodation fee
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="e.g. 5000"
-                  className={`mt-1 ${fieldClass(genErrors, 'hostelFee')}`}
-                  value={genForm.hostelFee}
-                  onChange={(e) => {
-                    setGenForm((f) => ({ ...f, hostelFee: e.target.value }));
-                    setGenErrors((err) => ({ ...err, hostelFee: undefined, total: undefined }));
-                  }}
-                />
-                {genErrors.hostelFee ? (
-                  <p className="mt-1 text-xs text-red-600">{genErrors.hostelFee}</p>
-                ) : null}
-              </label>
-
-              <label className="block text-xs font-medium text-muted">
-                Other Fees (₹)
-                <span className="mt-0.5 block font-normal text-[11px] text-slate-400">
-                  Additional charges
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="e.g. 1000"
-                  className={`mt-1 ${fieldClass(genErrors, 'otherFee')}`}
-                  value={genForm.otherFee}
-                  onChange={(e) => {
-                    setGenForm((f) => ({ ...f, otherFee: e.target.value }));
-                    setGenErrors((err) => ({ ...err, otherFee: undefined, total: undefined }));
-                  }}
-                />
-                {genErrors.otherFee ? (
-                  <p className="mt-1 text-xs text-red-600">{genErrors.otherFee}</p>
-                ) : null}
-              </label>
-
-              <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted">Total Fees</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">Monthly + Hostel + Other</p>
-                  </div>
-                  <p className="text-xl font-bold tabular-nums text-ink">{inr(genTotal)}</p>
-                </div>
-                {genErrors.total ? (
-                  <p className="mt-2 text-xs text-red-600">{genErrors.total}</p>
-                ) : null}
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs font-semibold text-ink">
+                  Month
+                  <select
+                    className={`mt-1 ${inputClass}`}
+                    value={genForm.month}
+                    onChange={(e) => setGenForm((f) => ({ ...f, month: Number(e.target.value) }))}
+                  >
+                    {MONTHS.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-ink">
+                  Year
+                  <input
+                    type="number"
+                    min="2000"
+                    className={`mt-1 ${inputClass}`}
+                    value={genForm.year}
+                    onChange={(e) => setGenForm((f) => ({ ...f, year: Number(e.target.value) }))}
+                    required
+                  />
+                </label>
               </div>
 
-              <label className="flex items-start gap-2 text-xs text-ink">
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                {[
+                  { key: 'monthlyFee', label: 'Monthly Fees', hint: 'Training / academy', placeholder: '2,000' },
+                  { key: 'hostelFee', label: 'Hostel Fees', hint: 'Accommodation', placeholder: '5,000' },
+                  { key: 'otherFee', label: 'Other Fees', hint: 'Extra charges', placeholder: '1,000' },
+                ].map((row, idx) => (
+                  <label
+                    key={row.key}
+                    className={`flex items-center gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-slate-100' : ''}`}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-ink">{row.label}</span>
+                      <span className="block text-[11px] text-muted">{row.hint}</span>
+                      {genErrors[row.key] ? (
+                        <span className="mt-0.5 block text-[11px] text-red-600">{genErrors[row.key]}</span>
+                      ) : null}
+                    </span>
+                    <span className="relative w-[7.75rem] shrink-0">
+                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted">
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        placeholder={row.placeholder}
+                        className={`w-full rounded-lg border py-2 pl-6 pr-2 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-brand/20 ${
+                          genErrors[row.key]
+                            ? 'border-red-400 focus:border-red-500'
+                            : 'border-slate-200 focus:border-brand'
+                        }`}
+                        value={genForm[row.key]}
+                        onChange={(e) => {
+                          setGenForm((f) => ({ ...f, [row.key]: e.target.value }));
+                          setGenErrors((err) => ({ ...err, [row.key]: undefined, total: undefined }));
+                        }}
+                      />
+                    </span>
+                  </label>
+                ))}
+
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-3 py-3">
+                  <div>
+                    <p className="text-sm font-bold text-ink">Total Fees</p>
+                    {genErrors.total ? (
+                      <p className="text-[11px] text-red-600">{genErrors.total}</p>
+                    ) : (
+                      <p className="text-[11px] text-muted">Monthly + Hostel + Other</p>
+                    )}
+                  </div>
+                  <p className="text-xl font-extrabold tabular-nums text-brand">{inr(genTotal)}</p>
+                </div>
+              </div>
+
+              <label className="flex items-start gap-2.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2.5 text-xs leading-snug text-ink">
                 <input
                   type="checkbox"
-                  className="mt-0.5"
+                  className="mt-0.5 shrink-0"
                   checked={genForm.saveAsStudentDefault}
                   onChange={(e) =>
                     setGenForm((f) => ({ ...f, saveAsStudentDefault: e.target.checked }))
                   }
                 />
                 <span>
-                  Save these amounts as each player&apos;s Monthly / Hostel / Other fee defaults.
-                  Uncheck to bill this month only without changing saved defaults.
+                  <span className="font-semibold">Save as player defaults</span>
+                  <span className="mt-0.5 block text-muted">
+                    Also update each player&apos;s Monthly / Hostel / Other defaults. Leave amounts
+                    empty to use existing defaults.
+                  </span>
                 </span>
               </label>
-              <p className="text-[11px] text-muted">
-                Leave all amounts empty to bill each player using their saved fee defaults.
-              </p>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-white px-5 py-3">
               <Button
                 type="button"
                 variant="secondary"
