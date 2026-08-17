@@ -16,16 +16,16 @@ export default function Hero() {
       className="relative flex flex-col overflow-hidden bg-[#0C0A09] pt-[calc(4.25rem+env(safe-area-inset-top,0px))] md:block md:min-h-[85svh] lg:min-h-[90svh]"
       aria-label={t('brand.name')}
     >
-      {/* 1 · First image (LCP) — shorter on mobile so face fills frame (less empty black) */}
-      <div className="relative order-1 h-[min(46svh,22rem)] w-full overflow-hidden sm:h-[min(50svh,26rem)] md:absolute md:inset-y-0 md:left-0 md:top-[4.25rem] md:h-[calc(100%-4.25rem)] md:w-1/2">
+      {/* 1 · First image — full-bleed left portrait (same framing as live hero) */}
+      <div className="relative order-1 h-[min(46svh,22rem)] w-full overflow-hidden bg-[#0C0A09] sm:h-[min(50svh,26rem)] md:absolute md:inset-y-0 md:left-0 md:top-[4.25rem] md:h-[calc(100%-4.25rem)] md:w-1/2">
         <img
           src={coachKuldeep}
           alt={t('coaches.items.kuldeep.name')}
-          className="h-full w-full object-cover object-[center_8%] md:object-[center_12%]"
+          className="h-full w-full object-cover object-[center_22%] md:object-[center_28%]"
           fetchPriority="high"
           decoding="async"
-          width={900}
-          height={1200}
+          width={1024}
+          height={1024}
         />
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0C0A09]/20 via-transparent to-[#0C0A09]/75 md:hidden"

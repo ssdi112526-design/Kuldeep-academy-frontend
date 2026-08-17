@@ -2,7 +2,7 @@ export const MEDAL_OPTIONS = [
   { key: 'Gold', label: 'Gold' },
   { key: 'Silver', label: 'Silver' },
   { key: 'Bronze', label: 'Bronze' },
-  { key: 'Other', label: 'Other' },
+  { key: 'Other', label: 'None' },
 ];
 
 export function normalizeMedal(value) {
@@ -12,7 +12,7 @@ export function normalizeMedal(value) {
   if (lower === 'gold' || lower === '1st' || lower === 'first') return 'Gold';
   if (lower === 'silver' || lower === '2nd' || lower === 'second') return 'Silver';
   if (lower === 'bronze' || lower === '3rd' || lower === 'third') return 'Bronze';
-  if (lower === 'other' || lower === 'custom') return 'Other';
+  if (lower === 'none' || lower === 'other' || lower === 'custom') return 'Other';
   if (MEDAL_OPTIONS.some((m) => m.key === raw)) return raw;
   return raw;
 }

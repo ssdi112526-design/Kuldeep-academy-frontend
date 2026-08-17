@@ -1,5 +1,5 @@
 import heroImg from '../assets/akhada/hero-celebration.webp';
-import aboutImg from '../assets/akhada/about-heritage.webp';
+import aboutImg from '../assets/akhada/about-heritage.png';
 import coachesImg from '../assets/akhada/coaches-athletes.png';
 import achievementsTrophy from '../assets/akhada/achievements-trophy.webp';
 import achievementsMedals from '../assets/akhada/achievements-medals.webp';
@@ -23,7 +23,7 @@ export const images = {
 
 export const companyInfo = {
   name: 'Kuldeep Malik Sports Academy',
-  address: '1554/31, Chhotu Ram Colony, Gohana   Road, Sonipat, Haryana',
+  address: 'Bhatgaon Road, Near Guru Sadan school Barwasni, Sonipat (Haryana)',
   phones: [],
   email: '',
   registrationNo: 'HR/008/2023/01608',

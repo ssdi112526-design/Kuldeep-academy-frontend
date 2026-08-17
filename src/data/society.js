@@ -8,7 +8,7 @@ export const societyInfo = {
   documentTitle: 'FORM XVII-B',
   filingYear: '2023-24',
   name: 'Kuldeep Malik Sports Academy',
-  registeredOffice: '1554/31, Chhotu Ram Colony, Gohana   Road, Sonipat Haryana',
+  registeredOffice: 'Bhatgaon Road, Near Guru Sadan school Barwasni, Sonipat (Haryana)',
   registrationNo: 'HR/008/2023/01608',
   registrationDate: '10-01-2023',
   governingBodyAsOn: '31-03-2024',

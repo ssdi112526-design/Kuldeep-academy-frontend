@@ -11,7 +11,7 @@ import StatCard from './StatCard';
 import MedalBadge from '../ui/MedalBadge';
 import { useToast } from '../../context/ToastContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { playerAchievementService, tournamentService } from '../../services';
+import { entryService, playerAchievementService, tournamentService } from '../../services';
 import useDebouncedValue from '../../hooks/useDebouncedValue';
 import { mediaUrl } from '../../utils/mediaUrl';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -28,9 +28,11 @@ import {
 } from '../../utils/formValidation';
 
 const EMPTY = {
+  studentId: '',
   playerName: '',
   title: '',
   description: '',
+  level: 'state',
   achievementType: '',
   tournamentId: '',
   tournamentName: '',
@@ -40,6 +42,13 @@ const EMPTY = {
   result: '',
   showOnWebsite: true,
 };
+
+const LEVEL_OPTIONS = [
+  { key: 'asian', label: 'Asian' },
+  { key: 'national', label: 'National' },
+  { key: 'state', label: 'State' },
+  { key: 'district', label: 'District' },
+];
 
 export default function PlayerAchievementsPanel({
   initialMedalFilter = 'all',
@@ -54,6 +63,7 @@ export default function PlayerAchievementsPanel({
   const canDelete = can('player_achievements.delete') || can('achievements.delete');
 
   const [items, setItems] = useState([]);
+  const [students, setStudents] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +115,11 @@ export default function PlayerAchievementsPanel({
   };
 
   useEffect(() => {
+    entryService.students
+      .list({ page: 1, limit: 200 })
+      .then((res) => setStudents(res.data?.data?.students || res.data?.data?.items || []))
+      .catch(() => setStudents([]));
+
     tournamentService
       .list({ page: 1, limit: 200 })
       .then((res) => setTournaments(res.data?.data?.tournaments || res.data?.data?.items || []))
@@ -136,6 +151,7 @@ export default function PlayerAchievementsPanel({
     if (!canView) return;
     setEditing(item);
     setForm({
+      studentId: item.studentId || item.student?.id || '',
       playerName:
         item.playerName ||
         item.displayPlayerName ||
@@ -143,6 +159,7 @@ export default function PlayerAchievementsPanel({
         '',
       title: item.title || '',
       description: item.description || '',
+      level: item.level || 'state',
       achievementType: item.achievementType || '',
       tournamentId: item.tournamentId || item.tournament?.id || '',
       tournamentName: item.tournamentName || item.tournament?.name || '',
@@ -190,26 +207,31 @@ export default function PlayerAchievementsPanel({
     const playerName = requiredText(form.playerName, 'Player name');
     const title = requiredText(form.title, 'Title');
     const medal = validateRequiredSelect(form.medal, 'Medal');
+    const level = validateRequiredSelect(form.level, 'Achievement level');
     const description = optionalText(form.description, 'Description', 5000);
-    const achievedOn = validateDate(form.achievedOn, 'Date', { required: false });
+    const achievedOn = validateDate(form.achievedOn, 'Date', { required: true });
     const year = form.year === '' || form.year === null || form.year === undefined
       ? ''
       : validateInt4(form.year, 'Year', { required: false, min: 1900, max: 2100 });
     if (playerName) errors.playerName = playerName;
     if (title) errors.title = title;
     if (medal) errors.medal = medal;
+    if (level) errors.level = level;
     if (description) errors.description = description;
     if (achievedOn) errors.achievedOn = achievedOn;
     if (year) errors.year = year;
+    if (!editing && !imageFile) errors.image = 'Achievement image is required';
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
       const message = firstErrorMessage(errors, [
         'playerName',
         'title',
         'medal',
+        'level',
         'description',
         'achievedOn',
         'year',
+        'image',
       ]);
       setFormError(message);
       toast.error(message);
@@ -219,9 +241,11 @@ export default function PlayerAchievementsPanel({
     setFormError('');
     try {
       const payload = {
+        studentId: form.studentId || '',
         playerName: form.playerName.trim(),
         title: form.title.trim(),
         description: form.description.trim(),
+        level: form.level,
         achievementType: form.achievementType.trim(),
         tournamentId: form.tournamentId || '',
         tournamentName: form.tournamentId ? '' : form.tournamentName.trim(),
@@ -279,12 +303,22 @@ export default function PlayerAchievementsPanel({
     );
     try {
       await playerAchievementService.update(id, {
+        studentId: item.studentId || item.student?.id || '',
         playerName:
           item.playerName ||
           item.displayPlayerName ||
           item.student?.fullName ||
           '',
         title: item.title || '',
+        description: item.description || '',
+        level: item.level || 'state',
+        achievementType: item.achievementType || '',
+        tournamentId: item.tournamentId || item.tournament?.id || '',
+        tournamentName: item.tournamentName || item.tournament?.name || '',
+        achievedOn: item.achievedOn ? String(item.achievedOn).slice(0, 10) : '',
+        year: item.year || '',
+        medal: item.medal || 'Gold',
+        result: item.result || '',
         showOnWebsite: next,
       });
       clearPublicCache();
@@ -402,8 +436,9 @@ export default function PlayerAchievementsPanel({
                 <th className="px-4 py-3">Player</th>
                 <th className="px-4 py-3">Title</th>
                 <th className="px-4 py-3">Tournament</th>
+                <th className="px-4 py-3">Level</th>
                 <th className="px-4 py-3">Medal</th>
-                <th className="px-4 py-3">Website</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -435,6 +470,9 @@ export default function PlayerAchievementsPanel({
                   <td className="px-4 py-3 text-ink">
                     {item.tournament?.name || item.tournamentName || '—'}
                   </td>
+                  <td className="px-4 py-3 text-muted">
+                    {LEVEL_OPTIONS.find((option) => option.key === item.level)?.label || '—'}
+                  </td>
                   <td className="px-4 py-3">
                     <MedalBadge medal={item.medal} position="inline" size="sm" />
                     {item.result ? <p className="mt-1 text-xs text-muted">{item.result}</p> : null}
@@ -454,7 +492,7 @@ export default function PlayerAchievementsPanel({
                           item.showOnWebsite !== false ? 'text-emerald-700' : 'text-slate-500'
                         }`}
                       >
-                        {item.showOnWebsite !== false ? 'Visible' : 'Hidden'}
+                        {item.showOnWebsite !== false ? 'Active' : 'Inactive'}
                       </span>
                     </label>
                   </td>
@@ -506,12 +544,35 @@ export default function PlayerAchievementsPanel({
           >
             <h3 className="text-lg font-bold text-ink">{editing ? 'Edit Achievement' : 'Add Achievement'}</h3>
             <p className="mt-1 text-xs text-muted">
-              Use the checkbox below to control whether this achievement appears on the public website.
+              Use the status toggle below to control whether this achievement appears publicly and counts in the medal tally.
             </p>
             <div className="mt-3">
               <FormErrorBanner message={formError} />
             </div>
             <div className="mt-4 grid gap-3">
+              <label className="text-sm">
+                <span className="mb-1 block font-medium text-ink">Athlete / Wrestler</span>
+                <select
+                  className={fieldClass(fieldErrors, 'studentId')}
+                  value={form.studentId}
+                  onChange={(e) => {
+                    const studentId = e.target.value;
+                    const student = students.find((row) => (row._id || row.id) === studentId);
+                    setForm((prev) => ({
+                      ...prev,
+                      studentId,
+                      playerName: student?.fullName || prev.playerName,
+                    }));
+                  }}
+                >
+                  <option value="">Select athlete</option>
+                  {students.map((student) => (
+                    <option key={student._id || student.id} value={student._id || student.id}>
+                      {student.fullName}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium text-ink">Player name *</span>
                 <input
@@ -542,6 +603,7 @@ export default function PlayerAchievementsPanel({
                   rows={3}
                   value={form.description}
                   onChange={(e) => updateField('description', e.target.value)}
+                  placeholder="Kajal secured Gold at the Asian Games in the 76 KG category."
                 />
                 {fieldErrors.description ? (
                   <span className="mt-1 block text-xs text-red-500">{fieldErrors.description}</span>
@@ -575,6 +637,23 @@ export default function PlayerAchievementsPanel({
               ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">
+                  <span className="mb-1 block font-medium text-ink">Achievement Level *</span>
+                  <select
+                    className={fieldClass(fieldErrors, 'level')}
+                    value={form.level}
+                    onChange={(e) => updateField('level', e.target.value)}
+                  >
+                    {LEVEL_OPTIONS.map((level) => (
+                      <option key={level.key} value={level.key}>
+                        {level.label}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.level ? (
+                    <span className="mt-1 block text-xs text-red-500">{fieldErrors.level}</span>
+                  ) : null}
+                </label>
+                <label className="text-sm">
                   <span className="mb-1 block font-medium text-ink">Medal *</span>
                   <select
                     className={fieldClass(fieldErrors, 'medal')}
@@ -595,16 +674,16 @@ export default function PlayerAchievementsPanel({
                   </div>
                 </label>
                 <label className="text-sm">
-                  <span className="mb-1 block font-medium text-ink">Result</span>
+                  <span className="mb-1 block font-medium text-ink">Competition / Event</span>
                   <input
                     className={fieldClass(fieldErrors, 'result')}
                     value={form.result}
                     onChange={(e) => updateField('result', e.target.value)}
-                    placeholder="1st Position / Champion"
+                    placeholder="Asian Games / State Championship"
                   />
                 </label>
                 <label className="text-sm">
-                  <span className="mb-1 block font-medium text-ink">Date</span>
+                  <span className="mb-1 block font-medium text-ink">Date *</span>
                   <input
                     type="date"
                     className={fieldClass(fieldErrors, 'achievedOn')}
@@ -628,12 +707,12 @@ export default function PlayerAchievementsPanel({
                   ) : null}
                 </label>
                 <label className="text-sm sm:col-span-2">
-                  <span className="mb-1 block font-medium text-ink">Type</span>
+                  <span className="mb-1 block font-medium text-ink">Achievement Title / Subtitle</span>
                   <input
                     className={fieldClass(fieldErrors, 'achievementType')}
                     value={form.achievementType}
                     onChange={(e) => updateField('achievementType', e.target.value)}
-                    placeholder="Medal / Title / Certificate"
+                    placeholder="Gold Medal / New World Ranking / Qualification"
                   />
                 </label>
               </div>
@@ -645,18 +724,22 @@ export default function PlayerAchievementsPanel({
                   className="mt-0.5 rounded border-slate-300"
                 />
                 <span>
-                  <span className="block font-medium text-ink">Show on website</span>
+                  <span className="block font-medium text-ink">Active status</span>
                   <span className="mt-0.5 block text-xs text-muted">
-                    When enabled, this achievement appears on the public Champions Wall.
+                    Active achievements appear on the website and count in medal totals. Inactive ones do not.
                   </span>
                 </span>
               </label>
               <ImageUploader
-                label="Achievement Image (shown on public website with medal badge)"
+                label="Achievement Image * (shown on public website with medal badge)"
                 value={imageFile}
                 onChange={setImageFile}
                 previewUrl={editing?.image ? mediaUrl(editing.image) : null}
+                previewClassName="aspect-[4/3] w-full"
               />
+              {fieldErrors.image ? (
+                <span className="block text-xs text-red-500">{fieldErrors.image}</span>
+              ) : null}
               {(imageFile || editing?.image) && form.medal ? (
                 <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-[#1A1410]">
                   <div className="aspect-[4/3]">
@@ -692,7 +775,7 @@ export default function PlayerAchievementsPanel({
       <ConfirmDialog
         open={confirm.open}
         title="Delete achievement?"
-        message="This will permanently remove the achievement from Admin and the public website."
+        message="Are you sure you want to delete this achievement?"
         confirmLabel="Delete"
         loading={confirm.loading}
         onConfirm={handleDelete}

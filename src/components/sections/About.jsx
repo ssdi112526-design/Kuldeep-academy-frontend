@@ -1,5 +1,5 @@
 ﻿import Reveal from '../ui/Reveal';
-import aboutImg from '../../assets/akhada/about-heritage.webp';
+import aboutImg from '../../assets/akhada/about-heritage.png';
 import { aboutPillars } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 

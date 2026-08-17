@@ -12,6 +12,7 @@ import {
   ReportTable,
   reportInputClass,
 } from './reportUi';
+import PlayerReportDetailsModal from './PlayerReportDetailsModal';
 
 export default function PlayerReportsPanel() {
   const toast = useToast();
@@ -29,6 +30,7 @@ export default function PlayerReportsPanel() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   const filters = {
     search: debouncedSearch.trim() || undefined,
@@ -138,6 +140,10 @@ export default function PlayerReportsPanel() {
       <ReportTable
         loading={loading}
         rows={rows}
+        onRowClick={(row) => {
+          const id = row?.id || row?._id;
+          if (id) setSelectedStudentId(id);
+        }}
         columns={[
           { key: 'registrationNumber', label: 'Reg No' },
           { key: 'fullName', label: 'Name' },
@@ -171,6 +177,14 @@ export default function PlayerReportsPanel() {
         onPageChange={(page) => load(page)}
         onLimitChange={(limit) => setPagination((p) => ({ ...p, limit }))}
       />
+
+      {selectedStudentId ? (
+        <PlayerReportDetailsModal
+          studentId={selectedStudentId}
+          onClose={() => setSelectedStudentId(null)}
+          onSaved={() => load(pagination.page)}
+        />
+      ) : null}
     </div>
   );
 }

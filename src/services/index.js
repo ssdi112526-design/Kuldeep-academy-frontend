@@ -142,6 +142,27 @@ export const athleteService = {
   remove: (id) => api.delete(`/admin/athletes/${id}`),
 };
 
+export const legacyMemberService = {
+  listPublic: () => api.get('/legacy-members'),
+  list: (params) => api.get('/admin/legacy-members', { params }),
+  getOne: (id) => api.get(`/admin/legacy-members/${id}`),
+  create: (data, file) =>
+    withOptionalImage(
+      (body) => api.post('/admin/legacy-members', body),
+      (form) => api.post('/admin/legacy-members', form),
+      data,
+      file
+    ),
+  update: (id, data, file) =>
+    withOptionalImage(
+      (body) => api.put(`/admin/legacy-members/${id}`, body),
+      (form) => api.put(`/admin/legacy-members/${id}`, form),
+      data,
+      file
+    ),
+  remove: (id) => api.delete(`/admin/legacy-members/${id}`),
+};
+
 export const globalSearchService = {
   search: (q, { signal } = {}) =>
     api.get('/admin/global-search', { params: { q }, signal }),

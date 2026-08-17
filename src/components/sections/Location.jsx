@@ -7,7 +7,7 @@ import { attendanceSettingsService, siteSettingsService } from '../../services';
 import { cachedPublicGet, onPublicCacheBust } from '../../utils/publicCache';
 
 const FALLBACK_MAP =
-  'https://maps.google.com/maps?q=Chhotu%20Ram%20Colony%20Gohana%20Road%20Sonipat&t=&z=15&ie=UTF8&iwloc=&output=embed';
+  'https://maps.google.com/maps?q=Bhatgaon%20Road%20Near%20Guru%20Sadan%20school%20Barwasni%20Sonipat%20Haryana&t=&z=15&ie=UTF8&iwloc=&output=embed';
 
 export default function Location() {
   const { t } = useTranslation();

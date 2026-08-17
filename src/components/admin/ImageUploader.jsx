@@ -12,6 +12,8 @@ export default function ImageUploader({
   onChange,
   onClear,
   label = 'Upload image',
+  /** Optional Tailwind classes for preview frame (e.g. aspect-[4/5] w-40) */
+  previewClassName = 'h-28 w-40',
 }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
@@ -95,14 +97,16 @@ export default function ImageUploader({
 
       {preview ? (
         <div className="relative mt-3 inline-block">
-          <img
-            src={preview}
-            alt="Preview"
-            className="h-28 w-40 rounded-lg object-cover shadow-sm"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+          <div className={`relative overflow-hidden rounded-lg bg-slate-100 shadow-sm ${previewClassName}`}>
+            <img
+              src={preview}
+              alt="Preview"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
           {onClear ? (
             <button
               type="button"

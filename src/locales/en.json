@@ -257,7 +257,7 @@
     "subtitle": "Kuldeep Malik Sports Academy follows the rich tradition of Indian wrestling. Here, athletes train in a traditional akhada environment with experienced coaches, strong values, and a focus on becoming better wrestlers and better individuals.",
     "mantra": "ॐ भूर्भुवः स्वः, तत्सवितुर्वरेण्यं, भर्गो देवस्य धीमहि, धियो यो नः प्रचोदयात्",
     "mantraLabel": "Gayatri Mantra",
-    "imageAlt": "Heritage Academy grounds",
+    "imageAlt": "Meenakshi, Silver Medalist at Asian Wrestling Championship 2026",
     "registration": {
       "society": "Society",
       "regNo": "Registration No.",
@@ -326,10 +326,10 @@
       },
       "mahavir": {
         "name": "Ajay Malik",
-        "role": "Strength Coach",
+        "role": "Certified Coach",
         "experience": "Strength & Conditioning",
         "specialty": "Strength & Conditioning",
-        "bio": "Builds explosive power with traditional conditioning and modern strength training for pehlwani performance."
+        "bio": "Builds strength, endurance, and explosive power with modern training and sports science for better wrestler performance."
       }
     }
   },
@@ -351,7 +351,7 @@
     }
   },
   "wrestlers": {
-    "eyebrow": "Athletes",
+    "eyebrow": "ATHLETES",
     "title": "Meet Our Wrestlers",
     "subtitle": "The athletes who carry the spirit of the akhada forward.",
     "items": {
@@ -387,7 +387,7 @@
   "location": {
     "eyebrow": "Visit",
     "title": "Location",
-    "addressLabel": "Academy Address",
+    "addressLabel": "Kuldeep Malik Sports Academy",
     "directions": "Get Directions",
     "mapTitle": "Kuldeep Malik Sports Academy location"
   },

@@ -248,6 +248,28 @@ body.lang-hi .font-display {
     print-color-adjust: exact;
   }
 
+  body:has(.player-report-overlay) header,
+  body:has(.player-report-overlay) aside,
+  body:has(.player-report-overlay) nav {
+    display: none !important;
+  }
+
+  body:has(.player-report-overlay) .player-report-overlay {
+    position: static !important;
+    inset: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+  }
+
+  body:has(.player-report-overlay) .player-report-sheet {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
   body.finance-receipt-open * {
     visibility: hidden !important;
   }

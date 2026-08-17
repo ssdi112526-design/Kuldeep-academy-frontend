@@ -120,7 +120,9 @@ export function ReportStatCard({ label, value, onClick, accent }) {
   );
 }
 
-export function ReportTable({ columns, rows, loading, empty = 'No records' }) {
+export function ReportTable({ columns, rows, loading, empty = 'No records', onRowClick }) {
+  const clickable = typeof onRowClick === 'function';
+
   return (
     <div className="mt-4 overflow-x-auto rounded-xl border border-slate-100 bg-white print:border-0">
       <table className="min-w-full text-left text-sm">
@@ -148,7 +150,27 @@ export function ReportTable({ columns, rows, loading, empty = 'No records' }) {
             </tr>
           ) : (
             rows.map((row, idx) => (
-              <tr key={row.id || row._id || idx} className="border-b border-slate-50 last:border-0">
+              <tr
+                key={row.id || row._id || idx}
+                tabIndex={clickable ? 0 : undefined}
+                aria-label={clickable ? `View details for ${row.fullName || 'player'}` : undefined}
+                onClick={clickable ? () => onRowClick(row) : undefined}
+                onKeyDown={
+                  clickable
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
+                className={`border-b border-slate-50 last:border-0 ${
+                  clickable
+                    ? 'cursor-pointer transition-colors hover:bg-brand/5 focus-visible:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40'
+                    : ''
+                }`}
+              >
                 {columns.map((c) => (
                   <td key={c.key} className="px-3 py-2.5 whitespace-nowrap">
                     {c.render ? c.render(row) : row[c.key] ?? '—'}

@@ -22,6 +22,7 @@ import {
   FaImages,
   FaHandshake,
   FaRunning,
+  FaCrown,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -51,6 +52,7 @@ import ParentsPanel from '../components/admin/ParentsPanel';
 import EntryEquipmentPanel from '../components/admin/EntryEquipmentPanel';
 import GalleryPanel from '../components/admin/GalleryPanel';
 import AthletesPanel from '../components/admin/AthletesPanel';
+import LegacyMembersPanel from '../components/admin/LegacyMembersPanel';
 import SponsorshipsPanel from '../components/admin/SponsorshipsPanel';
 import AccessDenied from '../components/admin/AccessDenied';
 import GlobalSearch from '../components/admin/GlobalSearch';
@@ -75,6 +77,13 @@ const NAV = [
       },
       { id: 'equipment', label: 'Equipment', icon: FaTools, module: 'equipment', permission: 'equipment.view' },
       { id: 'athletes', label: 'Athletes', icon: FaRunning, module: 'athletes', permission: 'athletes.view' },
+      {
+        id: 'legacy-members',
+        label: 'Legacy Members',
+        icon: FaCrown,
+        module: 'legacy_members',
+        permission: 'legacy_members.view',
+      },
       { id: 'reports', label: 'Reports', icon: FaChartBar, module: 'reports', permission: 'reports.view' },
     ],
   },
@@ -139,6 +148,7 @@ const SECTION_MODULE = {
   tournaments: 'tournaments',
   equipment: 'equipment',
   athletes: 'athletes',
+  'legacy-members': 'legacy_members',
   gallery: 'gallery',
   users: 'users',
   roles: 'roles',
@@ -331,6 +341,10 @@ export default function Admin() {
     athletes: {
       title: 'Athletes',
       subtitle: 'Upload wrestler photos for the public Meet Our Wrestlers section.',
+    },
+    'legacy-members': {
+      title: 'Legacy Members',
+      subtitle: 'Manage prestigious members shown on the public Legacy section.',
     },
     gallery: {
       title: 'Gallery',
@@ -537,6 +551,7 @@ export default function Admin() {
                 )}
                 {section === 'equipment' && <EntryEquipmentPanel />}
                 {section === 'athletes' && <AthletesPanel />}
+                {section === 'legacy-members' && <LegacyMembersPanel />}
                 {section === 'gallery' && <GalleryPanel />}
                 {section === 'reports' && <ReportsHubPanel />}
                 {section === 'sponsorships' && <SponsorshipsPanel />}

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FaCheckCircle,
   FaEnvelope,
@@ -37,7 +37,7 @@ const EMPTY = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+\d][\d\s-]{7,18}$/;
 const FALLBACK_MAP =
-  'https://maps.google.com/maps?q=Chhotu%20Ram%20Colony%20Gohana%20Road%20Sonipat&t=&z=15&ie=UTF8&iwloc=&output=embed';
+  'https://maps.google.com/maps?q=Bhatgaon%20Road%20Near%20Guru%20Sadan%20school%20Barwasni%20Sonipat%20Haryana&t=&z=15&ie=UTF8&iwloc=&output=embed';
 
 const inputBase =
   'mt-1.5 w-full rounded-[12px] border bg-white px-4 py-3 text-[#102033] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#D97706] focus:ring-2 focus:ring-[#D97706]/20';

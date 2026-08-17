@@ -3,7 +3,7 @@ export const companyInfo = {
   tagline:
     'Empowering traditional Indian Academies with modern digital management, athlete records, memberships, tournaments, payments, attendance, and performance tracking.',
   badge: "India's Smart Academy Management Platform",
-  address: '1554/31, Chhotu Ram Colony, Gohana   Road, Sonipat, Haryana',
+  address: 'Bhatgaon Road, Near Guru Sadan school Barwasni, Sonipat (Haryana)',
   phones: [],
   email: '',
   hours: 'Monday – Saturday: 8:30 AM – 6:00 PM',

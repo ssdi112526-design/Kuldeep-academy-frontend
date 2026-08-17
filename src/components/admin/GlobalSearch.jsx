@@ -163,7 +163,7 @@ export default function GlobalSearch({ onSelect }) {
             if (query.trim().length >= 2) setOpen(true);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Search by Mobile Number or ID..."
+          placeholder="Search by name or ID..."
           className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
           autoComplete="off"
           role="combobox"
