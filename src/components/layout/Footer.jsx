@@ -28,7 +28,7 @@ export default function Footer() {
         </nav>
       </div>
       <div className="border-t border-white/10 py-4 text-center text-[11px] text-[#78716C]">
-        © {new Date().getFullYear()} {companyInfo.name}
+      Copyright Act {new Date().getFullYear()} {companyInfo.name}
       </div>
     </footer>
   );
