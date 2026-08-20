@@ -1,5 +1,5 @@
 /**
- * Browser GPS helpers for QR attendance geofencing.
+ * Browser GPS helpers for location features.
  */
 
 export function getCurrentGpsPosition({

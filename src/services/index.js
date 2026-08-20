@@ -272,14 +272,17 @@ export const entryService = {
     list: (params) => api.get('/admin/students', { params }),
     stats: () => api.get('/admin/students/stats'),
     getOne: (id) => api.get(`/admin/students/${id}`),
+    downloadDocument: (id, slot) =>
+      api.get(`/admin/students/${id}/documents/${slot}`, { responseType: 'blob' }),
     exportRecords: ({ format = 'xlsx', search = '' } = {}) =>
       api.post(
         '/admin/students/export',
         { format, search },
         { responseType: 'blob' }
       ),
-    create: async (data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
-      const hasFiles = [photo, parentPhoto, aadhaarFront, aadhaarBack, panCard].some(isBrowserFile);
+    create: async (data, { photo, fatherPhoto, motherPhoto, aadhaarFront, aadhaarBack, additionalFile, panCard, passport } = {}) => {
+      const addFile = additionalFile || aadhaarBack;
+      const hasFiles = [photo, fatherPhoto, motherPhoto, aadhaarFront, addFile, panCard, passport].some(isBrowserFile);
       if (!hasFiles) return api.post('/admin/students', data);
 
       const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
@@ -287,21 +290,39 @@ export const entryService = {
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
-        if (['photo', 'parentPhoto', 'aadhaarFront', 'aadhaarBack', 'panCard', 'image', 'file', 'profileImage'].includes(key)) {
+        if (
+          [
+            'photo',
+            'fatherPhoto',
+            'motherPhoto',
+            'parentPhoto',
+            'aadhaarFront',
+            'aadhaarBack',
+            'additionalFile',
+            'panCard',
+            'passport',
+            'image',
+            'file',
+            'profileImage',
+          ].includes(key)
+        ) {
           return;
         }
         form.append(key, String(value));
       });
       if (isBrowserFile(photo)) form.append('photo', photo);
-      if (isBrowserFile(parentPhoto)) form.append('parentPhoto', parentPhoto);
+      if (isBrowserFile(fatherPhoto)) form.append('fatherPhoto', fatherPhoto);
+      if (isBrowserFile(motherPhoto)) form.append('motherPhoto', motherPhoto);
       if (isBrowserFile(aadhaarFront)) form.append('aadhaarFront', aadhaarFront);
-      if (isBrowserFile(aadhaarBack)) form.append('aadhaarBack', aadhaarBack);
+      if (isBrowserFile(addFile)) form.append('additionalFile', addFile);
       if (isBrowserFile(panCard)) form.append('panCard', panCard);
+      if (isBrowserFile(passport)) form.append('passport', passport);
       // Direct to Render — Vercel rewrite can corrupt multipart field names ("Unexpected field")
       return uploadApi.post('/admin/students', form, { timeout: 5 * 60 * 1000 });
     },
-    update: async (id, data, { photo, parentPhoto, aadhaarFront, aadhaarBack, panCard } = {}) => {
-      const hasFiles = [photo, parentPhoto, aadhaarFront, aadhaarBack, panCard].some(isBrowserFile);
+    update: async (id, data, { photo, fatherPhoto, motherPhoto, aadhaarFront, aadhaarBack, additionalFile, panCard, passport } = {}) => {
+      const addFile = additionalFile || aadhaarBack;
+      const hasFiles = [photo, fatherPhoto, motherPhoto, aadhaarFront, addFile, panCard, passport].some(isBrowserFile);
       if (!hasFiles) return api.put(`/admin/students/${id}`, data);
 
       const { default: uploadApi, wakeUploadBackend } = await import('./uploadApi');
@@ -309,16 +330,33 @@ export const entryService = {
       const form = new FormData();
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value === undefined || value === null) return;
-        if (['photo', 'parentPhoto', 'aadhaarFront', 'aadhaarBack', 'panCard', 'image', 'file', 'profileImage'].includes(key)) {
+        if (
+          [
+            'photo',
+            'fatherPhoto',
+            'motherPhoto',
+            'parentPhoto',
+            'aadhaarFront',
+            'aadhaarBack',
+            'additionalFile',
+            'panCard',
+            'passport',
+            'image',
+            'file',
+            'profileImage',
+          ].includes(key)
+        ) {
           return;
         }
         form.append(key, String(value));
       });
       if (isBrowserFile(photo)) form.append('photo', photo);
-      if (isBrowserFile(parentPhoto)) form.append('parentPhoto', parentPhoto);
+      if (isBrowserFile(fatherPhoto)) form.append('fatherPhoto', fatherPhoto);
+      if (isBrowserFile(motherPhoto)) form.append('motherPhoto', motherPhoto);
       if (isBrowserFile(aadhaarFront)) form.append('aadhaarFront', aadhaarFront);
-      if (isBrowserFile(aadhaarBack)) form.append('aadhaarBack', aadhaarBack);
+      if (isBrowserFile(addFile)) form.append('additionalFile', addFile);
       if (isBrowserFile(panCard)) form.append('panCard', panCard);
+      if (isBrowserFile(passport)) form.append('passport', passport);
       return uploadApi.put(`/admin/students/${id}`, form, { timeout: 5 * 60 * 1000 });
     },
     remove: (id) => api.delete(`/admin/students/${id}`),
@@ -546,17 +584,11 @@ export const attendanceService = {
   studentHistory: (studentId, params) =>
     api.get(`/admin/attendance/students/${studentId}/history`, { params }),
   record: (id) => api.get(`/admin/attendance/records/${id}`),
-  sessions: (params) => api.get('/admin/attendance/sessions', { params }),
-  activeQr: () => api.get('/admin/attendance/qr/active'),
-  generateQr: (payload) => api.post('/admin/attendance/qr/generate', payload || {}),
-  closeQr: (id) =>
-    id ? api.post(`/admin/attendance/qr/${id}/close`) : api.post('/admin/attendance/qr/close'),
   exportRecords: (payload) =>
     api.post('/admin/attendance/export', payload, { responseType: 'blob' }),
   markStatus: (payload) => api.post('/admin/attendance/mark', payload),
   myProfile: () => api.get('/student/profile'),
   myAttendance: (params) => api.get('/student/attendance', { params }),
-  scan: (payload) => api.post('/student/attendance/scan', payload),
 };
 
 export const attendanceSettingsService = {
@@ -586,22 +618,17 @@ export const biometricService = {
 export const coachPortalService = {
   myProfile: () => api.get('/coach/profile'),
   myAttendance: () => api.get('/coach/attendance'),
-  scan: (payload) => api.post('/coach/attendance/scan', payload),
 };
 
 export const coachAttendanceService = {
   stats: (params) => api.get('/admin/coach-attendance/stats', { params }),
   months: () => api.get('/admin/coach-attendance/months'),
   records: (params) => api.get('/admin/coach-attendance/records', { params }),
+  roster: (params) => api.get('/admin/coach-attendance/roster', { params }),
   coachSummary: (params) => api.get('/admin/coach-attendance/summary/coaches', { params }),
   coachHistory: (coachId, params) =>
     api.get(`/admin/coach-attendance/coaches/${coachId}/history`, { params }),
-  activeQr: () => api.get('/admin/coach-attendance/qr/active'),
-  generateQr: (payload) => api.post('/admin/coach-attendance/qr/generate', payload || {}),
-  closeQr: (id) =>
-    id
-      ? api.post(`/admin/coach-attendance/qr/${id}/close`)
-      : api.post('/admin/coach-attendance/qr/close'),
+  mark: (payload) => api.post('/admin/coach-attendance/mark', payload),
   exportRecords: (payload) =>
     api.post('/admin/coach-attendance/export', payload, { responseType: 'blob' }),
 };

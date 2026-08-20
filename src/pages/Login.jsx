@@ -9,7 +9,6 @@ import { useToast } from '../context/ToastContext';
 
 function safeRedirectPath(value) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
-  if (value.startsWith('/attendance/scan')) return value;
   return null;
 }
 

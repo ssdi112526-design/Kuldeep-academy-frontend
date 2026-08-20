@@ -4,6 +4,7 @@ import {
   ATTENDANCE_STATUS_VALUE,
   ATTENDANCE_STATUSES,
   attendanceStatusMeta,
+  normalizeAttendanceStatus,
 } from '../../utils/attendanceStatus';
 
 export default function AttendanceStatusBadge({ status, className = '' }) {
@@ -44,6 +45,46 @@ export function AttendanceStatusCount({ statusKey, label, value, loading = false
         <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-600">{label}</p>
       </div>
       <p className={`mt-1.5 text-2xl font-bold tabular-nums ${valueClass}`}>{loading ? '…' : value ?? 0}</p>
+    </div>
+  );
+}
+
+export function AttendanceStatusFilterOptions() {
+  return (
+    <>
+      <option value="all">All</option>
+      {ATTENDANCE_STATUSES.map((s) => (
+        <option key={s.key} value={s.key}>
+          {s.label}
+        </option>
+      ))}
+    </>
+  );
+}
+
+/** Manual attendance MARK dropdown — reuses existing status colors. */
+export function MarkStatusSelect({ statusKey, busy = false, disabled = false, onChange }) {
+  const current = normalizeAttendanceStatus(statusKey) || 'absent';
+  const meta = attendanceStatusMeta(current);
+  return (
+    <div className="inline-flex items-center gap-2">
+      <select
+        aria-label="Mark attendance"
+        className={`max-w-[13.5rem] rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-50 ${meta.badgeClass}`}
+        value={current}
+        disabled={disabled || busy}
+        onChange={(e) => {
+          const next = e.target.value;
+          if (next && next !== current) onChange(next);
+        }}
+      >
+        {ATTENDANCE_STATUSES.map((s) => (
+          <option key={s.key} value={s.key}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+      {busy ? <span className="text-[11px] font-medium text-muted">Saving…</span> : null}
     </div>
   );
 }

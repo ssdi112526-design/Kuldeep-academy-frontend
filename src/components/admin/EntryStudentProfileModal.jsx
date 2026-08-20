@@ -18,8 +18,6 @@ export default function EntryStudentProfileModal({ student, onClose }) {
     if (!student) return null;
     return {
       status: student.status,
-      membershipType: student.membershipType,
-      batch: student.batch,
       coachName: coach?.fullName || 0,
       joiningDate: student.joiningDate ? new Date(student.joiningDate).toLocaleDateString('en-IN') : 0,
       dob: student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString('en-IN') : 0,
@@ -79,21 +77,66 @@ export default function EntryStudentProfileModal({ student, onClose }) {
                 <p className="mt-1 text-xs text-muted">Status: {quick?.status}</p>
               </div>
             </div>
-            {student.parentPhoto ? (
+            {(student.fatherPhoto || student.parentPhoto || student.motherPhoto) ? (
               <div className="mt-4 border-t border-slate-100 pt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Parent Photo</p>
-                <img
-                  src={mediaUrl(student.parentPhoto)}
-                  alt="Parent"
-                  className="h-20 w-20 rounded-xl object-cover shadow-sm"
-                />
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Parents</p>
+                <div className="flex flex-wrap gap-3">
+                  {student.fatherPhoto || student.parentPhoto ? (
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">Father</p>
+                      <img
+                        src={mediaUrl(student.fatherPhoto || student.parentPhoto)}
+                        alt="Father"
+                        className="h-20 w-20 rounded-xl object-cover shadow-sm"
+                      />
+                    </div>
+                  ) : null}
+                  {student.motherPhoto ? (
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">Mother</p>
+                      <img
+                        src={mediaUrl(student.motherPhoto)}
+                        alt="Mother"
+                        className="h-20 w-20 rounded-xl object-cover shadow-sm"
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Documents</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'Aadhaar Card', href: student.studentDocuments?.aadhaarFrontImage },
+                  { label: 'PAN Card', href: student.studentDocuments?.panCardImage },
+                  { label: 'Passport', href: student.studentDocuments?.passportImage },
+                  { label: 'Add Files', href: student.studentDocuments?.aadhaarBackImage },
+                ].map((doc) => (
+                  <div key={doc.label} className="rounded-lg border border-slate-100 bg-white p-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">{doc.label}</p>
+                    {doc.href ? (
+                      /\.pdf($|\?)/i.test(doc.href) ? (
+                        <a href={mediaUrl(doc.href)} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-semibold text-brand">
+                          Open PDF
+                        </a>
+                      ) : (
+                        <a href={mediaUrl(doc.href)} target="_blank" rel="noreferrer">
+                          <img src={mediaUrl(doc.href)} alt={doc.label} className="mt-1 h-16 w-full rounded object-cover" />
+                        </a>
+                      )
+                    ) : (
+                      <p className="mt-1 text-xs text-muted">Not uploaded</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div className="mt-4 space-y-0">
               <Row label="Father Name" value={student.fatherName} />
               <Row label="Mother Name" value={student.motherName} />
-              <Row label="Gender" value={student.gender} />
               <Row label="Date of Birth" value={quick?.dob} />
               <Row label="Blood Group" value={student.bloodGroup} />
               <Row label="Mobile" value={student.mobileNumber} />
@@ -107,16 +150,13 @@ export default function EntryStudentProfileModal({ student, onClose }) {
             <div className="rounded-xl border border-slate-100 bg-white p-4">
               <h3 className="text-sm font-bold text-ink">Training Details</h3>
               <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Row label="Membership Type" value={student.membershipType} />
-                <Row label="Batch" value={student.batch} />
-                <Row label="Training Level" value={student.trainingLevel} />
                 <Row label="Weight (kg)" value={student.weightKg} />
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-slate-100 bg-white p-4">
-                <h3 className="text-sm font-bold text-ink">QR Attendance Summary</h3>
+                <h3 className="text-sm font-bold text-ink">Attendance Summary</h3>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   <div className="rounded-lg border border-slate-100 p-3">
                     <p className="text-xs text-muted">Present</p>

@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  FaCheck,
-  FaDownload,
-  FaExpand,
-  FaQrcode,
-  FaTimes,
-  FaUserCheck,
-  FaUserTimes,
-  FaUsers,
-} from 'react-icons/fa';
+import { FaCheck, FaDownload, FaUserCheck, FaUserTimes, FaUsers } from 'react-icons/fa';
 import Button from '../ui/Button';
-import ConfirmDialog from '../ui/ConfirmDialog';
 import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import StatCard from './StatCard';
@@ -21,6 +11,15 @@ import { usePermissions } from '../../context/PermissionContext';
 import { coachAttendanceService } from '../../services';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { triggerBlobDownload, parseBlobError } from '../../utils/downloadBlob';
+import AttendanceStatusBadge, {
+  AttendanceStatusCount,
+  AttendanceStatusFilterOptions,
+  AttendanceStatusLegend,
+  MarkStatusSelect,
+} from '../ui/AttendanceStatusBadge';
+import { attendanceStatusMeta, normalizeAttendanceStatus } from '../../utils/attendanceStatus';
+import { mediaUrl } from '../../utils/mediaUrl';
+import useDebouncedValue from '../../hooks/useDebouncedValue';
 
 function todayISO() {
   const d = new Date();
@@ -28,7 +27,9 @@ function todayISO() {
 }
 
 function formatTime(value) {
-  if (value === null || value === undefined || value === '' || value === 0 || value === '0' || value === '—') return 0;
+  if (value === null || value === undefined || value === '' || value === 0 || value === '0' || value === '—') {
+    return '—';
+  }
   if (typeof value === 'string' && value.includes(':') && !value.includes('T')) return value;
   return new Intl.DateTimeFormat('en-IN', {
     hour: '2-digit',
@@ -39,13 +40,24 @@ function formatTime(value) {
 }
 
 function formatDate(value) {
-  if (!value) return 0;
+  if (!value) return '—';
   return new Intl.DateTimeFormat('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     timeZone: 'Asia/Kolkata',
-  }).format(new Date(value));
+  }).format(new Date(`${value}T00:00:00.000Z`));
+}
+
+function formatSelectedDate(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 function exportDownloadName(periodMode, selectedMonth, from, to, reportType) {
@@ -69,54 +81,62 @@ function exportDownloadName(periodMode, selectedMonth, from, to, reportType) {
     return 'attendance';
   })();
   const suffix = reportType === 'summary' ? '_summary' : '';
-  return `raghunandan_akhada_coach_attendance_${stamp}${suffix}.xlsx`;
+  return `kuldeep_academy_coach_attendance_${stamp}${suffix}.xlsx`;
+}
+
+function PersonPhoto({ src, name }) {
+  const url = mediaUrl(src);
+  if (url) {
+    return <img src={url} alt="" className="h-10 w-10 rounded-full object-cover bg-slate-100" />;
+  }
+  const letter = String(name || '?').charAt(0).toUpperCase();
+  return (
+    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand">
+      {letter}
+    </div>
+  );
 }
 
 export default function CoachAttendancePanel() {
   const toast = useToast();
   const { can, canModule } = usePermissions();
   const canView = can('attendance.view') || canModule('attendance');
-  const canCreate = can('attendance.create');
   const canEdit = can('attendance.edit');
   const canExport = can('attendance.export');
 
-  const [tab, setTab] = useState('qr');
-  const [session, setSession] = useState(null);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
+  const [tab, setTab] = useState('mark');
   const [date, setDate] = useState(todayISO());
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  const [rosterSearch, setRosterSearch] = useState('');
+  const debouncedRosterSearch = useDebouncedValue(rosterSearch, 350);
+  const [rosterStatus, setRosterStatus] = useState('all');
+  const [roster, setRoster] = useState([]);
+  const [rosterSummary, setRosterSummary] = useState(null);
+  const [rosterPagination, setRosterPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 });
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [markingKey, setMarkingKey] = useState('');
+
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all | present | absent
-  const [methodFilter, setMethodFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [periodMode, setPeriodMode] = useState('month'); // month | select | custom | all
-  const [selectedMonth, setSelectedMonth] = useState(''); // YYYY-MM
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [periodMode, setPeriodMode] = useState('month');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [availableMonths, setAvailableMonths] = useState([]);
   const [from, setFrom] = useState(todayISO().slice(0, 8) + '01');
   const [to, setTo] = useState(todayISO());
   const [records, setRecords] = useState([]);
   const [recordsSummary, setRecordsSummary] = useState(null);
-  const [studentSummary, setStudentSummary] = useState([]);
+  const [coachSummary, setCoachSummary] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
-  const [closeConfirm, setCloseConfirm] = useState({ open: false, loading: false });
-  const [fullscreen, setFullscreen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyData, setHistoryData] = useState(null);
 
   const periodParams = useCallback(() => {
     const params = {
       search: search.trim() || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      method: methodFilter !== 'all' ? methodFilter : undefined,
-      location: locationFilter !== 'all' ? locationFilter : undefined,
       view: 'matrix',
     };
     if (periodMode === 'all') {
@@ -134,34 +154,7 @@ export default function CoachAttendancePanel() {
       params.period = 'month';
     }
     return params;
-  }, [periodMode, selectedMonth, from, to, search, statusFilter, methodFilter, locationFilter]);
-
-  const loadActiveQr = useCallback(async ({ silent = false } = {}) => {
-    if (!silent) setQrLoading(true);
-    try {
-      const res = await coachAttendanceService.activeQr();
-      const next = res.data?.data?.session || null;
-      setSession((prev) => {
-        if (prev?.id === next?.id && prev?.status === next?.status && prev?.qrDataUrl === next?.qrDataUrl) {
-          return prev;
-        }
-        return next;
-      });
-    } catch (err) {
-      if (!silent) setError(getApiErrorMessage(err, 'Failed to load QR session'));
-    } finally {
-      if (!silent) setQrLoading(false);
-    }
-  }, []);
-
-  // Real-time QR refresh via polling (new QR after each successful coach scan / TTL renew)
-  useEffect(() => {
-    if (!canView || tab !== 'qr') return undefined;
-    const id = setInterval(() => {
-      loadActiveQr({ silent: true });
-    }, 1500);
-    return () => clearInterval(id);
-  }, [canView, tab, loadActiveQr]);
+  }, [periodMode, selectedMonth, from, to, search, statusFilter]);
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
@@ -177,15 +170,38 @@ export default function CoachAttendancePanel() {
     }
   }, [date]);
 
+  const loadRoster = useCallback(
+    async (page = 1) => {
+      setRosterLoading(true);
+      try {
+        const res = await coachAttendanceService.roster({
+          date,
+          search: debouncedRosterSearch.trim() || undefined,
+          status: rosterStatus !== 'all' ? rosterStatus : undefined,
+          page,
+          limit: rosterPagination.limit,
+        });
+        const data = res.data?.data || {};
+        setRoster(data.rows || []);
+        setRosterSummary(data.summary || null);
+        setRosterPagination(data.pagination || { page: 1, limit: rosterPagination.limit, total: 0, pages: 1 });
+        setError('');
+      } catch (err) {
+        setRoster([]);
+        setError(getApiErrorMessage(err, 'Unable to load attendance list.'));
+      } finally {
+        setRosterLoading(false);
+      }
+    },
+    [date, debouncedRosterSearch, rosterStatus, rosterPagination.limit]
+  );
+
   const loadRecords = useCallback(
     async (page = 1) => {
       if (periodMode === 'select' && !selectedMonth) return;
       if (periodMode === 'custom' && (!from || !to)) return;
       setRecordsLoading(true);
       setError('');
-      setRecords([]);
-      setStudentSummary([]);
-      setRecordsSummary(null);
       try {
         const base = periodParams();
         const [recRes, sumRes] = await Promise.all([
@@ -196,36 +212,20 @@ export default function CoachAttendancePanel() {
           }),
           coachAttendanceService.coachSummary(base),
         ]);
-        setRecords(recRes.data?.data?.records || []);
+        setRecords(recRes.data?.data?.records || recRes.data?.data?.rows || []);
         setRecordsSummary(recRes.data?.data?.summary || null);
         setPagination(recRes.data?.data?.pagination || { page: 1, limit: 20, total: 0, pages: 1 });
-        setStudentSummary(sumRes.data?.data?.coaches || sumRes.data?.data?.students || []);
+        setCoachSummary(sumRes.data?.data?.coaches || sumRes.data?.data?.students || []);
       } catch (err) {
         setError(getApiErrorMessage(err, 'Unable to load attendance records. Please try again.'));
         setRecords([]);
-        setStudentSummary([]);
+        setCoachSummary([]);
       } finally {
         setRecordsLoading(false);
       }
     },
-    [periodParams, periodMode, selectedMonth, from, to, pagination.limit, statusFilter]
+    [periodParams, periodMode, selectedMonth, from, to, pagination.limit]
   );
-
-  const openStudentHistory = async (coachId) => {
-    if (!coachId) return;
-    setHistoryOpen(true);
-    setHistoryLoading(true);
-    setHistoryData(null);
-    try {
-      const res = await coachAttendanceService.coachHistory(coachId, periodParams());
-      setHistoryData(res.data?.data || null);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Unable to load coach history'));
-      setHistoryOpen(false);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
 
   const loadMonths = useCallback(async () => {
     try {
@@ -243,19 +243,14 @@ export default function CoachAttendancePanel() {
   }, []);
 
   useEffect(() => {
-    if (!canView || tab !== 'records') return;
-    loadRecords(1);
-  }, [pagination.limit]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!canView) return;
-    loadActiveQr();
-  }, [canView, loadActiveQr]);
-
-  useEffect(() => {
     if (!canView) return;
     loadStats();
   }, [canView, loadStats]);
+
+  useEffect(() => {
+    if (!canView || tab !== 'mark') return;
+    loadRoster(1);
+  }, [canView, tab, loadRoster]);
 
   useEffect(() => {
     if (!canView || tab !== 'records') return;
@@ -265,43 +260,7 @@ export default function CoachAttendancePanel() {
   useEffect(() => {
     if (!canView || tab !== 'records') return;
     loadRecords(1);
-  }, [canView, tab, periodMode, selectedMonth, from, to, statusFilter, methodFilter, locationFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleGenerate = async () => {
-    if (!canCreate) {
-      toast.error('You do not have permission to generate QR');
-      return;
-    }
-    setActionLoading(true);
-    try {
-      const res = await coachAttendanceService.generateQr();
-      setSession(res.data?.data?.session || null);
-      toast.success(res.data?.message || 'New coach attendance QR generated');
-      setTab('qr');
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to generate QR'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleClose = async () => {
-    if (!canEdit) {
-      toast.error('You do not have permission to close QR');
-      return;
-    }
-    setCloseConfirm((s) => ({ ...s, loading: true }));
-    try {
-      await coachAttendanceService.closeQr(session?.id);
-      toast.success('Coach attendance QR closed');
-      setSession(null);
-      setCloseConfirm({ open: false, loading: false });
-      setFullscreen(false);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Failed to close QR'));
-      setCloseConfirm((s) => ({ ...s, loading: false }));
-    }
-  };
+  }, [canView, tab, periodMode, selectedMonth, from, to, statusFilter, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleExport = async (reportType = 'matrix') => {
     if (!canExport) {
@@ -322,13 +281,53 @@ export default function CoachAttendancePanel() {
     }
   };
 
+  const handleMarkStatus = async (row, status) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to mark attendance');
+      return;
+    }
+    const coachId = row.coachId || row.studentId;
+    const markDate = row.date || date;
+    const nextKey = normalizeAttendanceStatus(status);
+    if (!coachId || !markDate || !nextKey) return;
+    const currentKey = normalizeAttendanceStatus(row.statusKey || row.status) || 'absent';
+    if (nextKey === currentKey) return;
+    const key = `${coachId}_${markDate}`;
+    const meta = attendanceStatusMeta(nextKey);
+    setMarkingKey(key);
+    try {
+      await coachAttendanceService.mark({ coachId, date: markDate, status: nextKey });
+      toast.success(`Marked ${meta.label}`);
+      setRoster((prev) =>
+        prev.map((r) =>
+          (r.coachId || r.studentId) === coachId
+            ? {
+                ...r,
+                statusKey: nextKey,
+                status: meta.label,
+                statusLabel: meta.label,
+              }
+            : r
+        )
+      );
+      await Promise.all([
+        tab === 'records' ? loadRecords(pagination.page) : loadRoster(rosterPagination.page),
+        loadStats(),
+      ]);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to update attendance status'));
+    } finally {
+      setMarkingKey('');
+    }
+  };
+
   const periodBtn = (id, label) => (
     <button
       key={id}
       type="button"
       onClick={() => setPeriodMode(id)}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold sm:px-4 sm:text-sm ${
-        periodMode === id ? 'bg-brand text-white' : 'bg-slate-100 text-ink'
+      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:px-3.5 sm:text-sm ${
+        periodMode === id ? 'bg-brand text-white shadow-sm' : 'text-ink hover:bg-white'
       }`}
     >
       {label}
@@ -337,123 +336,227 @@ export default function CoachAttendancePanel() {
 
   if (!canView) return <AccessDenied />;
 
-  const qrBlock = (
-    <div className="mx-auto max-w-lg rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Kuldeep Malik Sports Academy</p>
-      <h3 className="mt-2 text-2xl font-bold text-ink">Coach Attendance</h3>
-      {qrLoading ? (
-        <p className="mt-8 text-sm text-muted">Loading QR…</p>
-      ) : session?.qrDataUrl ? (
-        <>
-          <img src={session.qrDataUrl} alt="Coach Attendance QR" className="mx-auto mt-6 w-64 max-w-full rounded-xl border border-slate-100" />
-          <p className="mt-4 text-sm font-medium text-ink">Scan to Mark Attendance</p>
-          <p className="mt-2 text-xs text-muted">Session: {session.sessionCode}</p>
-          <p className="mt-1 text-xs font-semibold text-emerald-700">Status: {session.status}</p>
-          <p className="mt-1 text-xs text-muted">
-            One-time QR · expires in ~{session.ttlSeconds || 60}s if unused
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            Expires: {formatTime(session.expiresAt)} · {formatDate(session.expiresAt)}
-          </p>
-        </>
-      ) : (
-        <div className="mt-8 rounded-xl border border-dashed border-slate-200 bg-surface px-4 py-10">
-          <FaQrcode className="mx-auto text-4xl text-slate-300" />
-          <p className="mt-3 text-sm text-muted">No active coach attendance QR is available.</p>
-          <p className="mt-1 text-xs text-muted">Click Generate QR to start the coach desk session.</p>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="space-y-5">
       <FormErrorBanner message={error} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Total Coaches" value={stats?.totalCoaches ?? stats?.totalStudents ?? 0} icon={FaUsers} loading={statsLoading} />
-        <StatCard label="Present Today" value={stats?.present ?? 0} icon={FaUserCheck} loading={statsLoading} />
-        <StatCard label="Absent Today" value={stats?.absent ?? 0} icon={FaUserTimes} loading={statsLoading} />
-        <StatCard label="Attendance %" value={stats ? `${stats.attendanceRate ?? 0}%` : '0%'} icon={FaCheck} loading={statsLoading} />
-        <StatCard label="QR Attendance" value={stats?.qrAttendance ?? 0} icon={FaQrcode} loading={statsLoading} />
-        <StatCard label="Biometric" value={stats?.biometricAttendance ?? 0} icon={FaUserCheck} loading={statsLoading} />
-      </div>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block text-xs font-medium text-muted">Stats date</span>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTab('qr')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === 'qr' ? 'bg-brand text-white' : 'bg-slate-100 text-ink'}`}
-          >
-            QR Session
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('records')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === 'records' ? 'bg-brand text-white' : 'bg-slate-100 text-ink'}`}
-          >
-            Records
-          </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-ink">Coach Attendance</h2>
+          <p className="mt-0.5 text-sm text-muted">Mark daily coach attendance manually, then review reports and exports.</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            <span className="mb-1 block text-xs font-medium text-muted">Attendance date</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => setTab('mark')}
+              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+                tab === 'mark' ? 'bg-brand text-white shadow-sm' : 'text-ink hover:bg-white'
+              }`}
+            >
+              Mark Attendance
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('records')}
+              className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
+                tab === 'records' ? 'bg-brand text-white shadow-sm' : 'text-ink hover:bg-white'
+              }`}
+            >
+              Reports
+            </button>
+          </div>
         </div>
       </div>
 
-      {tab === 'qr' ? (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {canCreate ? (
-              <Button onClick={handleGenerate} disabled={actionLoading} className="rounded-lg">
-                <FaQrcode className="mr-2" />
-                {session ? 'Generate New QR' : 'Generate QR'}
-              </Button>
-            ) : null}
-            {canEdit && session?.status === 'ACTIVE' ? (
-              <Button
-                variant="secondary"
-                onClick={() => setCloseConfirm({ open: true, loading: false })}
-                className="rounded-lg"
-              >
-                <FaTimes className="mr-2" />
-                Close QR
-              </Button>
-            ) : null}
-            {session?.qrDataUrl ? (
-              <Button variant="secondary" onClick={() => setFullscreen(true)} className="rounded-lg">
-                <FaExpand className="mr-2" />
-                Fullscreen
-              </Button>
-            ) : null}
+      <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-ink">{formatSelectedDate(date)}</h3>
+            <p className="text-xs text-muted">Selected date: {date}</p>
           </div>
-          {qrBlock}
+          <AttendanceStatusLegend />
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard
+            label="Total Coaches"
+            value={stats?.totalCoaches ?? rosterSummary?.totalCoaches ?? 0}
+            icon={FaUsers}
+            loading={statsLoading}
+          />
+          <StatCard
+            label="Present"
+            value={stats?.present ?? rosterSummary?.present ?? 0}
+            icon={FaUserCheck}
+            loading={statsLoading}
+          />
+          <StatCard
+            label="Absent"
+            value={stats?.absent ?? rosterSummary?.absent ?? 0}
+            icon={FaUserTimes}
+            loading={statsLoading}
+          />
+          <StatCard
+            label="Attendance %"
+            value={`${stats?.attendanceRate ?? rosterSummary?.attendanceRate ?? 0}%`}
+            icon={FaCheck}
+            loading={statsLoading}
+          />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <AttendanceStatusCount
+            statusKey="present"
+            label="Present"
+            value={stats?.present ?? 0}
+            loading={statsLoading}
+          />
+          <AttendanceStatusCount
+            statusKey="absent"
+            label="Absent"
+            value={stats?.absent ?? 0}
+            loading={statsLoading}
+          />
+          <AttendanceStatusCount
+            statusKey="leave"
+            label="Leave"
+            value={stats?.leave ?? 0}
+            loading={statsLoading}
+          />
+          <AttendanceStatusCount
+            statusKey="medical_leave"
+            label="Medical Leave"
+            value={stats?.medicalLeave ?? 0}
+            loading={statsLoading}
+          />
+          <AttendanceStatusCount
+            statusKey="competition_leave"
+            label="Competition Leave"
+            value={stats?.competitionLeave ?? 0}
+            loading={statsLoading}
+          />
+        </div>
+      </div>
+
+      {tab === 'mark' ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <span className="mb-1 block text-xs text-muted">Search coach</span>
+                <SearchBar value={rosterSearch} onChange={setRosterSearch} placeholder="Name / Registration No." />
+              </div>
+              <label className="text-sm lg:w-48">
+                <span className="mb-1 block text-xs text-muted">Status</span>
+                <select
+                  value={rosterStatus}
+                  onChange={(e) => setRosterStatus(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <AttendanceStatusFilterOptions />
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white shadow-sm">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
+                <tr>
+                  <th className="px-4 py-3">Photo</th>
+                  <th className="px-4 py-3">Registration No.</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Status</th>
+                  {canEdit ? <th className="px-4 py-3">Mark</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {rosterLoading ? (
+                  <tr>
+                    <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-muted">
+                      Loading…
+                    </td>
+                  </tr>
+                ) : roster.length === 0 ? (
+                  <tr>
+                    <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-muted">
+                      No coaches found for this date.
+                    </td>
+                  </tr>
+                ) : (
+                  roster.map((r) => {
+                    const coachId = r.coachId || r.studentId;
+                    const rowKey = `${coachId}_${r.date || date}`;
+                    const name = r.coachName || r.studentName || '—';
+                    return (
+                      <tr key={rowKey} className="border-t border-slate-100">
+                        <td className="px-4 py-3">
+                          <PersonPhoto src={r.photo} name={name} />
+                        </td>
+                        <td className="px-4 py-3 font-medium">{r.registrationId || r.coachCode || '—'}</td>
+                        <td className="px-4 py-3 font-medium">{name}</td>
+                        <td className="px-4 py-3">{formatDate(r.date || date)}</td>
+                        <td className="px-4 py-3">
+                          <AttendanceStatusBadge status={r.statusKey || r.status} />
+                        </td>
+                        {canEdit ? (
+                          <td className="px-4 py-3">
+                            <MarkStatusSelect
+                              statusKey={r.statusKey || r.status}
+                              busy={markingKey === rowKey}
+                              onChange={(status) => handleMarkStatus(r, status)}
+                            />
+                          </td>
+                        ) : null}
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            pagination={rosterPagination}
+            onPageChange={(p) => loadRoster(p)}
+            onLimitChange={(limit) => {
+              setRosterPagination((prev) => ({ ...prev, limit, page: 1 }));
+            }}
+          />
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-100 bg-white p-4">
-            <h3 className="text-sm font-bold text-ink">Coach Attendance Records</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {periodBtn('month', 'This Month')}
-              {periodBtn('select', 'Select Month')}
-              {periodBtn('custom', 'Custom Range')}
-              {periodBtn('all', 'All Time')}
+          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-ink">Attendance Reports</h3>
+                <p className="mt-0.5 text-xs text-muted">Filter by period, coach, and status. Excel includes Present and Absent.</p>
+              </div>
+              <div className="inline-flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1">
+                {periodBtn('month', 'This Month')}
+                {periodBtn('select', 'Select Month')}
+                {periodBtn('custom', 'Custom Range')}
+                {periodBtn('all', 'All Time')}
+              </div>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {periodMode === 'select' ? (
                 <label className="text-sm">
                   <span className="mb-1 block text-xs text-muted">Month</span>
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   >
                     {availableMonths.length === 0 ? <option value="">No months yet</option> : null}
                     {availableMonths.map((m) => {
@@ -467,107 +570,76 @@ export default function CoachAttendancePanel() {
                   </select>
                 </label>
               ) : null}
-
               {periodMode === 'custom' ? (
                 <>
                   <label className="text-sm">
                     <span className="mb-1 block text-xs text-muted">From</span>
-                    <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                    <input
+                      type="date"
+                      value={from}
+                      onChange={(e) => setFrom(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
                   </label>
                   <label className="text-sm">
                     <span className="mb-1 block text-xs text-muted">To</span>
-                    <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                    <input
+                      type="date"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    />
                   </label>
                 </>
               ) : null}
-
-              <div className="min-w-[200px] flex-1">
-                <SearchBar value={search} onChange={setSearch} placeholder="Name / Coach ID / Mobile / Father" />
+              <div className="sm:col-span-2">
+                <span className="mb-1 block text-xs text-muted">Search coach</span>
+                <SearchBar value={search} onChange={setSearch} placeholder="Name / Registration No." />
               </div>
               <label className="text-sm">
                 <span className="mb-1 block text-xs text-muted">Status</span>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
-                  <option value="all">All</option>
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
+                  <AttendanceStatusFilterOptions />
                 </select>
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-xs text-muted">Source</span>
-                <select
-                  value={methodFilter}
-                  onChange={(e) => setMethodFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="all">All</option>
-                  <option value="QR">QR</option>
-                  <option value="BIOMETRIC">Biometric</option>
-                </select>
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-xs text-muted">Location</span>
-                <select
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="all">All</option>
-                  <option value="verified">Verified</option>
-                  <option value="not_verified">Not Verified</option>
-                </select>
-              </label>
-              <Button variant="secondary" onClick={() => loadRecords(1)} className="rounded-lg">
-                Apply
-              </Button>
-              {canExport ? (
-                <>
-                  <Button onClick={() => handleExport('matrix')} disabled={exporting} className="rounded-lg">
-                    <FaDownload className="mr-2" />
-                    {exporting ? 'Generating Excelâ€¦' : 'Download Excel'}
-                  </Button>
-                  <Button variant="secondary" onClick={() => handleExport('summary')} disabled={exporting} className="rounded-lg">
-                    Summary Excel
-                  </Button>
-                </>
-              ) : null}
+              <div className="flex items-end">
+                <Button variant="secondary" onClick={() => loadRecords(1)} className="w-full rounded-lg">
+                  Apply filters
+                </Button>
+              </div>
             </div>
+
+            {canExport ? (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                <Button onClick={() => handleExport('matrix')} disabled={exporting} className="rounded-lg">
+                  <FaDownload className="mr-2" />
+                  {exporting ? 'Generating Excel…' : 'Download Excel'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => handleExport('summary')}
+                  disabled={exporting}
+                  className="rounded-lg"
+                >
+                  Summary Excel
+                </Button>
+              </div>
+            ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard label="Coaches" value={recordsSummary?.totalCoaches ?? recordsSummary?.totalStudents ?? 0} icon={FaUsers} loading={recordsLoading} />
-            <StatCard label="Training Days" value={recordsSummary?.trainingDays ?? 0} icon={FaCheck} loading={recordsLoading} />
-            <StatCard label="Present" value={recordsSummary?.presentStudentDays ?? recordsSummary?.present ?? 0} icon={FaUserCheck} loading={recordsLoading} />
-            <StatCard label="Absent" value={recordsSummary?.absentStudentDays ?? recordsSummary?.absent ?? 0} icon={FaUserTimes} loading={recordsLoading} />
-            <StatCard
-              label="Attendance %"
-              value={recordsSummary ? `${recordsSummary.attendancePercentage ?? recordsSummary.attendanceRate ?? 0}%` : '0%'}
-              icon={FaCheck}
-              loading={recordsLoading}
-            />
-            <StatCard
-              label="Raw Scan Records"
-              value={recordsSummary?.rawScanRecords ?? recordsSummary?.totalRecords ?? 0}
-              icon={FaQrcode}
-              loading={recordsLoading}
-            />
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white shadow-sm">
             <div className="border-b border-slate-100 px-4 py-3">
               <h4 className="text-sm font-bold text-ink">Coach Attendance Summary</h4>
-              <p className="text-xs text-muted">
-                Based on scheduled Academy training days (joining date respected; future days excluded)
-              </p>
             </div>
             <table className="min-w-full text-left text-sm">
               <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
                 <tr>
-                  <th className="px-4 py-3">Registration ID</th>
-                  <th className="px-4 py-3">Student</th>
+                  <th className="px-4 py-3">Registration No.</th>
+                  <th className="px-4 py-3">Coach</th>
                   <th className="px-4 py-3">Training Days</th>
                   <th className="px-4 py-3">Present</th>
                   <th className="px-4 py-3">Absent</th>
@@ -578,32 +650,24 @@ export default function CoachAttendancePanel() {
                 {recordsLoading ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-6 text-center text-muted">
-                      Loadingâ€¦
+                      Loading…
                     </td>
                   </tr>
-                ) : studentSummary.length === 0 ? (
+                ) : coachSummary.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-6 text-center text-muted">
                       No coach summary for this period.
                     </td>
                   </tr>
                 ) : (
-                  studentSummary.map((s) => (
-                    <tr key={s.coachId || s.studentId} className="border-t border-slate-100 hover:bg-slate-50">
+                  coachSummary.map((s) => (
+                    <tr key={s.coachId || s.studentId} className="border-t border-slate-100">
                       <td className="px-4 py-3 font-medium">{s.coachCode || s.registrationId}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          className="text-left font-medium text-brand hover:underline"
-                          onClick={() => openStudentHistory(s.coachId || s.studentId)}
-                        >
-                          {s.fullName}
-                        </button>
-                      </td>
+                      <td className="px-4 py-3 font-medium">{s.fullName}</td>
                       <td className="px-4 py-3">{s.trainingDays}</td>
-                      <td className="px-4 py-3 text-emerald-700">{s.present}</td>
-                      <td className="px-4 py-3 text-red-600">{s.absent}</td>
-                      <td className="px-4 py-3 font-semibold">{s.attendanceRate}%</td>
+                      <td className="px-4 py-3 text-emerald-700">{s.present ?? s.presentDays}</td>
+                      <td className="px-4 py-3 text-red-600">{s.absent ?? s.absentDays}</td>
+                      <td className="px-4 py-3 font-semibold">{s.attendanceRate ?? s.attendancePercentage}%</td>
                     </tr>
                   ))
                 )}
@@ -614,69 +678,53 @@ export default function CoachAttendancePanel() {
           <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
             <div className="border-b border-slate-100 px-4 py-3">
               <h4 className="text-sm font-bold text-ink">Date-wise Attendance</h4>
-              <p className="text-xs text-muted">
-                All active coaches for each training day — missing mark = Absent
-              </p>
             </div>
             <table className="min-w-full text-left text-sm">
               <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
                 <tr>
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Registration ID</th>
-                  <th className="px-4 py-3">Student</th>
-                  <th className="px-4 py-3">Father</th>
+                  <th className="px-4 py-3">Registration No.</th>
+                  <th className="px-4 py-3">Coach</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Check-in</th>
-                  <th className="px-4 py-3">Source</th>
-                  <th className="px-4 py-3">Distance</th>
-                  <th className="px-4 py-3">Location</th>
+                  {canEdit ? <th className="px-4 py-3">Mark</th> : null}
+                  <th className="px-4 py-3">Time</th>
                 </tr>
               </thead>
               <tbody>
                 {recordsLoading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-muted">
                       Loading…
                     </td>
                   </tr>
                 ) : records.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-muted">
                       No attendance records found.
                     </td>
                   </tr>
                 ) : (
                   records.map((r) => {
-                    const isPresent = (r.statusLabel || r.status) === 'Present' || r.status === 'present';
+                    const coachId = r.coachId || r.studentId;
+                    const rowKey = `${coachId}_${r.date}`;
                     return (
-                      <tr key={r.id} className="border-t border-slate-100">
+                      <tr key={r.id || rowKey} className="border-t border-slate-100">
                         <td className="px-4 py-3">{formatDate(r.date)}</td>
-                        <td className="px-4 py-3 font-medium">{r.registrationId}</td>
+                        <td className="px-4 py-3 font-medium">{r.registrationId || r.coachCode}</td>
+                        <td className="px-4 py-3">{r.coachName || r.studentName || r.coach?.fullName || '—'}</td>
                         <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            className="text-left text-brand hover:underline"
-                            onClick={() => openStudentHistory(r.coach?.id || r.student?.id || r.coachId || r.studentId)}
-                          >
-                            {r.coach?.fullName || r.student?.fullName || 0}
-                          </button>
+                          <AttendanceStatusBadge status={r.statusKey || r.status} />
                         </td>
-                        <td className="px-4 py-3 text-muted">{r.coach?.fatherName || r.student?.fatherName || 0}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              isPresent
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-red-50 text-red-700'
-                            }`}
-                          >
-                            {isPresent ? 'Present' : 'Absent'}
-                          </span>
-                        </td>
+                        {canEdit ? (
+                          <td className="px-4 py-3">
+                            <MarkStatusSelect
+                              statusKey={r.statusKey || r.status}
+                              busy={markingKey === rowKey}
+                              onChange={(status) => handleMarkStatus(r, status)}
+                            />
+                          </td>
+                        ) : null}
                         <td className="px-4 py-3">{r.checkIn ? r.checkIn : formatTime(r.markedAt)}</td>
-                        <td className="px-4 py-3">{isPresent ? r.sourceLabel || r.method || 'QR' : '—'}</td>
-                        <td className="px-4 py-3">{r.distanceLabel || '—'}</td>
-                        <td className="px-4 py-3">{r.locationLabel || '—'}</td>
                       </tr>
                     );
                   })
@@ -694,116 +742,6 @@ export default function CoachAttendancePanel() {
           />
         </div>
       )}
-
-      <ConfirmDialog
-        open={closeConfirm.open}
-        loading={closeConfirm.loading}
-        title="Close attendance QR?"
-        message="Coaches will no longer be able to use this QR. You can generate a new one anytime."
-        confirmLabel="Close QR"
-        danger={false}
-        onConfirm={handleClose}
-        onCancel={() => setCloseConfirm({ open: false, loading: false })}
-      />
-
-      {historyOpen ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <div>
-                <h3 className="text-sm font-bold text-ink">
-                  {historyData?.coach?.fullName || historyData?.student?.fullName || 'Coach'} — Attendance History
-                </h3>
-                <p className="text-xs text-muted">
-                  {historyData?.coach?.coachCode || historyData?.student?.registrationId}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
-                onClick={() => setHistoryOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-            <div className="max-h-[70vh] overflow-y-auto p-4">
-              {historyLoading ? (
-                <p className="text-sm text-muted">Loadingâ€¦</p>
-              ) : historyData ? (
-                <>
-                  <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="rounded-lg bg-surface p-3 text-sm">
-                      <p className="text-xs text-muted">Training Days</p>
-                      <p className="font-bold">{historyData.summary?.trainingDays ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg bg-surface p-3 text-sm">
-                      <p className="text-xs text-muted">Present</p>
-                      <p className="font-bold text-emerald-700">{historyData.summary?.presentDays ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg bg-surface p-3 text-sm">
-                      <p className="text-xs text-muted">Absent</p>
-                      <p className="font-bold text-red-600">{historyData.summary?.absentDays ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg bg-surface p-3 text-sm">
-                      <p className="text-xs text-muted">Attendance %</p>
-                      <p className="font-bold">{historyData.summary?.attendancePercentage ?? 0}%</p>
-                    </div>
-                  </div>
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-surface text-xs uppercase text-muted">
-                      <tr>
-                        <th className="px-3 py-2">Date</th>
-                        <th className="px-3 py-2">Status</th>
-                        <th className="px-3 py-2">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(historyData.history || []).map((h) => (
-                        <tr key={`${h.date}-${h.status}`} className="border-t border-slate-100">
-                          <td className="px-3 py-2">{formatDate(h.date)}</td>
-                          <td className="px-3 py-2">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                h.status === 'Present'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-red-50 text-red-700'
-                              }`}
-                            >
-                              {h.status}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">{h.checkIn || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              ) : (
-                <p className="text-sm text-muted">No history found.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {fullscreen && session?.qrDataUrl ? (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white p-6">
-          <button
-            type="button"
-            onClick={() => setFullscreen(false)}
-            className="absolute right-4 top-4 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold"
-          >
-            Exit Fullscreen
-          </button>
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand">Kuldeep Malik Sports Academy</p>
-          <h2 className="mt-2 text-3xl font-bold text-ink sm:text-4xl">Coach Attendance</h2>
-          <img src={session.qrDataUrl} alt="Coach Attendance QR" className="mt-8 w-[min(70vw,420px)]" />
-          <p className="mt-6 text-lg font-medium text-ink">Scan to Mark Attendance</p>
-          <p className="mt-2 text-sm text-muted">
-            Session: {session.sessionCode} · {session.status}
-          </p>
-        </div>
-      ) : null}
     </div>
   );
 }

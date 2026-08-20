@@ -145,7 +145,7 @@ export default function AttendanceSettingsPanel() {
         <p className="font-semibold">Important</p>
         <p className="mt-1 text-xs leading-relaxed">
           Do not guess coordinates. Stand at Kuldeep Malik Sports Academy and tap <strong>Use Current Location</strong>, or paste
-          verified Google Maps coordinates. QR attendance stays blocked until latitude/longitude are saved.
+          verified Google Maps coordinates. Save latitude/longitude for the public website location map.
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export default function AttendanceSettingsPanel() {
           <FaMapMarkerAlt className="text-brand" />
           <div>
             <h3 className="text-sm font-bold text-ink">Academy Location</h3>
-            <p className="text-xs text-muted">Geofence for QR attendance (default radius 500 m)</p>
+            <p className="text-xs text-muted">Public website location (default radius 500 m)</p>
           </div>
         </div>
 
@@ -230,7 +230,7 @@ export default function AttendanceSettingsPanel() {
                 onChange={(e) => setForm((f) => ({ ...f, maxGpsAccuracyMeters: Number(e.target.value) || 100 }))}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
               />
-              <span className="mt-1 block text-xs text-muted">Reject scans when GPS accuracy is worse than this (default 100 m).</span>
+              Reject GPS readings when accuracy is worse than this (default 100 m).
             </label>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input
@@ -239,7 +239,7 @@ export default function AttendanceSettingsPanel() {
                 disabled={!canEdit}
                 onChange={(e) => setForm((f) => ({ ...f, isEnabled: e.target.checked }))}
               />
-              Enforce geofence on QR attendance
+              Use this location on the public website
             </label>
           </div>
         )}

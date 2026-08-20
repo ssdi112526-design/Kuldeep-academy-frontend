@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FaCamera, FaEdit, FaPrint, FaTimes, FaUser } from 'react-icons/fa';
+import { FaCamera, FaDownload, FaEdit, FaFilePdf, FaPrint, FaTimes, FaUser } from 'react-icons/fa';
 import Button from '../../ui/Button';
 import ValidationPopup from '../../ui/ValidationPopup';
 import ImageUploader from '../ImageUploader';
@@ -8,6 +8,7 @@ import { useToast } from '../../../context/ToastContext';
 import { usePermissions } from '../../../context/PermissionContext';
 import { entryService } from '../../../services';
 import { mediaUrl } from '../../../utils/mediaUrl';
+import { parseBlobError, triggerBlobDownload, filenameFromContentDisposition } from '../../../utils/downloadBlob';
 import {
   fieldClass,
   firstErrorMessage,
@@ -142,25 +143,89 @@ function Section({ title, children }) {
 }
 
 const DOC_TONES = {
-  purple: 'bg-violet-100 text-violet-800',
-  green: 'bg-emerald-100 text-emerald-800',
-  red: 'bg-red-100 text-red-800',
+  purple: 'border-violet-200 bg-violet-50 text-violet-800',
+  green: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  red: 'border-red-200 bg-red-50 text-red-800',
 };
 
-function DocumentChip({ label, href, tone = 'purple' }) {
-  const cls = `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${DOC_TONES[tone] || DOC_TONES.purple}`;
-  if (!href) {
-    return (
-      <span className={`${cls} opacity-70`}>
-        {label}
-        <span className="font-medium opacity-80">Not Uploaded</span>
-      </span>
-    );
-  }
+function isPdfPath(href) {
+  return /\.pdf($|\?)/i.test(String(href || ''));
+}
+
+function studentDocs(student) {
+  const docs = student?.studentDocuments || {};
+  return {
+    aadhaarFront: docs.aadhaarFrontImage || docs.aadhaar_front_image || '',
+    panCard: docs.panCardImage || docs.pan_card_image || '',
+    passport: docs.passportImage || docs.passport_image || '',
+    additionalFile: docs.aadhaarBackImage || docs.aadhaar_back_image || '',
+  };
+}
+
+function ParentPhoto({ label, src, name, tone }) {
   return (
-    <a href={mediaUrl(href)} target="_blank" rel="noreferrer" className={`${cls} hover:brightness-95`}>
-      {label}
-    </a>
+    <div className={`flex items-center gap-2 rounded-lg px-2 py-2 ${tone}`}>
+      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white shadow-sm">
+        {src ? (
+          <img src={src} alt={label} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-slate-300">
+            <FaUser size={16} aria-hidden />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
+        <p className="truncate text-xs font-semibold">{displayValue(name)}</p>
+      </div>
+    </div>
+  );
+}
+
+function DocumentCard({ label, href, slot, tone = 'purple', onDownload, downloading = false }) {
+  const uploaded = Boolean(href);
+  const cls = DOC_TONES[tone] || DOC_TONES.purple;
+  const preview = uploaded ? mediaUrl(href) : '';
+  const pdf = isPdfPath(href);
+
+  return (
+    <div className={`relative z-10 flex min-w-[160px] flex-1 flex-col rounded-xl border p-3 ${cls}`}>
+      <p className="text-xs font-bold">{label}</p>
+      {uploaded ? (
+        <>
+          {pdf ? (
+            <div className="mt-2 flex h-20 items-center justify-center rounded-lg bg-white/80">
+              <FaFilePdf className="text-2xl text-red-500" />
+            </div>
+          ) : (
+            <a
+              href={preview}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block cursor-pointer overflow-hidden rounded-lg bg-white"
+            >
+              <img src={preview} alt={label} className="h-20 w-full object-contain" />
+            </a>
+          )}
+          <p className="mt-2 text-[11px] font-semibold">Uploaded</p>
+          <button
+            type="button"
+            disabled={downloading}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDownload(slot, label);
+            }}
+            className="mt-2 inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-semibold text-ink shadow-sm hover:border-brand/40 hover:bg-brand/5 disabled:cursor-wait disabled:opacity-60"
+          >
+            <FaDownload />
+            {downloading ? 'Downloading…' : 'Download'}
+          </button>
+        </>
+      ) : (
+        <p className="mt-3 text-[11px] font-medium opacity-80">Not Uploaded</p>
+      )}
+    </div>
   );
 }
 
@@ -181,10 +246,14 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
   const [photoPreview, setPhotoPreview] = useState('');
   const [coaches, setCoaches] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [downloadingSlot, setDownloadingSlot] = useState('');
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
 
   const photoSrc = mediaUrl(student?.photo);
+  const fatherPhotoSrc = mediaUrl(student?.fatherPhoto || student?.parentPhoto);
+  const motherPhotoSrc = mediaUrl(student?.motherPhoto);
   const coachName = student?.coach?.fullName;
+  const docs = student ? studentDocs(student) : {};
 
   const loadStudent = async () => {
     setLoading(true);
@@ -199,6 +268,32 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
       setLoadError('Unable to load player details. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (slot, label) => {
+    if (!student?.id || downloadingSlot) return;
+    setDownloadingSlot(slot);
+    try {
+      const res = await entryService.students.downloadDocument(student.id, slot);
+      const raw = res.data;
+      if (!(raw instanceof Blob) || raw.type?.includes('application/json')) {
+        throw new Error('Download failed');
+      }
+      const href = docs[slot] || '';
+      const extMatch = String(href).match(/\.[a-z0-9]+($|\?)/i);
+      const ext = extMatch ? extMatch[0].replace('?', '') : isPdfPath(href) ? '.pdf' : '.jpg';
+      const fallbackName = `${student.registrationNumber}-${String(label).replace(/\s+/g, '-')}${ext}`;
+      const filename = filenameFromContentDisposition(
+        res.headers?.['content-disposition'],
+        fallbackName
+      );
+      triggerBlobDownload(new Blob([raw], { type: raw.type || 'application/octet-stream' }), filename);
+      toast.success(`${label} downloaded`);
+    } catch (err) {
+      toast.error((await parseBlobError(err)) || 'Download failed');
+    } finally {
+      setDownloadingSlot('');
     }
   };
 
@@ -258,8 +353,8 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
     const email = validateEmail(form.email);
     const dob = validateDate(form.dateOfBirth, 'Date of birth', { maxToday: true });
     const joining = validateDate(form.joiningDate, 'Joining date');
-    const aadhaar = validateAadhaar(form.aadhaarNumber);
-    const pan = validatePan(form.panNumber);
+    const aadhaar = validateAadhaar(form.aadhaarNumber, { required: false });
+    const pan = validatePan(form.panNumber, { required: false });
 
     if (fullName) errors.fullName = fullName;
     if (fatherName) errors.fatherName = fatherName;
@@ -628,7 +723,7 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
 
               <Section title="Identification Details">
                 <label className="block text-sm font-medium text-ink">
-                  Aadhaar Number *
+                  Aadhaar Number
                   <input
                     inputMode="numeric"
                     maxLength={12}
@@ -639,7 +734,7 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
                   {fieldErrors.aadhaarNumber ? <span className="mt-1 block text-xs text-red-500">{fieldErrors.aadhaarNumber}</span> : null}
                 </label>
                 <label className="block text-sm font-medium text-ink">
-                  PAN Number *
+                  PAN Number
                   <input
                     maxLength={10}
                     value={form.panNumber}
@@ -727,15 +822,21 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
                     <Detail label="Name" value={student.fullName} />
                     <Detail label="ID" value={student.registrationNumber} />
                     <Detail label="DOB" value={formatDate(student.dateOfBirth)} />
-                    <div>
+                    <div className="sm:col-span-2">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">Parents</p>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        <span className="rounded-md bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800">
-                          Father: {displayValue(student.fatherName)}
-                        </span>
-                        <span className="rounded-md bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-800">
-                          Mother: {displayValue(student.motherName)}
-                        </span>
+                      <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <ParentPhoto
+                          label="Father"
+                          name={student.fatherName}
+                          src={fatherPhotoSrc}
+                          tone="bg-sky-50 text-sky-800"
+                        />
+                        <ParentPhoto
+                          label="Mother"
+                          name={student.motherName}
+                          src={motherPhotoSrc}
+                          tone="bg-pink-50 text-pink-800"
+                        />
                       </div>
                     </div>
                     <Detail label="Age" value={computeAge(student) != null ? `${computeAge(student)} Years` : null} />
@@ -751,13 +852,39 @@ export default function PlayerReportDetailsModal({ studentId, onClose, onSaved }
 
                 <div className="mt-5">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Documents</p>
-                  <div className="flex flex-wrap gap-2">
-                    <DocumentChip
-                      label="Aadhaar"
-                      href={student.studentDocuments?.aadhaarFrontImage || student.studentDocuments?.aadhaarBackImage}
+                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                    <DocumentCard
+                      label="Aadhaar Card"
+                      href={docs.aadhaarFront}
+                      slot="aadhaarFront"
                       tone="purple"
+                      downloading={downloadingSlot === 'aadhaarFront'}
+                      onDownload={handleDownloadDocument}
                     />
-                    <DocumentChip label="PAN Card" href={student.studentDocuments?.panCardImage} tone="red" />
+                    <DocumentCard
+                      label="PAN Card"
+                      href={docs.panCard}
+                      slot="panCard"
+                      tone="red"
+                      downloading={downloadingSlot === 'panCard'}
+                      onDownload={handleDownloadDocument}
+                    />
+                    <DocumentCard
+                      label="Passport"
+                      href={docs.passport}
+                      slot="passport"
+                      tone="green"
+                      downloading={downloadingSlot === 'passport'}
+                      onDownload={handleDownloadDocument}
+                    />
+                    <DocumentCard
+                      label="Add Files"
+                      href={docs.additionalFile}
+                      slot="additionalFile"
+                      tone="purple"
+                      downloading={downloadingSlot === 'additionalFile'}
+                      onDownload={handleDownloadDocument}
+                    />
                   </div>
                 </div>
               </section>

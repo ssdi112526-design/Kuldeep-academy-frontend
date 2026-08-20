@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import ValidationPopup from '../ui/ValidationPopup';
 import ImageUploader from './ImageUploader';
+import DocumentUploader from './DocumentUploader';
 import Pagination from './Pagination';
 import SearchBar from './SearchBar';
 import { useToast } from '../../context/ToastContext';
@@ -30,15 +31,22 @@ import {
 import EntryStudentProfileModal from './EntryStudentProfileModal';
 import AccessDenied from './AccessDenied';
 
+const PLAYER_DOCUMENTS = [
+  { key: 'aadhaarFront', label: 'Aadhaar Card', urlKey: 'aadhaarFrontImage', removeKey: 'removeAadhaarFront' },
+  { key: 'panCard', label: 'PAN Card', urlKey: 'panCardImage', removeKey: 'removePanCard' },
+  { key: 'passport', label: 'Passport', urlKey: 'passportImage', removeKey: 'removePassport' },
+  { key: 'additionalFile', label: 'Add Files', urlKey: 'aadhaarBackImage', removeKey: 'removeAdditionalFile' },
+];
+
+const EMPTY_DOC_FILES = { aadhaarFront: null, panCard: null, passport: null, additionalFile: null };
+const EMPTY_DOC_URLS = { aadhaarFront: '', panCard: '', passport: '', additionalFile: '' };
+const EMPTY_DOC_REMOVE = { aadhaarFront: false, panCard: false, passport: false, additionalFile: false };
 const STATUS_OPTIONS = ['Active', 'Inactive', 'Suspended'];
-const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
-const TRAINING_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
 
 const EMPTY = {
   fullName: '',
   fatherName: '',
   motherName: '',
-  gender: 'Other',
   dateOfBirth: '',
   mobileNumber: '',
   alternateMobile: '',
@@ -56,10 +64,7 @@ const EMPTY = {
   pincode: '',
 
   joiningDate: '',
-  membershipType: 'General',
-  batch: '',
   coachId: '',
-  trainingLevel: 'Beginner',
 
   heightCm: '',
   weightKg: '',
@@ -106,8 +111,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
   const debouncedSearch = useDebouncedValue(search, 400);
   const [status, setStatus] = useState('all');
   const [coachId, setCoachId] = useState('');
-  const [batch, setBatch] = useState('');
-  const [membershipType, setMembershipType] = useState('');
   const [joiningFrom, setJoiningFrom] = useState('');
   const [joiningTo, setJoiningTo] = useState('');
 
@@ -117,8 +120,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
     debouncedSearch,
     status,
     coachId,
-    batch,
-    membershipType,
     joiningFrom,
     joiningTo,
   });
@@ -135,11 +136,16 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
   const [validationPopup, setValidationPopup] = useState({ open: false, title: '', message: '' });
 
   const [photoFile, setPhotoFile] = useState(null);
-  const [parentPhotoFile, setParentPhotoFile] = useState(null);
+  const [fatherPhotoFile, setFatherPhotoFile] = useState(null);
+  const [motherPhotoFile, setMotherPhotoFile] = useState(null);
 
   // previews (edit mode)
   const [photoPreview, setPhotoPreview] = useState('');
-  const [parentPhotoPreview, setParentPhotoPreview] = useState('');
+  const [fatherPhotoPreview, setFatherPhotoPreview] = useState('');
+  const [motherPhotoPreview, setMotherPhotoPreview] = useState('');
+  const [docFiles, setDocFiles] = useState(EMPTY_DOC_FILES);
+  const [docUrls, setDocUrls] = useState(EMPTY_DOC_URLS);
+  const [docRemove, setDocRemove] = useState(EMPTY_DOC_REMOVE);
 
   const [saving, setSaving] = useState(false);
 
@@ -170,8 +176,8 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
     const email = validateEmail(form.email);
     const dob = validateDate(form.dateOfBirth, 'Date of birth', { maxToday: true });
     const joining = validateDate(form.joiningDate, 'Joining date');
-    const aadhaar = validateAadhaar(form.aadhaarNumber);
-    const pan = validatePan(form.panNumber);
+    const aadhaar = validateAadhaar(form.aadhaarNumber, { required: false });
+    const pan = validatePan(form.panNumber, { required: false });
 
     if (fullName) errors.fullName = fullName;
     if (fatherName) errors.fatherName = fatherName;
@@ -231,8 +237,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
         search: debouncedSearch.trim() || undefined,
         status: status !== 'all' ? status : undefined,
         coachId: coachId || undefined,
-        batch: batch || undefined,
-        membershipType: membershipType || undefined,
         joiningFrom: joiningFrom || undefined,
         joiningTo: joiningTo || undefined,
       });
@@ -270,8 +274,13 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
     setFieldErrors({});
     setPhotoFile(null);
     setPhotoPreview('');
-    setParentPhotoFile(null);
-    setParentPhotoPreview('');
+    setFatherPhotoFile(null);
+    setFatherPhotoPreview('');
+    setMotherPhotoFile(null);
+    setMotherPhotoPreview('');
+    setDocFiles(EMPTY_DOC_FILES);
+    setDocUrls(EMPTY_DOC_URLS);
+    setDocRemove(EMPTY_DOC_REMOVE);
     setModalOpen(true);
   };
 
@@ -288,7 +297,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
         fullName: student.fullName || '',
         fatherName: student.fatherName || '',
         motherName: student.motherName || '',
-        gender: student.gender || 'Other',
         dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
         mobileNumber: student.mobileNumber || '',
         alternateMobile: student.alternateMobile || '',
@@ -306,10 +314,7 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
         pincode: student.pincode || '',
 
         joiningDate: student.joiningDate ? student.joiningDate.slice(0, 10) : '',
-        membershipType: student.membershipType || 'General',
-        batch: student.batch || '',
         coachId: student.coachId || '',
-        trainingLevel: student.trainingLevel || 'Beginner',
 
         heightCm: student.heightCm ?? '',
         weightKg: student.weightKg ?? '',
@@ -338,8 +343,21 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
 
       setPhotoFile(null);
       setPhotoPreview(student.photo ? mediaUrl(student.photo) : '');
-      setParentPhotoFile(null);
-      setParentPhotoPreview(student.parentPhoto ? mediaUrl(student.parentPhoto) : '');
+      setFatherPhotoFile(null);
+      setFatherPhotoPreview(
+        student.fatherPhoto || student.parentPhoto ? mediaUrl(student.fatherPhoto || student.parentPhoto) : ''
+      );
+      setMotherPhotoFile(null);
+      setMotherPhotoPreview(student.motherPhoto ? mediaUrl(student.motherPhoto) : '');
+      const docs = student.studentDocuments || {};
+      setDocFiles(EMPTY_DOC_FILES);
+      setDocUrls({
+        aadhaarFront: docs.aadhaarFrontImage || '',
+        panCard: docs.panCardImage || '',
+        passport: docs.passportImage || '',
+        additionalFile: docs.aadhaarBackImage || '',
+      });
+      setDocRemove(EMPTY_DOC_REMOVE);
 
       setModalOpen(true);
     } catch (err) {
@@ -365,7 +383,7 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
       toast.error('You do not have permission to create players');
       return;
     }
-    if (photoFile && !canUpload) {
+    if ((photoFile || fatherPhotoFile || motherPhotoFile || Object.values(docFiles).some(Boolean)) && !canUpload) {
       toast.error('You do not have permission to upload student photos');
       return;
     }
@@ -398,7 +416,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
       fullName: form.fullName.trim(),
       fatherName: form.fatherName.trim(),
       motherName: form.motherName.trim(),
-      gender: form.gender,
       dateOfBirth: form.dateOfBirth,
       bloodGroup: form.bloodGroup || undefined,
       mobileNumber: normalizeMobile(form.mobileNumber),
@@ -416,10 +433,7 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
       panNumber: normalizePan(form.panNumber),
 
       joiningDate: form.joiningDate,
-      membershipType: form.membershipType || 'General',
-      batch: form.batch || 'General',
       coachId: form.coachId || undefined,
-      trainingLevel: form.trainingLevel,
 
       heightCm: form.heightCm || undefined,
       weightKg: form.weightKg || undefined,
@@ -448,19 +462,27 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
         : {}),
     };
 
+    PLAYER_DOCUMENTS.forEach((doc) => {
+      if (docRemove[doc.key] && !docFiles[doc.key]) payload[doc.removeKey] = true;
+    });
+
+    const files = {
+      photo: photoFile || undefined,
+      fatherPhoto: fatherPhotoFile || undefined,
+      motherPhoto: motherPhotoFile || undefined,
+      aadhaarFront: docFiles.aadhaarFront || undefined,
+      panCard: docFiles.panCard || undefined,
+      passport: docFiles.passport || undefined,
+      additionalFile: docFiles.additionalFile || undefined,
+    };
+
     setSaving(true);
     try {
       if (editingId) {
-        await entryService.students.update(editingId, payload, {
-          photo: photoFile || undefined,
-          parentPhoto: parentPhotoFile || undefined,
-        });
+        await entryService.students.update(editingId, payload, files);
         toast.success('Player updated');
       } else {
-        await entryService.students.create(payload, {
-          photo: photoFile,
-          parentPhoto: parentPhotoFile || undefined,
-        });
+        await entryService.students.create(payload, files);
         toast.success('Player created');
       }
 
@@ -592,23 +614,7 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block text-sm font-medium text-ink">
-          Batch
-          <input
-            value={batch}
-            onChange={(e) => setBatch(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
-          />
-        </label>
-        <label className="block text-sm font-medium text-ink">
-          Membership
-          <input
-            value={membershipType}
-            onChange={(e) => setMembershipType(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand"
-          />
-        </label>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
         <label className="block text-sm font-medium text-ink">
           Joining From
           <input type="date" value={joiningFrom} onChange={(e) => setJoiningFrom(e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-brand" />
@@ -639,7 +645,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
                 <th className="px-4 py-3">Player</th>
                 <th className="px-4 py-3">Coach</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Membership / Batch</th>
                 <th className="px-4 py-3">Joining Date</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -666,9 +671,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
                     }`}>
                       {s.status}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted">
-                    {s.membershipType} / {s.batch}
                   </td>
                   <td className="px-4 py-3 text-muted whitespace-nowrap">
                     {s.joiningDate ? new Date(s.joiningDate).toLocaleDateString('en-IN') : 0}
@@ -789,19 +791,6 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
               </label>
 
               <label className="block text-sm font-medium text-ink">
-                Gender
-                <select
-                  value={form.gender}
-                  onChange={(e) => updateField('gender', e.target.value)}
-                  className={fieldClass(fieldErrors, 'gender')}
-                >
-                  {GENDER_OPTIONS.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
                 Date of Birth *
                 <input
                   id="student-dateOfBirth"
@@ -853,7 +842,7 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
               </label>
 
               <label className="block text-sm font-medium text-ink">
-                Aadhaar Number *
+                Aadhaar Number
                 <input
                   id="student-aadhaarNumber"
                   inputMode="numeric"
@@ -867,7 +856,7 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
               </label>
 
               <label className="block text-sm font-medium text-ink">
-                PAN Number *
+                PAN Number
                 <input
                   id="student-panNumber"
                   value={form.panNumber}
@@ -944,27 +933,8 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
               </div>
 
               <label className="block text-sm font-medium text-ink">
-                Membership Type
-                <input value={form.membershipType} onChange={(e) => updateField('membershipType', e.target.value)} className={fieldClass(fieldErrors, 'membershipType')} placeholder="e.g. General / Khelo India" />
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
                 Player Category
                 <input value={form.category} onChange={(e) => updateField('category', e.target.value)} className={fieldClass(fieldErrors, 'category')} placeholder="e.g. Khelo India, Regular, Competitive" />
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
-                Batch
-                <input value={form.batch} onChange={(e) => updateField('batch', e.target.value)} className={fieldClass(fieldErrors, 'batch')} />
-              </label>
-
-              <label className="block text-sm font-medium text-ink">
-                Training Level
-                <select value={form.trainingLevel} onChange={(e) => updateField('trainingLevel', e.target.value)} className={fieldClass(fieldErrors, 'trainingLevel')}>
-                  {TRAINING_LEVELS.map((lvl) => (
-                    <option key={lvl} value={lvl}>{lvl}</option>
-                  ))}
-                </select>
               </label>
 
               <label className="block text-sm font-medium text-ink">
@@ -1039,23 +1009,72 @@ export default function EntryStudentsPanel({ focusId = null, focusToken = null }
               </div>
 
               <div className="sm:col-span-2">
-                <p className="text-sm font-medium text-ink">Parent Photo</p>
+                <p className="text-sm font-medium text-ink">Father Photo</p>
                 <ImageUploader
-                  previewUrl={parentPhotoFile ? URL.createObjectURL(parentPhotoFile) : parentPhotoPreview || ''}
+                  previewUrl={fatherPhotoFile ? URL.createObjectURL(fatherPhotoFile) : fatherPhotoPreview || ''}
                   onChange={(f) => {
                     if (!canUpload) {
-                      toast.error('You do not have permission to upload parent photos');
+                      toast.error('You do not have permission to upload father photos');
                       return;
                     }
-                    setParentPhotoFile(f);
-                    setParentPhotoPreview(URL.createObjectURL(f));
+                    setFatherPhotoFile(f);
+                    setFatherPhotoPreview(URL.createObjectURL(f));
                   }}
                   onClear={() => {
-                    setParentPhotoFile(null);
-                    setParentPhotoPreview(editingId ? parentPhotoPreview : '');
+                    setFatherPhotoFile(null);
+                    setFatherPhotoPreview(editingId ? fatherPhotoPreview : '');
                   }}
-                  label="Upload parent photo (JPG/PNG/WEBP)"
+                  label="Upload father photo (JPG/PNG/WEBP)"
                 />
+              </div>
+
+              <div className="sm:col-span-2">
+                <p className="text-sm font-medium text-ink">Mother Photo</p>
+                <ImageUploader
+                  previewUrl={motherPhotoFile ? URL.createObjectURL(motherPhotoFile) : motherPhotoPreview || ''}
+                  onChange={(f) => {
+                    if (!canUpload) {
+                      toast.error('You do not have permission to upload mother photos');
+                      return;
+                    }
+                    setMotherPhotoFile(f);
+                    setMotherPhotoPreview(URL.createObjectURL(f));
+                  }}
+                  onClear={() => {
+                    setMotherPhotoFile(null);
+                    setMotherPhotoPreview(editingId ? motherPhotoPreview : '');
+                  }}
+                  label="Upload mother photo (JPG/PNG/WEBP)"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <h3 className="text-sm font-bold text-ink">Documents</h3>
+                <p className="mt-1 text-xs text-muted">Upload identity documents for this player. Existing files stay saved unless you replace or remove them.</p>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {PLAYER_DOCUMENTS.map((doc) => (
+                    <DocumentUploader
+                      key={doc.key}
+                      label={doc.label}
+                      file={docFiles[doc.key]}
+                      storedUrl={docRemove[doc.key] ? '' : docUrls[doc.key]}
+                      busy={saving && Boolean(docFiles[doc.key] || docRemove[doc.key])}
+                      disabled={!canUpload}
+                      onChange={(picked) => {
+                        if (!canUpload) {
+                          toast.error('You do not have permission to upload player documents');
+                          return;
+                        }
+                        setDocFiles((prev) => ({ ...prev, [doc.key]: picked }));
+                        setDocRemove((prev) => ({ ...prev, [doc.key]: false }));
+                      }}
+                      onClear={() => {
+                        setDocFiles((prev) => ({ ...prev, [doc.key]: null }));
+                        setDocRemove((prev) => ({ ...prev, [doc.key]: Boolean(docUrls[doc.key]) }));
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 

@@ -9,7 +9,6 @@ import {
   FaTrophy,
   FaBars,
   FaTimes,
-  FaCog,
   FaChartPie,
   FaHistory,
   FaReceipt,
@@ -37,7 +36,6 @@ import UsersPanel from '../components/admin/UsersPanel';
 import RolesPanel from '../components/admin/RolesPanel';
 import AttendancePanel from '../components/admin/AttendancePanel';
 import CoachAttendancePanel from '../components/admin/CoachAttendancePanel';
-import AttendanceSettingsPanel from '../components/admin/AttendanceSettingsPanel';
 import FinanceDashboardPanel from '../components/admin/FinanceDashboardPanel';
 import StudentFeesPanel from '../components/admin/StudentFeesPanel';
 import CollectFeesPanel from '../components/admin/CollectFeesPanel';
@@ -91,9 +89,8 @@ const NAV = [
     id: 'attendance-menu',
     label: 'Attendance',
     children: [
-      { id: 'attendance', label: 'Players', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
-      { id: 'coach-attendance', label: 'Employees', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
-      { id: 'attendance-settings', label: 'Settings', icon: FaCog, module: 'attendance', permission: 'attendance.view' },
+      { id: 'attendance', label: 'Students', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
+      { id: 'coach-attendance', label: 'Coaches', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
     ],
   },
   {
@@ -133,7 +130,6 @@ const SECTION_MODULE = {
   parents: 'students',
   attendance: 'attendance',
   'coach-attendance': 'attendance',
-  'attendance-settings': 'attendance',
   coaches: 'coaches',
   achievements: 'player_achievements',
   'finance-dashboard': 'finance',
@@ -285,12 +281,8 @@ export default function Admin() {
     dashboard: { title: 'Dashboard', subtitle: 'Operations overview for Kuldeep Malik Sports Academy.' },
     students: { title: 'Players', subtitle: 'Manage player profiles, status, attendance and documents.' },
     parents: { title: 'Parent Accounts', subtitle: 'Create parent logins linked to their children / players.' },
-    attendance: { title: 'Player Attendance', subtitle: 'Mark daily player attendance, track history, and export reports.' },
-    'coach-attendance': { title: 'Employee Attendance', subtitle: 'Mark daily employee/coach attendance and history.' },
-    'attendance-settings': {
-      title: 'Attendance Settings',
-      subtitle: 'Set Academy latitude/longitude for QR geofence.',
-    },
+    attendance: { title: 'Student Attendance', subtitle: 'Mark daily student attendance, track history, and export reports.' },
+    'coach-attendance': { title: 'Coach Attendance', subtitle: 'Mark daily coach attendance and history.' },
     coaches: { title: 'Employees', subtitle: 'Manage coaches and employee profiles separately from players.' },
     achievements: { title: 'Achievements', subtitle: 'Assign medals, titles and certificates to players.' },
     'finance-dashboard': {
@@ -557,7 +549,6 @@ export default function Admin() {
                 {section === 'sponsorships' && <SponsorshipsPanel />}
                 {section === 'attendance' && <AttendancePanel />}
                 {section === 'coach-attendance' && <CoachAttendancePanel />}
-                {section === 'attendance-settings' && <AttendanceSettingsPanel />}
                 {section === 'finance-dashboard' && <FinanceDashboardPanel />}
                 {section === 'student-fees' && <StudentFeesPanel />}
                 {section === 'collect-fees' && <CollectFeesPanel />}
