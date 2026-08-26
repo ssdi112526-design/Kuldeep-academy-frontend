@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-[12px] px-6 py-3 text-sm font-bold tracking-wide transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/55 focus-visible:ring-offset-2 disabled:opacity-60';
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-[12px] px-6 py-3 text-sm font-bold tracking-wide transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/55 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
 
 const variants = {
   primary:

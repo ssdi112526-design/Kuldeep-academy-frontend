@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   FaClipboardList,
   FaUsers,
@@ -22,6 +22,7 @@ import {
   FaHandshake,
   FaRunning,
   FaCrown,
+  FaBook,
 } from 'react-icons/fa';
 import Button from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
@@ -34,7 +35,7 @@ import EntryStudentsPanel from '../components/admin/EntryStudentsPanel';
 import EntryCoachesPanel from '../components/admin/EntryCoachesPanel';
 import UsersPanel from '../components/admin/UsersPanel';
 import RolesPanel from '../components/admin/RolesPanel';
-import AttendancePanel from '../components/admin/AttendancePanel';
+import AllRecordsPanel from '../components/admin/AllRecordsPanel';
 import CoachAttendancePanel from '../components/admin/CoachAttendancePanel';
 import FinanceDashboardPanel from '../components/admin/FinanceDashboardPanel';
 import StudentFeesPanel from '../components/admin/StudentFeesPanel';
@@ -62,6 +63,13 @@ const NAV = [
     label: 'Players',
     children: [
       { id: 'students', label: 'All Players', icon: FaUsers, module: 'students', permission: 'students.view' },
+      {
+        id: 'all-records',
+        label: 'All Records',
+        icon: FaBook,
+        module: 'attendance',
+        permission: 'attendance.view',
+      },
       { id: 'parents', label: 'Parent Accounts', icon: FaUserFriends, module: 'students', permission: 'students.view' },
       { id: 'coaches', label: 'Employees', icon: FaUserTie, module: 'coaches', permission: 'coaches.view' },
       { id: 'gallery', label: 'Gallery', icon: FaImages, module: 'gallery', permission: 'gallery.view' },
@@ -89,7 +97,6 @@ const NAV = [
     id: 'attendance-menu',
     label: 'Attendance',
     children: [
-      { id: 'attendance', label: 'Students', icon: FaUsers, module: 'attendance', permission: 'attendance.view' },
       { id: 'coach-attendance', label: 'Coaches', icon: FaUserTie, module: 'attendance', permission: 'attendance.view' },
     ],
   },
@@ -127,8 +134,8 @@ const NAV = [
 const SECTION_MODULE = {
   dashboard: 'dashboard',
   students: 'students',
+  'all-records': 'attendance',
   parents: 'students',
-  attendance: 'attendance',
   'coach-attendance': 'attendance',
   coaches: 'coaches',
   achievements: 'player_achievements',
@@ -192,7 +199,9 @@ function NavItems({ items, section, onSelect }) {
 export default function Admin() {
   const { user, loading, canAccessAdmin, logout, isStudent, isCoach, isParent } = useAuth();
   const { can, canModule, isSuperAdmin } = usePermissions();
-  const [section, setSection] = useState('dashboard');
+  const navigate = useNavigate();
+  const { sectionId: routeSection } = useParams();
+  const [section, setSection] = useState(() => routeSection || 'dashboard');
   const [focusTarget, setFocusTarget] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cmsStats, setCmsStats] = useState({
@@ -248,11 +257,20 @@ export default function Admin() {
   }, [can, canModule, isSuperAdmin]);
 
   useEffect(() => {
+    if (!routeSection) return;
+    if (SECTION_MODULE[routeSection] || routeSection === 'dashboard') {
+      setSection(routeSection);
+    }
+  }, [routeSection]);
+
+  useEffect(() => {
     const allowed = filteredNav.flatMap((item) => (item.children ? item.children.map((c) => c.id) : [item.id]));
     if (allowed.length && !allowed.includes(section)) {
-      setSection(allowed[0]);
+      const next = allowed[0];
+      setSection(next);
+      navigate(next === 'dashboard' ? '/admin' : `/admin/${next}`, { replace: true });
     }
-  }, [filteredNav, section]);
+  }, [filteredNav, section, navigate]);
 
   useEffect(() => {
     if (!mobileNavOpen) return undefined;
@@ -280,8 +298,11 @@ export default function Admin() {
   const titles = {
     dashboard: { title: 'Dashboard', subtitle: 'Operations overview for Kuldeep Malik Sports Academy.' },
     students: { title: 'Players', subtitle: 'Manage player profiles, status, attendance and documents.' },
+    'all-records': {
+      title: 'All Records',
+      subtitle: 'Manage daily player attendance and view player records.',
+    },
     parents: { title: 'Parent Accounts', subtitle: 'Create parent logins linked to their children / players.' },
-    attendance: { title: 'Student Attendance', subtitle: 'Mark daily student attendance, track history, and export reports.' },
     'coach-attendance': { title: 'Coach Attendance', subtitle: 'Mark daily coach attendance and history.' },
     coaches: { title: 'Employees', subtitle: 'Manage coaches and employee profiles separately from players.' },
     achievements: { title: 'Achievements', subtitle: 'Assign medals, titles and certificates to players.' },
@@ -359,6 +380,7 @@ export default function Admin() {
   const selectSection = (id) => {
     setSection(id);
     setMobileNavOpen(false);
+    navigate(id === 'dashboard' ? '/admin' : `/admin/${id}`);
   };
 
   const handleGlobalSearchSelect = (item) => {
@@ -366,6 +388,7 @@ export default function Admin() {
     setFocusTarget({ section: item.section, id: item.id, type: item.type, at: Date.now() });
     setSection(item.section);
     setMobileNavOpen(false);
+    navigate(item.section === 'dashboard' ? '/admin' : `/admin/${item.section}`);
   };
 
   return (
@@ -517,6 +540,7 @@ export default function Admin() {
                     focusToken={focusTarget?.section === 'students' ? focusTarget.at : null}
                   />
                 )}
+                {section === 'all-records' && <AllRecordsPanel />}
                 {section === 'parents' && (
                   <ParentsPanel
                     focusId={focusTarget?.section === 'parents' ? focusTarget.id : null}
@@ -547,7 +571,6 @@ export default function Admin() {
                 {section === 'gallery' && <GalleryPanel />}
                 {section === 'reports' && <ReportsHubPanel />}
                 {section === 'sponsorships' && <SponsorshipsPanel />}
-                {section === 'attendance' && <AttendancePanel />}
                 {section === 'coach-attendance' && <CoachAttendancePanel />}
                 {section === 'finance-dashboard' && <FinanceDashboardPanel />}
                 {section === 'student-fees' && <StudentFeesPanel />}

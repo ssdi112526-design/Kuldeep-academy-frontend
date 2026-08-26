@@ -580,6 +580,7 @@ export const attendanceService = {
   months: () => api.get('/admin/attendance/months'),
   records: (params) => api.get('/admin/attendance/records', { params }),
   roster: (params) => api.get('/admin/attendance/roster', { params }),
+  sessionRoster: (params) => api.get('/admin/attendance/session-roster', { params }),
   studentSummary: (params) => api.get('/admin/attendance/summary/students', { params }),
   studentHistory: (studentId, params) =>
     api.get(`/admin/attendance/students/${studentId}/history`, { params }),

@@ -32,6 +32,7 @@ export default function App() {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/:sectionId" element={<Admin />} />
                   <Route path="/student" element={<StudentDashboard />} />
                   <Route path="/student/*" element={<StudentDashboard />} />
                   <Route path="/parent" element={<ParentDashboard />} />
