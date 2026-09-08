@@ -1,5 +1,5 @@
 ﻿import Reveal from '../ui/Reveal';
-import aboutImg from '../../assets/akhada/about-heritage.png';
+import aboutImg from '../../assets/akhada/sonam-malik.jpg';
 import { aboutPillars } from '../../data/akhada';
 import useTranslation from '../../hooks/useTranslation';
 
@@ -14,11 +14,11 @@ export default function About() {
             <img
               src={aboutImg}
               alt={t('about.imageAlt')}
-              width={900}
-              height={1100}
+              width={1000}
+              height={600}
               loading="lazy"
               decoding="async"
-              className="aspect-[4/5] w-full object-cover object-center sm:aspect-[5/6]"
+              className="aspect-[4/5] w-full object-cover object-[center_18%] sm:aspect-[5/6]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0C0A09]/50 to-transparent" />
           </div>
