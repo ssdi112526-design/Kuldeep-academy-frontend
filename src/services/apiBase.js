@@ -3,7 +3,7 @@
  * Prevents split-brain where login hits one Render service and uploads hit another
  * (causes "Invalid or expired token" / mysterious CRUD failures on live).
  */
-export const KULDEEP_PROD_API = 'https://kuldeep-malik-sports-academy-backend.onrender.com/api';
+export const KULDEEP_PROD_API = 'https://kuldeep-malik-sports-academy-backend-e0ck.onrender.com/api';
 
 function clean(url) {
   return String(url || '').trim().replace(/\/$/, '');
