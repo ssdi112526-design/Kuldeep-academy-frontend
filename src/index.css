@@ -72,6 +72,13 @@ video {
   height: auto;
 }
 
+/* object-cover images must fill their positioned parent, not intrinsic height */
+img.object-cover,
+video.object-cover {
+  height: 100%;
+  max-height: none;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
